@@ -1,0 +1,226 @@
+#lokalizator {
+   background-color:#ffffff; 
+   position:relative; 
+   top:-40px; 
+   FONT-SIZE: 11px;
+   FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif;
+   color: #000066;
+   font-weight: normal;
+   margin: auto;
+   text-align:left;
+  } 
+#szkielet {
+  background-color:#ffffff; 
+   margin: auto;
+   width: 900px;
+   text-align:left;
+  } 
+#cialo {
+   position:relative; 
+   z-index:1; 
+   top:-20px; 
+   left:35px; 
+   right:35px; 
+   width: 790px;
+   height: 580px;
+   text-align:justify; 
+   background-image:url('images/wzory2.gif'); 
+   background-repeat: no-repeat;
+   FONT-STYLE: italic;    
+   FONT-WEIGHT: bold; 
+   FONT-SIZE: 16pt; 
+   FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif
+  } 
+#cialo14black {
+   position:relative; 
+   z-index:1; 
+   top:-20px; 
+   left:35px; 
+   right:35px; 
+   width: 790px;
+   height: 580px;
+   background-image:url('images/wzory2.gif'); 
+   background-repeat: no-repeat;
+	FONT-WEIGHT: normal;
+	TEXT-DECORATION: none;
+	FONT-STYLE: normal;
+	FONT-SIZE: 14px;
+   text-align:justify;
+   COLOR: #000000;
+   FONT-FAMILY: Verdana, Tahoma, ArialCE, HelvaticaCE, Arial, Helvetica, sans-serif
+  } 
+TABLE
+{
+background-repeat:no-repeat
+}
+BODY {
+	SCROLLBAR-FACE-COLOR: #f1f1eb; SCROLLBAR-HIGHLIGHT-COLOR: #ffffff; SCROLLBAR-SHADOW-COLOR: #333333; SCROLLBAR-3DLIGHT-COLOR: #555555; SCROLLBAR-ARROW-COLOR: #3a3a32; SCROLLBAR-TRACK-COLOR: #aaaaa2; SCROLLBAR-DARKSHADOW-COLOR: #ffffff
+}
+TR {
+	SCROLLBAR-FACE-COLOR: #f1f1eb; SCROLLBAR-HIGHLIGHT-COLOR: #ffffff; SCROLLBAR-SHADOW-COLOR: #333333; SCROLLBAR-3DLIGHT-COLOR: #555555; SCROLLBAR-ARROW-COLOR: #3a3a32; SCROLLBAR-TRACK-COLOR: #aaaaa2; SCROLLBAR-DARKSHADOW-COLOR: #ffffff
+}
+TD {
+	SCROLLBAR-FACE-COLOR: #f1f1eb; SCROLLBAR-HIGHLIGHT-COLOR: #ffffff; SCROLLBAR-SHADOW-COLOR: #333333; SCROLLBAR-3DLIGHT-COLOR: #555555; SCROLLBAR-ARROW-COLOR: #3a3a32; SCROLLBAR-TRACK-COLOR: #aaaaa2; SCROLLBAR-DARKSHADOW-COLOR: #ffffff
+}
+P {
+	SCROLLBAR-FACE-COLOR: #f1f1eb; SCROLLBAR-HIGHLIGHT-COLOR: #ffffff; SCROLLBAR-SHADOW-COLOR: #333333; SCROLLBAR-3DLIGHT-COLOR: #555555; SCROLLBAR-ARROW-COLOR: #3a3a32; SCROLLBAR-TRACK-COLOR: #aaaaa2; SCROLLBAR-DARKSHADOW-COLOR: #ffffff
+}
+BR {
+	SCROLLBAR-FACE-COLOR: #f1f1eb; SCROLLBAR-HIGHLIGHT-COLOR: #ffffff; SCROLLBAR-SHADOW-COLOR: #333333; SCROLLBAR-3DLIGHT-COLOR: #555555; SCROLLBAR-ARROW-COLOR: #3a3a32; SCROLLBAR-TRACK-COLOR: #aaaaa2; SCROLLBAR-DARKSHADOW-COLOR: #ffffff
+}
+
+A:link {
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+	TEXT-DECORATION: none;
+}
+
+A:active {
+	FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif;
+	TEXT-DECORATION: none;
+}
+
+A:visited {
+	FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif;
+	TEXT-DECORATION: none;
+}
+
+A:hover {
+	color: #773333;
+}
+
+.text11black {
+	FONT-WEIGHT: normal;
+	FONT-SIZE: 11px;
+	COLOR: #000000;
+	FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif;
+}
+
+.text11gray {
+	FONT-WEIGHT: bold;
+	FONT-SIZE: 11px;
+	COLOR: #333333;
+	FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif;
+}
+
+.text10black {
+	FONT-WEIGHT: normal;
+	FONT-SIZE: 10px;
+	COLOR: #000000;
+	FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif;
+}
+.text12black {
+	FONT-WEIGHT: normal;
+	FONT-SIZE: 12px;
+	COLOR: #000000;
+	FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif;
+}
+.text14black {
+	FONT-WEIGHT: normal;
+	TEXT-DECORATION: none;
+	FONT-STYLE: normal;
+	FONT-SIZE: 14px;
+    text-align:justify;
+    COLOR: #000000;
+	FONT-FAMILY: Verdana, Tahoma, ArialCE, HelvaticaCE, Arial, Helvetica, sans-serif
+}
+.text20black {
+	FONT-WEIGHT: bold;
+	TEXT-DECORATION: none;
+	FONT-STYLE: italic;
+	FONT-SIZE: 18px;
+	COLOR: #000000;
+	FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif
+}
+.text6black {
+	FONT-WEIGHT: normal;
+	FONT-SIZE: 8px;
+	COLOR: #000000;
+	FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif;
+}
+
+.text10gray {
+	FONT-WEIGHT: bold;
+	FONT-SIZE: 10px;
+	COLOR: #333333;
+	FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif;
+}
+
+.data9gray {
+	FONT-SIZE: 9px;
+	FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif;
+	color: #666666;
+}
+
+.title9red {
+	FONT-SIZE: 9px;
+	FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif;
+	color: #CC3300;
+	font-weight: bold;
+}
+
+.link10blue {
+	FONT-SIZE: 11px;
+	FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif;
+	color: #000066;
+	font-weight: normal;
+}
+
+#topR {
+    FONT-SIZE: 8pt; COLOR: #ffffff; BACKGROUND-COLOR: #cccccc; TEXT-ALIGN: right
+}
+#menu {
+    BACKGROUND-COLOR: #0066cc
+}
+BODY {
+    FONT-WEIGHT: bold; FONT-SIZE: 12pt; FONT-FAMILY: Courier, Verdana, Arial, Helvetica, sans-serif; text-align:center;
+}
+TABLE {
+	FONT-WEIGHT: bold; FONT-SIZE: 12pt; FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif
+}
+H1 {
+    FONT-WEIGHT: bold; FONT-SIZE: 16pt; COLOR: #ff6600; FONT-FAMILY: Courier, Verdana, Arial, Helvetica, sans-serif; text-align:center;
+}
+H2 {
+	FONT-WEIGHT: bold;
+	TEXT-DECORATION: none;
+	FONT-SIZE: 18px;
+    COLOR: #000000;
+	FONT-FAMILY: Verdana, Tahoma, ArialCE, HelvaticaCE, Arial, Helvetica, sans-serif
+}
+H4 {
+	FONT-WEIGHT: bold;
+	TEXT-DECORATION: none;
+	FONT-STYLE: normal;
+	FONT-SIZE: 12px;
+    text-align:justify;
+    COLOR: #000000;
+	FONT-FAMILY: Verdana, Tahoma, ArialCE, HelvaticaCE, Arial, Helvetica, sans-serif
+}
+H5 {
+    FONT-WEIGHT: normal; FONT-SIZE: 12pt; COLOR: #0066cc
+}
+H6 {
+    FONT-WEIGHT: normal; FONT-SIZE: 8pt; COLOR: #0066cc
+}
+P.menufooter {
+    FONT-SIZE: 8pt; COLOR: #cccccc
+}
+A {
+    COLOR: #ff6600; TEXT-DECORATION: none
+}
+A.menu {
+    COLOR: #ffffff
+}
+A.submenu {
+    FONT-SIZE: 8pt; COLOR: #cccccc
+}
+A.menu:hover {
+    COLOR: #ff6600
+}
+INPUT.button {
+    COLOR: #000000; 
+}
+
+td.dydaktyka {background:#ccccff;color:black;font-weight: bold}
+td.nauka {background:#dddddd;color:black;font-weight: bold}
+td.biuro {background:#eeeeee;color:black;font-weight: bold}
