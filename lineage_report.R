@@ -114,7 +114,14 @@ t_cou_lin <- apply(t_cou_lin, 2, cumsum)
 df3 <- as.data.frame(as.table(t_cou_lin))
 colnames(df3) <- c("date", "variant", "n")
 
+counts <- data.frame(variant = names(t_cou_lin[nrow(t_cou_lin),]),
+                     label = t_cou_lin[nrow(t_cou_lin),],
+                     date = "2020/03/01",
+                     variant = "B.1.1.7",
+                     n = max(t_cou_lin[nrow(t_cou_lin),]))
+
 pl3 <- ggplot(df3, aes(ymd(date), ymax=n, ymin=0, fill = variant == "B.1.1.7")) +
+  geom_text(data = counts, aes(x = ymd(date), y = n, label = label, hjust = 0, vjust = 1), size=3) + 
   geom_stepribbon() + 
   scale_fill_manual(values = c("blue4", "red4")) +
   scale_x_date("", date_breaks = "2 months", date_labels = "%m") + 
