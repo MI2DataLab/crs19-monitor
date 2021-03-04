@@ -6,7 +6,7 @@ library(lubridate)
 library(pammtools)
 library(forcats)
 
-lineage <- read.table("dane/lineage_report_2021_02_28.csv", sep = ",", header = TRUE)
+lineage <- read.table("dane/lineage_report_2021_03_04.csv", sep = ",", header = TRUE)
 lineage$date <- sapply(strsplit(lineage$taxon, split = "|", fixed = TRUE), 
                        function(x) substr(paste0(tail(x, 1), "-01"), 1, 10))
 
