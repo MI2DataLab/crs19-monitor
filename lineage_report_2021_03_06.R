@@ -8,83 +8,19 @@ library(forcats)
 
 # data reports
 lineage_report <- "dane/lineage_report_2021_03_06.csv"
-penelope_report <- "dane/Poland_2021_02_28.txt"
+lineage_date <- "2021/03/06"
+
 
 
 # read data
 lineage <- read.table(lineage_report, sep = ",", header = TRUE)
-lineage$date <- sapply(strsplit(lineage$taxon, split = "|", fixed = TRUE), 
+lineage$date <- sapply(strsplit(lineage$Sequence.name, split = "|", fixed = TRUE), 
                        function(x) substr(paste0(tail(x, 1), "-01"), 1, 10))
 
-# http://penelope.unito.it/sars-cov-2_detection/Poland.html
-lines <- readLines(penelope_report)
 
-sapply(strsplit(grep(lines, pattern = "^.*EPI", value = TRUE), split ="\t"), 
-       `[`, 2) -> location
-sapply(strsplit(grep(lines, pattern = "^.*EPI", value = TRUE), split ="\t"), 
-       `[`, 1) -> sample
-df <- data.frame(sample, location)
-
-df$location <- c("dolnoslakie" = "Dolnośląskie", "dolnoslaskie" = "Dolnośląskie", "dolnośląskie" = "Dolnośląskie", 
-  "iodzkie" = "Łódzkie", 
-  "lodzkie" = "Łódzkie", "łódzkie" = "Łódzkie", "lubuskie" = "Lubuskie", 
-  "malopolska" = "Malopolskie", "malopolskie" = "Malopolskie", 
-  "masovia" = "Mazowieckie", "mazowieckie" = "Mazowieckie", 
-  "opolskie" = "Opolskie", "podkarpackie" = "Podkarpackie", 
-  "pomerania" = "Pomorskie", 
-  "pomorskie" = "Pomorskie", "pomorze" = "Pomorskie", "slask" = "Śląskie", "slaskie" = "Śląskie", 
-  "swietokrzyskie" = "Świetokrzyskie", 
-  "warminsko-mazurskie" = "Warminsko-mazurskie", 
-  "wielkopolska" = "Wielkopolskie", "wielkopolskie" = "Wielkopolskie", 
-  "zachodniopomorskie" = "Zachodniopomorskie", 
-  "zielonogorskie" = "Zielonogorskie")[tolower(df$location)] 
-
-
-
-
-lineage$sample <- gsub(sapply(strsplit(lineage$taxon, split = "\\|"), `[`, 2), pattern = " ", replacement = "")
-df$sample <- gsub(df$sample, pattern = " ", replacement = "")
-
-dfl <- merge(df, lineage[,c("lineage", "sample")], by.x = "sample", by.y = "sample")
-dfl$location <- fct_infreq(dfl$location)
-dfl$lineage <- fct_infreq(dfl$lineage)
-dfl$lineage <- fct_lump(dfl$lineage, 8, other_level = "Inne")
-dfl$location <- fct_lump(dfl$location, 8, other_level = "Inne")
-table(dfl$location, dfl$lineage)
+lineage$sample <- gsub(sapply(strsplit(lineage$Sequence.name, split = "\\|"), `[`, 2), pattern = " ", replacement = "")
 
 library(Cairo)
-svg("docs/images/liczba_rejon_1.svg", 7, 4)
-par(mar = c(0,0,0,0))
-mosaicplot(table(dfl$location, dfl$lineage)[9:1,], off = c(0,0), border = "white", 
-           dir = c("h", "v"), las = 2, color = RColorBrewer::brewer.pal(10, "Paired"),
-           main = "")
-dev.off()
-
-library(ca)
-tab <- table(dfl$location, dfl$lineage, useNA = "ifany")
-ca(tab)
-
-svg("docs/images/liczba_rejon_2.svg", 5, 5)
-par(mar = c(0,0,0,0))
-plot(ca(tab), arrows = c(FALSE, TRUE))
-dev.off()
-
-
-# library(rgdal)
-# library(rgeos)
-# library(tidyverse)
-# library(broom) # for tidy=fortify
-# 
-# wojewodztwa <- readOGR("dane/wojewodztwa/wojewodztwa.shp", "wojewodztwa")
-# 
-# wojewodztwa <- spTransform(wojewodztwa, CRS("+init=epsg:4326"))
-# 
-# ggplot(wojewodztwa) +
-#   geom_polygon(aes(long, lat, group=group, fill=group), color="gray", show.legend = FALSE) +
-#   coord_map() +
-#   theme_void()
-
-
 
 # -------
 # Liczba na tydzień
@@ -110,10 +46,31 @@ pl <- ggplot(df, aes(ymd(Var1), y = cumsum(Freq))) +
 
 ggsave(plot = pl, file="docs/images/liczba_seq_2.svg", width=4, height=2.5)
 
+
+
+# read html
+
+html <- paste(readLines("docs/index_source.html"), collapse = "\n")
+
+html <- gsub(pattern = "--DATE--", replacement = lineage_date, x = html)
+html <- gsub(pattern = "--NUMBER--", replacement = nrow(lineage), x = html)
+html <- gsub(pattern = "--VARIANTS--", replacement = nrow(lineage), x = html)
+
+warianty <- colnames(t_cou_lin)[-ncol(t_cou_lin)]
+warianty_list <- paste0(paste0('<a href="https://cov-lineages.org/lineages/lineage_',warianty,'.html">',warianty,'</a>'), collapse = ",\n")
+html <- gsub(pattern = "--VARIANTSLIST--", replacement = warianty_list, x = html)
+
+
+
+
+writeLines(html, con = "docs/index.html")
+
+
+
 # -------
 # Ewolucja wariantów
 
-lineage$lineage_small <- fct_infreq(lineage$lineage)
+lineage$lineage_small <- fct_infreq(lineage$Lineage)
 lineage$lineage_small <- fct_lump(lineage$lineage_small, n = 8, other_level = "Inne")
 
 t_cou_lin <- table(lineage$date, lineage$lineage_small)
@@ -141,11 +98,41 @@ pl3 <- ggplot(df3, aes(ymd(date), ymax=n, ymin=0, fill = variant == "B.1.1.7")) 
 
 ggsave(plot = pl3, file="docs/images/liczba_warianty_1.svg", width=8, height=3)
 
+
+
+
+lineage$lineage_small <- fct_infreq(lineage$Lineage)
+lineage$lineage_small <- fct_lump(lineage$lineage_small, n = 30, other_level = "Inne")
+t_cou_lin <- table(lineage$date, lineage$lineage_small)
+t_cou_lin <- apply(t_cou_lin, 2, cumsum)
+df3 <- as.data.frame(as.table(t_cou_lin))
+colnames(df3) <- c("date", "variant", "n")
+
+counts <- data.frame(variant = factor(names(t_cou_lin[nrow(t_cou_lin),]), 
+                                      labels = names(t_cou_lin[nrow(t_cou_lin),]),
+                                      levels = names(t_cou_lin[nrow(t_cou_lin),])),
+                     label = t_cou_lin[nrow(t_cou_lin),],
+                     date = "2020/03/01",
+                     n = max(t_cou_lin[nrow(t_cou_lin),]))
+
+pl4 <- ggplot(df3, aes(ymd(date), y=n, color = variant == "B.1.1.7", group = variant)) +
+  geom_step() + 
+  geom_text(data = counts, aes(x = ymd(lineage_date), y = label, label = variant, hjust = 0, vjust = 1), size=3) + 
+  scale_color_manual(values = c("blue4", "red3")) +
+  scale_x_date("", date_breaks = "2 months", date_labels = "%m") + 
+  theme_minimal() + scale_y_continuous("", expand = c(0,0)) +
+  ggtitle("Liczba sekwencji wariantów wirusa") +
+  theme(legend.position = "none")
+
+ggsave(plot = pl4, file="docs/images/liczba_warianty_2.svg", width=8, height=3)
+
+
 # -------
 # Nazwy wariantów
 
-warianty <- colnames(t_cou_lin)
-cat(paste0(paste0('<a href="https://cov-lineages.org/lineages/lineage_',warianty,'.html">',warianty,'</a>,'), collapse = "\n") )
+
+
+
 
 # -------
 # Drzewo wariantów
