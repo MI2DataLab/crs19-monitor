@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 # coding: utf-8
 
+import glob
 import os
 import time
-import glob
 
-from secret import elogin, epass  # file secret.py with credentials
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
+
+from secret import elogin, epass  # file secret.py with credentials
+
 
 def get_number_of_files(dir):
     if os.path.exists(dir):
@@ -15,6 +17,7 @@ def get_number_of_files(dir):
     else:
         n_files = 0
     return n_files
+
 
 def scrap_fasta():
 
@@ -52,7 +55,9 @@ def scrap_fasta():
     time.sleep(3)
 
     # filter
-    driver.find_element_by_class_name("sys-event-hook.sys-fi-mark.yui-ac-input").send_keys("Europe / Poland")
+    driver.find_element_by_class_name(
+        "sys-event-hook.sys-fi-mark.yui-ac-input"
+    ).send_keys("Europe / Poland")
     time.sleep(4)
 
     driver.execute_script("document.getElementById('sys_curtain').remove()")
@@ -78,7 +83,13 @@ def scrap_fasta():
     time.sleep(1)
     driver.close()
 
-    list_of_files = glob.glob(download_dir + "/*") # * means all if need specific format then *.csv
+    list_of_files = glob.glob(
+        download_dir + "/*"
+    )  # * means all if need specific format then *.csv
     fasta = max(list_of_files, key=os.path.getmtime)
 
     return fasta
+
+
+if __name__ == "__main__":
+    scrap_fasta()

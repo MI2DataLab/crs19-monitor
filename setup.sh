@@ -1,5 +1,4 @@
 #!/bin/bash
-
 #install firefox
 sudo apt install firefox && sudo apt install firefox
 
@@ -8,3 +7,5 @@ wget -N https://github.com/mozilla/geckodriver/releases/download/v0.29.0/geckodr
 
 #extract and delete tar
 tar xzvf geckodriver-v0.29.0-linux64.tar.gz && rm geckodriver-v0.29.0-linux64.tar.gz
+#install conda dependencies
+conda env update --file enviroment.yml

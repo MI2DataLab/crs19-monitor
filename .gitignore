@@ -1,2 +1,7 @@
 dane
 secret.py
+geckodriver
+geckodriver.log
+results.csv
+*.pyc
+logs/minimap2_sam.log
