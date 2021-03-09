@@ -3,6 +3,7 @@
 
 import os
 import time
+import glob
 
 from secret import elogin, epass  # file secret.py with credentials
 from selenium import webdriver
@@ -77,6 +78,7 @@ def scrap_fasta():
     time.sleep(1)
     driver.close()
 
-    return download_dir
+    list_of_files = glob.glob(download_dir + "/*") # * means all if need specific format then *.csv
+    fasta = max(list_of_files, key=os.path.getmtime)
 
-scrap_fasta()
+    return fasta
