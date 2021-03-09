@@ -145,6 +145,32 @@ pl_war_2 <- ggplot(df3, aes(ymd(date), y=n, color = variant %in% c("B.1.1.7","B.
   ggtitle("Liczba sekwencji wariantów wirusa (Pango, ostatnie 6 miesięcy)") +
   theme(legend.position = "none")
 
+# ----------
+
+nextclade$clade_small <- fct_infreq(nextclade$clade)
+t_cou_cla <- table(nextclade$date, nextclade$clade_small)
+t_cou_cla <- apply(t_cou_cla, 2, cumsum)
+df5 <- as.data.frame(as.table(t_cou_cla))
+colnames(df5) <- c("date", "variant", "n")
+
+counts5 <- data.frame(variant = factor(names(t_cou_cla[nrow(t_cou_cla),]),
+                                      labels = names(t_cou_cla[nrow(t_cou_cla),]),
+                                      levels = names(t_cou_cla[nrow(t_cou_cla),])),
+                     label = t_cou_cla[nrow(t_cou_cla),],
+                     date = "2020/03/01",
+                     n = max(t_cou_cla[nrow(t_cou_cla),]))
+
+pl_war_4 <- ggplot(df5, aes(ymd(date), y=n, color = variant %in% c("20I/501Y.V1","20H/501Y.V2"), group = variant)) +
+  geom_step() +
+  geom_step(data = df5[df5$variant %in% c("20I/501Y.V1","20H/501Y.V2"),], size=1.1) +
+  geom_text_repel(data = counts5[counts5$variant %in% c("20I/501Y.V1","20H/501Y.V2"),], aes(x = ymd(lineage_date), y = label, label = variant, hjust = 0, vjust = 1), size=3, direction = "y") +
+  scale_color_manual(values = c("grey", "red3")) +
+  scale_x_date("", date_breaks = "2 weeks", date_labels = "%m/%d",
+               limits = c(ymd(lineage_date) - months(6), ymd(lineage_date))) +
+  theme_minimal() + scale_y_continuous("", expand = c(0,0)) +
+  ggtitle("Liczba sekwencji wariantów wirusa (GISAID, ostatnie 6 miesięcy)") +
+  theme(legend.position = "none")
+
 
 ############
 ## update HTML file
@@ -184,3 +210,4 @@ ggsave(plot = pl_war_2, file="docs/images/liczba_warianty_2.svg", width=8, heigh
 
 ggsave(plot = pl_war_3, file="docs/images/liczba_warianty_3.svg", width=8, height=3)
 
+ggsave(plot = pl_war_4, file="docs/images/liczba_warianty_4.svg", width=8, height=3)
