@@ -1,1 +1,4 @@
 selenium==3.141.0
+git+https://github.com/cov-lineages/pangolin
+git+https://github.com/cov-lineages/lineages
+git+https://github.com/cov-lineages/pangoLEARN
