@@ -1,7 +1,7 @@
 ############
 ## load packages
 library(ggplot2)
-library(Cairo)
+#library(Cairo)
 library(grid)
 library(dplyr)
 library(ggrepel)
@@ -11,10 +11,11 @@ library(forcats)
 
 ############
 ## read data
-lineage_date <- "2021/03/09"
-lineage_report <- "dane/lineage_report_2021_03_09.csv"
-nextclade_report <- "dane/nextclade-19_2021_03_09.tsv"
-metadata_report <- "dane/small_meta_table_2021_03_09.csv"
+lineage_date <- Sys.getenv("LINEAGE_DATE")
+lineage_report <- Sys.getenv("LINEAGE_REPORT_PATH")
+nextclade_report <- Sys.getenv("NEXTCLADE_REPORT_PATH")
+metadata_report <- Sys.getenv("METADATA_REPORT_PATH")
+output_dir <- Sys.getenv("OUTPUT_PATH")
 
 lineage <- read.table(lineage_report, sep = ",", header = TRUE)
 nextclade <- read.table(nextclade_report, sep = "\t", header = TRUE)
@@ -22,7 +23,6 @@ metadata <- read.table(metadata_report, sep = ",", header = TRUE)
 
 ############
 ## preprocess data
-
 lineage$date <- sapply(strsplit(lineage$Sequence.name, split = "|", fixed = TRUE),
                        function(x) substr(paste0(tail(x, 1), "-01"), 1, 10))
 
@@ -197,7 +197,7 @@ pl_war_5 <- ggplot(metadata_ext, aes(ymd(Collection.date), ymd(Submission.Date),
 ############
 ## update HTML file
 
-html <- paste(readLines("docs/index_source.html"), collapse = "\n")
+html <- paste(readLines(paste0(output_dir, "/index_source.html")), collapse = "\n")
 
 html <- gsub(pattern = "--DATE--", replacement = lineage_date, x = html)
 html <- gsub(pattern = "--NUMBER--", replacement = nrow(lineage), x = html)
@@ -216,22 +216,22 @@ warianty2_list <- paste0(paste0('<a href="https://www.cdc.gov/coronavirus/2019-n
 html <- gsub(pattern = "--VARIANTSLIST2--", replacement = warianty2_list, x = html)
 html <- gsub(pattern = "--VARIANTS2--", replacement = length(colnames(t_cou_cla)), x = html)
 
-writeLines(html, con = "docs/index.html")
+writeLines(html, con = paste0(output_dir, "/index.html"))
 
 
 ############
 ## save plots
 
-ggsave(plot = pl_seq_1, file="docs/images/liczba_seq_1.svg", width=4, height=2.5)
+ggsave(plot = pl_seq_1, file=paste0(output_dir, "/images/liczba_seq_1.svg"), width=4, height=2.5)
 
-ggsave(plot = pl_seq_2, file="docs/images/liczba_seq_2.svg", width=4, height=2.5)
+ggsave(plot = pl_seq_2, file=paste0(output_dir, "/images/liczba_seq_2.svg"), width=4, height=2.5)
 
-ggsave(plot = pl_war_1, file="docs/images/liczba_warianty_1.svg", width=8, height=3)
+ggsave(plot = pl_war_1, file=paste0(output_dir, "/images/liczba_warianty_1.svg"), width=8, height=3)
 
-ggsave(plot = pl_war_2, file="docs/images/liczba_warianty_2.svg", width=8, height=3)
+ggsave(plot = pl_war_2, file=paste0(output_dir, "/images/liczba_warianty_2.svg"), width=8, height=3)
 
-ggsave(plot = pl_war_3, file="docs/images/liczba_warianty_3.svg", width=8, height=3)
+ggsave(plot = pl_war_3, file=paste0(output_dir, "/images/liczba_warianty_3.svg"), width=8, height=3)
 
-ggsave(plot = pl_war_4, file="docs/images/liczba_warianty_4.svg", width=8, height=3)
+ggsave(plot = pl_war_4, file=paste0(output_dir, "/images/liczba_warianty_4.svg"), width=8, height=3)
 
-ggsave(plot = pl_war_5, file="docs/images/liczba_warianty_5.svg", width=8, height=5)
+ggsave(plot = pl_war_5, file=paste0(output_dir, "/images/liczba_warianty_5.svg"), width=8, height=5)
