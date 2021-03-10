@@ -1,5 +1,8 @@
 # crs19-monitor
 Monitoring wariantów SARS-COV-2
+
+![Diagram of pipeline](./doc/schema.svg)
+
 ## Pre-requirements
 
 * conda
