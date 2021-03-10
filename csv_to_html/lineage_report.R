@@ -1,13 +1,15 @@
 ############
 ## load packages
 library(ggplot2)
-#library(Cairo)
+library(Cairo)
 library(grid)
 library(dplyr)
 library(ggrepel)
 library(lubridate)
 library(pammtools)
 library(forcats)
+
+theme_set(theme_gray(base_family = 'Arial' ))
 
 ############
 ## read data
