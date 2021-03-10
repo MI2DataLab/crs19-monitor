@@ -4,15 +4,11 @@ import subprocess
 import pandas as pd
 from biotite.sequence.io.fasta import FastaFile
 
-from gisaid_scraping_fasta import scrap_fasta
-
 pangolin_out_file_name = "lineage_report.csv"
-analysis_results = "results.csv"
+analysis_results = os.environ['LINEAGE_REPORT_PATH']
 temp_fasta_path = "temp.fasta"
 
-print("Scrapping...")
-input_fasta_path = scrap_fasta()
-print("Screpped to:", input_fasta_path)
+input_fasta_path = os.environ["FASTA_FILE_PATH"]
 
 # checking old results
 if os.path.isfile(analysis_results):

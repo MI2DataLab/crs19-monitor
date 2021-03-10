@@ -1,8 +1,9 @@
 dane
-secret.py
-geckodriver
-geckodriver.log
+scrapper/secret.py
+scrapper/geckodriver
+scrapper/geckodriver.log
+scrapper/gisaid_data
 results.csv
 *.pyc
-logs/minimap2_sam.log
+fasta_to_csv/logs/minimap2_sam.log
 .Rproj.user

@@ -11,18 +11,19 @@ library(forcats)
 
 ############
 ## read data
-lineage_date <- "2021/03/09"
-lineage_report <- "dane/lineage_report_2021_03_09.csv"
-nextclade_report <- "dane/nextclade-19_2021_03_09.tsv"
-metadata_report <- "dane/small_meta_table_2021_03_09.csv"
+lineage_date <- Sys.getenv("LINEAGE_DATE")
+lineage_report <- Sys.getenv("LINEAGE_REPORT_PATH")
+nextclade_report <- Sys.getenv("NEXTCLADE_REPORT_PATH")
+metadata_report <- Sys.getenv("METADATA_REPORT_PATH")
+output_dir <- Sys.getenv("OUTPUT_PATH")
 
 lineage <- read.table(lineage_report, sep = ",", header = TRUE)
+colnames(lineage)[1:2] = c('Sequence.name', 'Lineage')
 nextclade <- read.table(nextclade_report, sep = "\t", header = TRUE)
 metadata <- read.table(metadata_report, sep = ",", header = TRUE)
 
 ############
 ## preprocess data
-
 lineage$date <- sapply(strsplit(lineage$Sequence.name, split = "|", fixed = TRUE),
                        function(x) substr(paste0(tail(x, 1), "-01"), 1, 10))
 
@@ -46,7 +47,7 @@ nextclade$clade_small <- fct_lump(nextclade$clade_small, n = 12, other_level = "
 
 pl_seq_1 <- ggplot(lineage, aes(ymd(date))) +
   geom_histogram(binwidth = 7, color = "white") +
-  theme_minimal() +
+  theme_minimal(base_family = 'Arial') +
   scale_x_date("", date_breaks = "2 months", date_labels = "%m") +
   scale_y_continuous("", expand = c(0,0)) +
   ggtitle("Nowych sekwencji na tydzień")
@@ -58,7 +59,7 @@ df <- as.data.frame(t_cou_lin)
 
 pl_seq_2 <- ggplot(df, aes(ymd(Var1), y = cumsum(Freq))) +
   geom_step() + geom_hline(yintercept = 0) +
-  theme_minimal() +
+  theme_minimal(base_family = 'Arial') +
   scale_x_date("", date_breaks = "2 months", date_labels = "%m") +
   scale_y_continuous("", expand = c(0,0)) +
   ggtitle("Łącznie zebranych sekwencji")
@@ -82,13 +83,13 @@ counts <- data.frame(variant = factor(names(t_cou_lin[nrow(t_cou_lin),]),
 
 pl_war_1 <- ggplot(df3, aes(ymd(date), ymax=n, ymin=0, fill = variant == "B.1.1.7")) +
   geom_stepribbon() +
-  geom_text(data = counts, aes(x = ymd(date), y = n, label = label, hjust = 0, vjust = 1), size=3) +
+  geom_text(data = counts, aes(x = ymd(date), y = n, label = label, hjust = 0, vjust = 1), size=2.7) +
   scale_fill_manual(values = c("blue4", "red4")) +
   scale_x_date("", date_breaks = "1 month", date_labels = "%m",
                limits = c(ymd(lineage_date) - months(3), ymd(lineage_date))) +
   #  scale_x_date("", date_breaks = "2 months", date_labels = "%m") +
   facet_wrap(~variant, ncol = 5) +
-  theme_minimal() + scale_y_continuous("", expand = c(0,0)) +
+  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0)) +
   ggtitle("Liczba sekwencji wariantów wirusa (Pango, ostatnie 3 miesiące)") +
   theme(legend.position = "none")
 
@@ -110,13 +111,13 @@ counts4 <- data.frame(variant = factor(names(t_cou_cla[nrow(t_cou_cla),]),
 
 pl_war_3 <- ggplot(df4, aes(ymd(date), ymax=n, ymin=0, fill = grepl(variant, pattern = "501Y"))) +
   geom_stepribbon() +
-  geom_text(data = counts4, aes(x = ymd(date), y = n, label = label, hjust = 0, vjust = 1), size=3) +
+  geom_text(data = counts4, aes(x = ymd(date), y = n, label = label, hjust = 0, vjust = 1), size=2.7) +
   scale_fill_manual(values = c("blue4", "red4")) +
   scale_x_date("", date_breaks = "1 month", date_labels = "%m",
                limits = c(ymd(lineage_date) - months(3), ymd(lineage_date))) +
   #  scale_x_date("", date_breaks = "2 months", date_labels = "%m") +
   facet_wrap(~variant, ncol = 6) +
-  theme_minimal() + scale_y_continuous("", expand = c(0,0)) +
+  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0)) +
   ggtitle("Liczba sekwencji wariantów wirusa (GISAID, ostatnie 3 miesiące)") +
   theme(legend.position = "none")
 
@@ -139,11 +140,11 @@ counts <- data.frame(variant = factor(names(t_cou_lin[nrow(t_cou_lin),]),
 pl_war_2 <- ggplot(df3, aes(ymd(date), y=n, color = variant %in% c("B.1.1.7","B.1.351"), group = variant)) +
   geom_step() +
   geom_step(data = df3[df3$variant %in% c("B.1.1.7","B.1.351"),], size=1.1) +
-  geom_text_repel(data = counts[counts$variant %in% c("B.1.1.7","B.1.351"),], aes(x = ymd(lineage_date), y = label, label = variant, hjust = 0, vjust = 1), size=3, direction = "y") +
+  geom_text_repel(data = counts[counts$variant %in% c("B.1.1.7","B.1.351"),], aes(x = ymd(lineage_date), y = label, label = variant, hjust = 0, vjust = 0.6), size=2.9, direction = "y") +
   scale_color_manual(values = c("grey", "red3")) +
   scale_x_date("", date_breaks = "2 weeks", date_labels = "%m/%d",
                limits = c(ymd(lineage_date) - months(6), ymd(lineage_date))) +
-  theme_minimal() + scale_y_continuous("", expand = c(0,0)) +
+  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0)) +
   ggtitle("Liczba sekwencji wariantów wirusa (Pango, ostatnie 6 miesięcy)") +
   theme(legend.position = "none")
 
@@ -165,11 +166,11 @@ counts5 <- data.frame(variant = factor(names(t_cou_cla[nrow(t_cou_cla),]),
 pl_war_4 <- ggplot(df5, aes(ymd(date), y=n, color = variant %in% c("20I/501Y.V1","20H/501Y.V2"), group = variant)) +
   geom_step() +
   geom_step(data = df5[df5$variant %in% c("20I/501Y.V1","20H/501Y.V2"),], size=1.1) +
-  geom_text_repel(data = counts5[counts5$variant %in% c("20I/501Y.V1","20H/501Y.V2"),], aes(x = ymd(lineage_date), y = label, label = variant, hjust = 0, vjust = 1), size=3, direction = "y") +
+  geom_text_repel(data = counts5[counts5$variant %in% c("20I/501Y.V1","20H/501Y.V2"),], aes(x = ymd(lineage_date), y = label, label = variant, hjust = 0, vjust = 0.6), size=2.9, direction = "y") +
   scale_color_manual(values = c("grey", "red3")) +
   scale_x_date("", date_breaks = "2 weeks", date_labels = "%m/%d",
                limits = c(ymd(lineage_date) - months(6), ymd(lineage_date))) +
-  theme_minimal() + scale_y_continuous("", expand = c(0,0)) +
+  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0)) +
   ggtitle("Liczba sekwencji wariantów wirusa (GISAID, ostatnie 6 miesięcy)") +
   theme(legend.position = "none")
 
@@ -185,7 +186,7 @@ pl_war_5 <- ggplot(metadata_ext, aes(ymd(Collection.date), ymd(Submission.Date),
   geom_abline(slope = 1, intercept = 28, color = "grey", lty = 3) +
   geom_jitter(size = 0.5) +
   ggtitle("", "Przerywane linie - opóźnienie 0, 2 i 4 tygodnie. Czerwone punkty - warianty z mutacją N501Y") +
-  theme_bw() + coord_fixed() +
+  theme_bw(base_family = 'Arial') + coord_fixed() +
   scale_color_manual("", values = c("blue4", "red2")) +
   scale_x_date("Data pobrania materiału (ostatnie 3 miesiące)", date_breaks = "2 weeks", date_labels = "%m/%d",
                limits = c(ymd(lineage_date) - months(3), ymd(lineage_date)))  +
@@ -197,7 +198,7 @@ pl_war_5 <- ggplot(metadata_ext, aes(ymd(Collection.date), ymd(Submission.Date),
 ############
 ## update HTML file
 
-html <- paste(readLines("docs/index_source.html"), collapse = "\n")
+html <- paste(readLines(paste0(output_dir, "/index_source.html")), collapse = "\n")
 
 html <- gsub(pattern = "--DATE--", replacement = lineage_date, x = html)
 html <- gsub(pattern = "--NUMBER--", replacement = nrow(lineage), x = html)
@@ -216,22 +217,22 @@ warianty2_list <- paste0(paste0('<a href="https://www.cdc.gov/coronavirus/2019-n
 html <- gsub(pattern = "--VARIANTSLIST2--", replacement = warianty2_list, x = html)
 html <- gsub(pattern = "--VARIANTS2--", replacement = length(colnames(t_cou_cla)), x = html)
 
-writeLines(html, con = "docs/index.html")
+writeLines(html, con = paste0(output_dir, "/index.html"))
 
 
 ############
 ## save plots
 
-ggsave(plot = pl_seq_1, file="docs/images/liczba_seq_1.svg", width=4, height=2.5)
+ggsave(plot = pl_seq_1, file=paste0(output_dir, "/images/liczba_seq_1.svg"), width=4, height=2.5)
 
-ggsave(plot = pl_seq_2, file="docs/images/liczba_seq_2.svg", width=4, height=2.5)
+ggsave(plot = pl_seq_2, file=paste0(output_dir, "/images/liczba_seq_2.svg"), width=4, height=2.5)
 
-ggsave(plot = pl_war_1, file="docs/images/liczba_warianty_1.svg", width=8, height=3)
+ggsave(plot = pl_war_1, file=paste0(output_dir, "/images/liczba_warianty_1.svg"), width=8, height=3)
 
-ggsave(plot = pl_war_2, file="docs/images/liczba_warianty_2.svg", width=8, height=3)
+ggsave(plot = pl_war_2, file=paste0(output_dir, "/images/liczba_warianty_2.svg"), width=8, height=3)
 
-ggsave(plot = pl_war_3, file="docs/images/liczba_warianty_3.svg", width=8, height=3)
+ggsave(plot = pl_war_3, file=paste0(output_dir, "/images/liczba_warianty_3.svg"), width=8, height=3)
 
-ggsave(plot = pl_war_4, file="docs/images/liczba_warianty_4.svg", width=8, height=3)
+ggsave(plot = pl_war_4, file=paste0(output_dir, "/images/liczba_warianty_4.svg"), width=8, height=3)
 
-ggsave(plot = pl_war_5, file="docs/images/liczba_warianty_5.svg", width=8, height=5)
+ggsave(plot = pl_war_5, file=paste0(output_dir, "/images/liczba_warianty_5.svg"), width=8, height=5)

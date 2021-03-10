@@ -4,6 +4,7 @@
 import glob
 import os
 import time
+import shutil
 
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
@@ -87,6 +88,9 @@ def scrap_fasta():
         download_dir + "/*"
     )  # * means all if need specific format then *.csv
     fasta = max(list_of_files, key=os.path.getmtime)
+
+    if os.environ["FASTA_FILE_PATH"]:
+        shutil.copyfile(fasta, os.environ["FASTA_FILE_PATH"])
 
     return fasta
 
