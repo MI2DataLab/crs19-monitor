@@ -5,7 +5,7 @@ repo_path = "/home/crs19monitor/crs19-monitor"
 data_dir = "/home/crs19monitor/data"
 
 csv_path = data_dir + "/lineage_report.csv"
-fasta_path = data_dir + "/input.fasta"
+fasta_path = data_dir + "/gisaid.fasta"
 work_dir = repo_path + '/fasta_to_csv'
 
 os.environ['LINEAGE_REPORT_PATH'] = csv_path
