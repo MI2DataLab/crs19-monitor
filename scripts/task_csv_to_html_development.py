@@ -6,7 +6,7 @@ output_path = "/home/crs19monitor/site_dist_development"
 
 exec_path = repo_path + "/csv_to_html/lineage_report.R"
 csv_path = data_dir + "/lineage_report.csv"
-tsv_path = data_dir + "/lineage_report.tsv"
+tsv_path = data_dir + "/nextclade.tsv"
 meta_path = data_dir + "/metadata.csv"
 
 os.environ["LINEAGE_DATE"] = "2021/03/09"
