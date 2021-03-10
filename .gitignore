@@ -5,5 +5,5 @@ scrapper/geckodriver.log
 scrapper/gisaid_data
 results.csv
 *.pyc
-fasta_to_csv/logs/minimap2_sam.log
+fasta_to_pango/logs/minimap2_sam.log
 .Rproj.user

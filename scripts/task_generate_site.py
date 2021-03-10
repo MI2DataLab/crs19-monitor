@@ -4,7 +4,7 @@ repo_path = "/home/crs19monitor/crs19-monitor"
 data_dir = "/home/crs19monitor/data"
 output_path = "/home/crs19monitor/site_dist"
 
-exec_path = repo_path + "/csv_to_html/lineage_report.R"
+exec_path = repo_path + "/generate_site/lineage_report.R"
 csv_path = data_dir + "/lineage_report.csv"
 tsv_path = data_dir + "/nextclade.tsv"
 meta_path = data_dir + "/metadata.csv"
