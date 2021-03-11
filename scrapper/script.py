@@ -21,10 +21,10 @@ def get_number_of_files(dir):
     return n_files
 
 
-def get_driver(download_dir):
+def get_driver(download_dir, region):
     """
     Returns firefox driver logged to https://@epicov.org/epi3/ 
-    Filtered by Location: Europe / Poland 
+    @param region - used to filtered by Location for example "Europe / Poland" 
     """
 
     url = "https://@epicov.org/epi3/"
@@ -60,7 +60,7 @@ def get_driver(download_dir):
     # filter
     driver.find_element_by_class_name(
         "sys-event-hook.sys-fi-mark.yui-ac-input"
-    ).send_keys("Europe / Poland")
+    ).send_keys(region)
     time.sleep(4)
 
     driver.execute_script("document.getElementById('sys_curtain').remove()")
@@ -148,6 +148,11 @@ def scrap_meta_table():
 
     return os.environ["META_FILE_PATH"]
 
+def scrap_meta_details():
+    driver = get_driver(".")
+
+
 if __name__ == "__main__":
-    scrap_fasta()
-    scrap_meta_table()
+#    scrap_fasta()
+#    scrap_meta_table()
+    scrap_meta_details()
