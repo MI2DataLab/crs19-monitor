@@ -148,11 +148,7 @@ def scrap_meta_table():
 
     return os.environ["META_FILE_PATH"]
 
-def scrap_meta_details():
-    driver = get_driver(".")
-
 
 if __name__ == "__main__":
-#    scrap_fasta()
-#    scrap_meta_table()
-    scrap_meta_details()
+    scrap_fasta()
+    scrap_meta_table()
