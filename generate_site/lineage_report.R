@@ -11,6 +11,11 @@ library(forcats)
 
 ############
 ## read data
+# lineage_report =  "../dane/lineage_report.csv"
+# nextclade_report = "../dane/nextclade.tsv"
+# metadata_report = "../dane/metadata.csv"
+# lineage_date <- "2021/03/09"
+
 lineage_date <- Sys.getenv("LINEAGE_DATE")
 lineage_report <- Sys.getenv("LINEAGE_REPORT_PATH")
 nextclade_report <- Sys.getenv("NEXTCLADE_REPORT_PATH")
@@ -196,6 +201,61 @@ pl_war_5 <- ggplot(metadata_ext, aes(ymd(Collection.date), ymd(Submission.Date),
 
 
 ############
+## plots for regions
+
+metadata_ext$LocationClean <- sapply(strsplit(metadata_ext$Location, split = "/"), `[`, 3)
+metadata_ext$LocationClean <- c(" Pomorskie" = "Pomorskie", " Wielkopolskie " = "Wielkopolskie", " Warminsko-Mazurskie " = "Warmińsko-Mazurskie", " Dolnoslaskie" = "Dolnośląskie",
+  " warminsko-mazurskie" = "Warmińsko-Mazurskie", " pomorskie" = "Pomorskie", " lubuskie" = "Lubuskie", " zachodniopomorskie" = "Zachodniopomorskie",
+  " malopolskie" = "Małopolskie", " Zachodniopomorskie" = "Zachodniopomorskie", " Zachodniopomorskie " = "Zachodniopomorskie",
+  " Dolnośląskie " = "Dolnośląskie", " slaskie" = "Śląskie", " dolnoslaskie" = "Dolnośląskie", " Malopolskie" = "Małopolskie",
+  " Dolnośląskie" = "Dolnośląskie", " swietokrzyskie" = "Świętokrzyskie", " opolskie" = "Opolskie", " Warmińsko-mazurskie" = "Warmińsko-Mazurskie",
+  " Opolskie" = "Opolskie", " Iodzkie" = "Łódzkie", " podkarpackie" = "Podkarpackie", " Lodzkie" = "Łódzkie", " Podlaskie " = "Podlaskie",
+  " Bielsk Podlaski", " Lodzkie " = "Łódzkie", " Wielkopolskie" = "Wielkopolskie",
+  " Łódzkie" = "Łódzkie", " Masovia" = "Mazowieckie", " Mazowieckie" = "Mazowieckie", " Mazowieckie " = "Mazowieckie", " Pomorskie " = "Pomorskie",
+  " Dolnoslaskie " = "Dolnośląskie", " Malopolska " = "Małopolskie", " Malopolska" = "Małopolskie", " Wielkopolska " = "Wielkopolskie",
+  " Pomorze" = "Pomorskie", " Slask" = "Śląskie")[metadata_ext$LocationClean]
+
+t_dat_loc_cla <- table(metadata_ext$Collection.date, metadata_ext$LocationClean, ifelse(grepl(metadata_ext$clade_small, pattern = "501Y"), "N501Y", "-"))
+t_dat_loc_cla[,,1] <- t_dat_loc_cla[,,1] + t_dat_loc_cla[,,2]
+t_dat_loc_cla <- apply(t_dat_loc_cla, 2:3, cumsum)
+t_dat_loc_cla <- data.frame(as.table(t_dat_loc_cla))
+
+t_dat_loc_cla$Var2 <- reorder(t_dat_loc_cla$Var2, -t_dat_loc_cla$Freq, sum)
+
+pl_loc_1 <- ggplot(t_dat_loc_cla, aes(ymd(Var1), ymax=Freq, ymin=0, fill = Var3)) +
+  geom_stepribbon() +
+#  geom_text(data = counts4, aes(x = ymd(date), y = n, label = label, hjust = 0, vjust = 1), size=2.7) +
+  scale_fill_manual(values = c("grey", "red3")) +
+  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
+               limits = c(ymd(lineage_date) - months(3), ymd(lineage_date))) +
+  facet_wrap(~Var2, ncol = 5) +
+  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0)) +
+  ggtitle("Liczba sekwencji w województwach (ostatnie 3 miesiące)") +
+  theme(legend.position = "none")
+
+
+t_dat_loc_cla <- table(metadata_ext$Collection.date, metadata_ext$LocationClean, ifelse(grepl(metadata_ext$clade_small, pattern = "501Y"), "N501Y", "-"))
+t_dat_loc_cla <- apply(t_dat_loc_cla, 2:3, cumsum)
+t_dat_loc_cla[,,1] <- t_dat_loc_cla[,,1] + t_dat_loc_cla[,,2]
+t_dat_loc_cla[,,2] <- t_dat_loc_cla[,,2] / t_dat_loc_cla[,,1]
+t_dat_loc_cla[,,1] <- 1
+t_dat_loc_cla <- data.frame(as.table(t_dat_loc_cla))
+
+pl_loc_2 <- ggplot(t_dat_loc_cla, aes(ymd(Var1), ymax=Freq, ymin=0, fill = Var3)) +
+  geom_stepribbon() +
+  #  geom_text(data = counts4, aes(x = ymd(date), y = n, label = label, hjust = 0, vjust = 1), size=2.7) +
+  scale_fill_manual(values = c("#77777777", "red3")) +
+  scale_y_continuous("", labels = scales::percent, expand = c(0,0)) +
+  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
+               limits = c(ymd(lineage_date) - months(3), ymd(lineage_date))) +
+  facet_wrap(~Var2, ncol = 5) +
+  theme_minimal(base_family = 'Arial') +
+  ggtitle("Procent sekwencji w województwach (ostatnie 3 miesiące)") +
+  theme(legend.position = "none")
+
+
+
+############
 ## update HTML file
 
 html <- paste(readLines(paste0(output_dir, "/index_source.html")), collapse = "\n")
@@ -226,6 +286,10 @@ writeLines(html, con = paste0(output_dir, "/index.html"))
 ggsave(plot = pl_seq_1, file=paste0(output_dir, "/images/liczba_seq_1.svg"), width=4, height=2.5)
 
 ggsave(plot = pl_seq_2, file=paste0(output_dir, "/images/liczba_seq_2.svg"), width=4, height=2.5)
+
+ggsave(plot = pl_loc_1, file=paste0(output_dir, "/images/liczba_loc_1.svg"), width=8, height=3)
+
+ggsave(plot = pl_loc_2, file=paste0(output_dir, "/images/liczba_loc_2.svg"), width=8, height=3)
 
 ggsave(plot = pl_war_1, file=paste0(output_dir, "/images/liczba_warianty_1.svg"), width=8, height=3)
 
