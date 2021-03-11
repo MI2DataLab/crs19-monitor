@@ -67,15 +67,16 @@ def get_driver(download_dir, region):
 
     return driver
 
-def scrap_fasta():
+def scrap_fasta(region):
     """
     Downloads fasta file from https://@epicov.org/epi3/
     Filtered by Location: Europe / Poland
+    @param region - used to filtered by Location for example "Europe / Poland" 
     """
 
     download_dir = os.getcwd() + "/gisaid_data"
     n_files_before = get_number_of_files(download_dir)
-    driver = get_driver(download_dir)
+    driver = get_driver(download_dir, region)
 
     # select all
     driver.find_elements_by_xpath("//input[starts-with(@type, 'checkbox')]")[5].click()
@@ -108,12 +109,13 @@ def scrap_fasta():
 
     return fasta
 
-def scrap_meta_table():
+def scrap_meta_table(region):
     """
     Scraps https://@epicov.org/epi3/ table with metadata
+    @param region - used to filtered by Location for example "Europe / Poland" 
     """
     download_dir = os.getcwd() + "/gisaid_data"
-    driver = get_driver(download_dir)
+    driver = get_driver(download_dir, region)
 
     # scrap first page
     page = driver.find_element_by_class_name("yui-dt-bd").get_attribute("innerHTML")
@@ -150,5 +152,6 @@ def scrap_meta_table():
 
 
 if __name__ == "__main__":
-    scrap_fasta()
-    scrap_meta_table()
+    region = os.environ['REGION']
+    scrap_fasta(region)
+    scrap_meta_table(region)
