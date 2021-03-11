@@ -22,6 +22,10 @@ def get_number_of_files(dir):
 
 
 def get_driver(download_dir):
+    """
+    Returns firefox driver logged to https://@epicov.org/epi3/ 
+    Filtered by Location: Europe / Poland 
+    """
 
     url = "https://@epicov.org/epi3/"
     
@@ -64,6 +68,10 @@ def get_driver(download_dir):
     return driver
 
 def scrap_fasta():
+    """
+    Downloads fasta file from https://@epicov.org/epi3/
+    Filtered by Location: Europe / Poland
+    """
 
     download_dir = os.getcwd() + "/gisaid_data"
     n_files_before = get_number_of_files(download_dir)
@@ -101,6 +109,9 @@ def scrap_fasta():
     return fasta
 
 def scrap_meta_table():
+    """
+    Scraps https://@epicov.org/epi3/ table with metadata
+    """
     download_dir = os.getcwd() + "/gisaid_data"
     driver = get_driver(download_dir)
 
@@ -133,13 +144,9 @@ def scrap_meta_table():
 
     df_clean = df.drop_duplicates()
 
-    meta = download_dir + "/small_meta_table.csv"
+    df_clean.to_csv(os.environ["META_FILE_PATH"])
 
-    df_clean.to_csv(download_dir + "/small_meta_table.csv")
-
-    if os.environ["META_FILE_PATH"]:
-        shutil.copyfile(meta, os.environ["META_FILE_PATH"])
-    
+    return os.environ["META_FILE_PATH"]
 
 if __name__ == "__main__":
     scrap_fasta()
