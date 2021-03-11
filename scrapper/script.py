@@ -8,6 +8,7 @@ import shutil
 
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
+import pandas as pd
 
 from secret import elogin, epass  # file secret.py with credentials
 
@@ -20,11 +21,10 @@ def get_number_of_files(dir):
     return n_files
 
 
-def scrap_fasta():
+def get_driver(download_dir):
 
     url = "https://@epicov.org/epi3/"
-    download_dir = os.getcwd() + "/gisaid_data"
-
+    
     profile = webdriver.FirefoxProfile()
     profile.set_preference("browser.download.folderList", 2)
     profile.set_preference("browser.download.manager.useWindow", False)
@@ -35,9 +35,7 @@ def scrap_fasta():
 
     options = webdriver.firefox.options.Options()
     # comment to allow firefox window
-    options.add_argument("--headless")
-
-    n_files_before = get_number_of_files(download_dir)
+    #options.add_argument("--headless")
 
     driver = webdriver.Firefox(
         executable_path="./geckodriver", firefox_profile=profile, options=options
@@ -63,9 +61,17 @@ def scrap_fasta():
 
     driver.execute_script("document.getElementById('sys_curtain').remove()")
 
+    return driver
+
+def scrap_fasta():
+
+    download_dir = os.getcwd() + "/gisaid_data"
+    n_files_before = get_number_of_files(download_dir)
+    driver = get_driver(download_dir)
+
     # select all
     driver.find_elements_by_xpath("//input[starts-with(@type, 'checkbox')]")[5].click()
-    time.sleep(10)
+    time.sleep(20)
 
     # download
     driver.find_elements_by_class_name("sys-form-button")[4].click()
@@ -86,7 +92,7 @@ def scrap_fasta():
 
     list_of_files = glob.glob(
         download_dir + "/*"
-    )  # * means all if need specific format then *.csv
+    ) 
     fasta = max(list_of_files, key=os.path.getmtime)
 
     if os.environ["FASTA_FILE_PATH"]:
@@ -94,6 +100,47 @@ def scrap_fasta():
 
     return fasta
 
+def scrap_meta_table():
+    download_dir = os.getcwd() + "/gisaid_data"
+    driver = get_driver(download_dir)
+
+    # scrap first page
+    page = driver.find_element_by_class_name("yui-dt-bd").get_attribute("innerHTML")
+    meta_df = pd.read_html(page)[0]
+
+    # go to next page
+    driver.find_element_by_class_name("yui-pg-next").click()
+
+    while True:
+        page = driver.find_element_by_class_name("yui-dt-bd").get_attribute("innerHTML")
+        df = pd.read_html(page)[0]
+        meta_df = pd.concat([meta_df, df])
+        time.sleep(5)
+
+        # stop if reached last page
+        if not ('href' in driver.find_element_by_class_name("yui-pg-next").get_attribute("outerHTML")):
+            break
+
+        # go to next page
+        driver.find_element_by_class_name("yui-pg-next").click()
+        time.sleep(5)
+    
+    time.sleep(2)
+    driver.close()
+    
+    # drop column of checkboxes and symbol
+    df = df.drop(['Unnamed: 0', 'Unnamed: 6'], axis=1)
+
+    df_clean = df.drop_duplicates()
+
+    meta = download_dir + "/small_meta_table.csv"
+
+    df_clean.to_csv(download_dir + "/small_meta_table.csv")
+
+    if os.environ["META_FILE_PATH"]:
+        shutil.copyfile(meta, os.environ["META_FILE_PATH"])
+    
 
 if __name__ == "__main__":
     scrap_fasta()
+    scrap_meta_table()
