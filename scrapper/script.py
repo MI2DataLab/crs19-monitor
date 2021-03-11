@@ -39,7 +39,7 @@ def get_driver(download_dir, region):
 
     options = webdriver.firefox.options.Options()
     # comment to allow firefox window
-    #options.add_argument("--headless")
+    options.add_argument("--headless")
 
     driver = webdriver.Firefox(
         executable_path="./geckodriver", firefox_profile=profile, options=options
@@ -142,9 +142,9 @@ def scrap_meta_table(region):
     driver.close()
     
     # drop column of checkboxes and symbol
-    df = df.drop(['Unnamed: 0', 'Unnamed: 6'], axis=1)
+    meta_df = meta_df.drop(['Unnamed: 0', 'Unnamed: 6'], axis=1)
 
-    df_clean = df.drop_duplicates()
+    df_clean = meta_df.drop_duplicates()
 
     df_clean.to_csv(os.environ["META_FILE_PATH"])
 
