@@ -22,5 +22,8 @@ for f in input_files:
         os.environ['LINEAGE_REPORT_PATH'] = output_file
         os.environ["FASTA_FILE_PATH"] = f
         out = os.system('bash -c "source ' + conda_sh_path + ' && cd ' + work_dir + ' && conda activate crs19 && python script.py"')
+        if out != 0:
+            sys.exit(out)
 
-os.system('bash -c "cat ' + pango_output_dir + '/*.csv' + ' > ' + pango_merged_file + '"')
+out = os.system('bash -c "cat ' + pango_output_dir + '/*.csv' + ' > ' + pango_merged_file + '"')
+sys.exit(out)

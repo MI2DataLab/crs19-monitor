@@ -1,5 +1,6 @@
 import os
 import glob
+import sys
 from config import diff_fasta_dir, clades_output_dir, clades_merged_file
 
 # Create output directory if not exists
@@ -18,5 +19,8 @@ for f in input_files:
     output_file = clades_output_dir + '/' + str(timestamp) + '.tsv'
     if output_file not in processed_files:
         out = os.system('bash -c "source ~/.bashrc && nextclade --input-fasta ' + f + ' --output-tsv ' + output_file + ' "')
+        if out != 0:
+            sys.exit(out)
 
-os.system('bash -c "cat ' + clades_output_dir + '/*.tsv' + ' > ' + clades_merged_file + '"')
+out = os.system('bash -c "cat ' + clades_output_dir + '/*.tsv' + ' > ' + clades_merged_file + '"')
+sys.exit(out)

@@ -1,5 +1,6 @@
 import os
 import glob
+import sys
 from config import conda_sh_path, repo_path, data_dir, gisaid_fasta_dir, diff_fasta_dir
 
 source = 'gisaid'
@@ -25,3 +26,4 @@ os.environ['FASTA_SOURCE'] = source
 os.environ['DB_PATH'] = db_path
 
 out = os.system('bash -c "source ' + conda_sh_path + ' && cd ' + work_dir + ' && conda activate crs19 && python script.py"')
+sys.exit(out)

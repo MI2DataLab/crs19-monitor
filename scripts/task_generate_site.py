@@ -20,6 +20,7 @@ remote =' origin' if not os.environ.get('DEV') else 'dev'
 
 out = os.system('Rscript ' + exec_path)
 if out == 0 and not os.environ.get('NOT_PUSH'):
-    os.system('cd ' + site_dist + ' && git add -A && git commit -m "update" && git push -f -u ' + remote + ' gh-pages')
+    out = os.system('cd ' + site_dist + ' && git add -A && git commit -m "update" && git push -f -u ' + remote + ' gh-pages')
+    sys.exit(out)
 else:
-    pass
+    sys.exit(out)

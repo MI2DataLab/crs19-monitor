@@ -1,5 +1,6 @@
 import os
 import time
+import sys
 from config import conda_sh_path, repo_path, gisaid_fasta_dir, gisaid_metadata_dir
 
 region = "Europe / Poland"
@@ -21,3 +22,4 @@ os.environ["META_FILE_PATH"] = meta_path
 os.environ["REGION"] = region
 
 out = os.system('bash -c "source ' + conda_sh_path + ' && cd ' + work_dir + ' && conda activate crs19 && python script.py"')
+sys.exit(out)

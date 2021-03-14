@@ -1,5 +1,6 @@
 import os
 import glob
+import sys
 from config import conda_sh_path, diff_fasta_dir, mutation_output_dir, repo_path, mutation_merged_file
 
 work_dir = repo_path + '/fasta_to_mutation'
@@ -24,5 +25,8 @@ for f in input_files:
         os.environ['FASTA_TO_MUTATION'] = f
         os.environ["FASTA_TO_MUTATION_OUT"] = output_file
         out = os.system('bash -c "source ' + conda_sh_path + ' && cd ' + work_dir + ' && conda activate crs19 && python script.py"')
+        if out != 0:
+            sys.exit(out)
 
-os.system('bash -c "cat ' + mutation_output_dir + '/*.csv' + ' > ' + mutation_merged_file + '"')
+out = os.system('bash -c "cat ' + mutation_output_dir + '/*.csv' + ' > ' + mutation_merged_file + '"')
+sys.exit(out)
