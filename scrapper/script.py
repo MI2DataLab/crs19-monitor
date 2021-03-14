@@ -96,7 +96,7 @@ def scrap_fasta(region):
         # sleep until file is downloaded
         time.sleep(1)
 
-    time.sleep(1)
+    time.sleep(30)
     driver.close()
 
     list_of_files = glob.glob(
