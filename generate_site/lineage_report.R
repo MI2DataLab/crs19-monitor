@@ -276,6 +276,7 @@ pal <- structure(c("#E9C622", "#51A4B8", "#E5BC13", "#67AFBF", "#E1B103",
                    "#82B8B6", "#E58600", "#ACC07E", "#3B9AB2", "#EB5000", "#F21A00"
 ), .Names = c("20A.EU2", "19A", "20D", "19B", "20C", "20E (EU1)",
               "20G", "20A", "20B", "20H/501Y.V2", "20I/501Y.V1"))
+df5 <- df5[df5$variant %in% names(pal),]
 
 pl_var_all_1 <- ggplot(df4, aes(ymd(date), y=n, fill = variant)) +
   geom_area( position = "fill", color = "white") +
@@ -299,7 +300,7 @@ pal <- structure(c("#E9C622", "#51A4B8", "#E5BC13", "#67AFBF", "#E1B103",
                    "#82B8B6", "#E58600", "#ACC07E", "#3B9AB2", "#EB5000", "#F21A00"
 ), .Names = c("20A.EU2", "19A", "20D", "19B", "20C", "20E (EU1)",
               "20G", "20A", "20B", "20H/501Y.V2", "20I/501Y.V1"))
-
+df5 <- df5[df5$variant %in% names(pal),]
 
 library(scales)
 logit_perc <- trans_new("logit perc",
@@ -370,6 +371,6 @@ ggsave(plot = pl_war_4, file=paste0(output_dir, "/images/liczba_warianty_4.svg")
 
 ggsave(plot = pl_war_5, file=paste0(output_dir, "/images/liczba_warianty_5.svg"), width=8, height=5)
 
-ggsave(plot = pl_var_all_1, file=paste0(output_dir, "/images/udzial_warianty_1.svg"), width=8, height=4)
+ggsave(plot = pl_var_all_1, file=paste0(output_dir, "/images/udzial_warianty_1.svg"), width=7, height=5)
 
-ggsave(plot = pl_var_all_2, file=paste0(output_dir, "/images/udzial_warianty_2.svg"), width=8, height=4)
+ggsave(plot = pl_var_all_2, file=paste0(output_dir, "/images/udzial_warianty_2.svg"), width=7, height=5)
