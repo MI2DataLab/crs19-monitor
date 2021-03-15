@@ -20,7 +20,7 @@ for f in input_files:
     if output_file not in processed_files:
         out = os.system('bash -c "source ~/.bashrc && nextclade --input-fasta ' + f + ' --output-tsv ' + output_file + ' "')
         if out != 0:
-            sys.exit(out)
+            sys.exit(out >> 8)
 
 out = os.system('bash -c "awk \'(NR == 1) || (FNR > 1)\' ' + clades_output_dir + '/*.tsv' + ' > ' + clades_merged_file + '"')
-sys.exit(out)
+sys.exit(out >> 8)

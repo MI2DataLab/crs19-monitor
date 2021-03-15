@@ -24,7 +24,7 @@ for f in input_files:
         os.environ["FASTA_FILE_PATH"] = f
         out = os.system('bash -c "source ' + conda_sh_path + ' && cd ' + work_dir + ' && conda activate crs19 && python script.py"')
         if out != 0:
-            sys.exit(out)
+            sys.exit(out >> 8)
 
 out = os.system('bash -c "awk \'(NR == 1) || (FNR > 1)\' ' + pango_output_dir + '/*.csv' + ' > ' + pango_merged_file + '"')
-sys.exit(out)
+sys.exit(out >> 8)

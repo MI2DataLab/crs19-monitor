@@ -26,7 +26,7 @@ for f in input_files:
         os.environ["FASTA_TO_MUTATION_OUT"] = output_file
         out = os.system('bash -c "source ' + conda_sh_path + ' && cd ' + work_dir + ' && conda activate crs19 && python script.py"')
         if out != 0:
-            sys.exit(out)
+            sys.exit(out >> 8)
 
 out = os.system('bash -c "awk \'(NR == 1) || (FNR > 1)\' ' + mutation_output_dir + '/*.csv' + ' > ' + mutation_merged_file + '"')
-sys.exit(out)
+sys.exit(out >> 8)

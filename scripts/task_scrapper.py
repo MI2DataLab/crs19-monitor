@@ -22,4 +22,4 @@ os.environ["META_FILE_PATH"] = meta_path
 os.environ["REGION"] = region
 
 out = os.system('bash -c "source ' + conda_sh_path + ' && cd ' + work_dir + ' && conda activate crs19 && python script.py"')
-sys.exit(out)
+sys.exit(out >> 8)

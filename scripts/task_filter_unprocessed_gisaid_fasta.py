@@ -26,4 +26,4 @@ os.environ['FASTA_SOURCE'] = source
 os.environ['DB_PATH'] = db_path
 
 out = os.system('bash -c "source ' + conda_sh_path + ' && cd ' + work_dir + ' && conda activate crs19 && python script.py"')
-sys.exit(out)
+sys.exit(out >> 8)
