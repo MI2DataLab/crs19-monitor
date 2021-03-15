@@ -4,7 +4,7 @@ import sys
 from config import conda_sh_path, repo_path, data_dir, gisaid_fasta_dir, diff_fasta_dir
 
 source = 'gisaid'
-work_dir = repo_path + '/filter_fasta'
+work_dir = repo_path + '/filter_unprocessed_fasta'
 db_path = data_dir + '/sequences.sqlite'
 full_fasta_dir = gisaid_fasta_dir
 
