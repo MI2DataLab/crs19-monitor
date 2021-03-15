@@ -1,5 +1,6 @@
 import os
 import glob
+import sys
 from config import conda_sh_path, diff_fasta_dir, pango_output_dir, repo_path, pango_merged_file
 
 work_dir = repo_path + '/fasta_to_pango'

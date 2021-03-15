@@ -1,5 +1,6 @@
 import os
 import glob
+import sys
 from datetime import datetime
 from config import repo_path, site_dist, pango_merged_file, clades_merged_file, mutation_merged_file, gisaid_metadata_dir
 
