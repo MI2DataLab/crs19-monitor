@@ -6,13 +6,14 @@ from biotite.sequence.io.fasta import FastaFile
 input_file = os.environ['INPUT_FASTA']
 output_file = os.environ['OUTPUT_FASTA']
 source = os.environ['FASTA_SOURCE']
+region = os.environ['REGION']
 db_path = os.environ['DB_PATH']
 
 con = sqlite3.connect(db_path)
 cur = con.cursor()
 
 # Create table if not exists
-cur.execute('CREATE TABLE IF NOT EXISTS sequences (key VARCHAR(128) PRIMARY KEY, file VARCHAR(256), source VARCHAR(32))')
+cur.execute('CREATE TABLE IF NOT EXISTS sequences (key VARCHAR(128) PRIMARY KEY, file VARCHAR(256), source VARCHAR(32), region VARCHAR(32))')
 con.commit()
 
 # Read input fasta
@@ -31,5 +32,5 @@ if len(list(new_sequences.keys())) > 0:
     new_sequences.write(output_file)
     # Update database
     for key in new_sequences.keys():
-        cur.execute('INSERT INTO sequences (key, file, source) VALUES (?, ?, ?)', (key, output_file, source))
+        cur.execute('INSERT INTO sequences (key, file, source, region) VALUES (?, ?, ?, ?)', (key, output_file, source, region))
     con.commit()
