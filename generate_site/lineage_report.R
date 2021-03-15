@@ -95,7 +95,7 @@ pl_war_1 <- ggplot(df3, aes(ymd(date), ymax=n, ymin=0, fill = variant == "B.1.1.
   #  scale_x_date("", date_breaks = "2 months", date_labels = "%m") +
   facet_wrap(~variant, ncol = 5) +
   theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0)) +
-  ggtitle("Liczba sekwencji wariantów wirusa (Pango, ostatnie 3 miesiące)") +
+  ggtitle("Skumulowana liczba sekwencji wariantów wirusa (Pango, ostatnie 3 miesiące)") +
   theme(legend.position = "none")
 
 # -------
@@ -123,7 +123,7 @@ pl_war_3 <- ggplot(df4, aes(ymd(date), ymax=n, ymin=0, fill = grepl(variant, pat
   #  scale_x_date("", date_breaks = "2 months", date_labels = "%m") +
   facet_wrap(~variant, ncol = 6) +
   theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0)) +
-  ggtitle("Liczba sekwencji wariantów wirusa (GISAID, ostatnie 3 miesiące)") +
+  ggtitle("Skumulowana liczba sekwencji wariantów wirusa (GISAID, ostatnie 3 miesiące)") +
   theme(legend.position = "none")
 
 # ----------
@@ -150,7 +150,7 @@ pl_war_2 <- ggplot(df3, aes(ymd(date), y=n, color = variant %in% c("B.1.1.7","B.
   scale_x_date("", date_breaks = "2 weeks", date_labels = "%m/%d",
                limits = c(ymd(lineage_date) - months(6), ymd(lineage_date))) +
   theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0)) +
-  ggtitle("Liczba sekwencji wariantów wirusa (Pango, ostatnie 6 miesięcy)") +
+  ggtitle("Skumulowana liczba sekwencji wariantów wirusa (Pango, ostatnie 6 miesięcy)") +
   theme(legend.position = "none")
 
 # ----------
@@ -176,7 +176,7 @@ pl_war_4 <- ggplot(df5, aes(ymd(date), y=n, color = variant %in% c("20I/501Y.V1"
   scale_x_date("", date_breaks = "2 weeks", date_labels = "%m/%d",
                limits = c(ymd(lineage_date) - months(6), ymd(lineage_date))) +
   theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0)) +
-  ggtitle("Liczba sekwencji wariantów wirusa (GISAID, ostatnie 6 miesięcy)") +
+  ggtitle("Skumulowana liczba sekwencji wariantów wirusa (GISAID, ostatnie 6 miesięcy)") +
   theme(legend.position = "none")
 
 ############
@@ -230,7 +230,7 @@ pl_loc_1 <- ggplot(t_dat_loc_cla, aes(ymd(Var1), ymax=Freq, ymin=0, fill = Var3)
                limits = c(ymd(lineage_date) - months(3), ymd(lineage_date))) +
   facet_wrap(~Var2, ncol = 5) +
   theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0)) +
-  ggtitle("Liczba sekwencji w województwach (ostatnie 3 miesiące)") +
+  ggtitle("Skumulowana liczba sekwencji w województwach (ostatnie 3 miesiące)") +
   theme(legend.position = "none")
 
 
@@ -250,7 +250,7 @@ pl_loc_2 <- ggplot(t_dat_loc_cla, aes(ymd(Var1), ymax=Freq, ymin=0, fill = Var3)
                limits = c(ymd(lineage_date) - months(3), ymd(lineage_date))) +
   facet_wrap(~Var2, ncol = 5) +
   theme_minimal(base_family = 'Arial') +
-  ggtitle("Procent sekwencji w województwach (ostatnie 3 miesiące)") +
+  ggtitle("Skumulowany procent sekwencji w województwach (ostatnie 3 miesiące)") +
   theme(legend.position = "none")
 
 
@@ -267,7 +267,7 @@ for (i in nrow(t_cou_cla):k) {
 
 df4 <- as.data.frame(as.table(t_cou_cla))
 colnames(df4) <- c("date", "variant", "n")
-lineage_date <- max(as.character(df4$date))
+lineage_date_local <- lineage_date # max(as.character(df4$date)) # something is wrong with the input file
 
 df4$variant <- reorder(df4$variant, df4$n, tail, 1)
 df4$variant <- fct_relevel(df4$variant, c("20H/501Y.V2"), "20I/501Y.V1", after = Inf)
@@ -277,12 +277,13 @@ pal <- structure(c("#E9C622", "#51A4B8", "#E5BC13", "#67AFBF", "#E1B103",
 ), .Names = c("20A.EU2", "19A", "20D", "19B", "20C", "20E (EU1)",
               "20G", "20A", "20B", "20H/501Y.V2", "20I/501Y.V1"))
 df4 <- df4[df4$variant %in% names(pal),]
+df4 <- df4[ymd(df4$date) > ymd(lineage_date_local) - months(3),]
 
 pl_var_all_1 <- ggplot(df4, aes(ymd(date), y=n, fill = variant)) +
   geom_area( position = "fill", color = "white") +
-  coord_cartesian(xlim = c(ymd(lineage_date) - months(3), ymd(lineage_date)), ylim= c(0,1)) +
+  coord_cartesian(xlim = c(ymd(lineage_date_local) - months(3), ymd(lineage_date_local)), ylim= c(0,1)) +
   scale_x_date("", date_breaks = "1 month", date_labels = "%m",
-               limits = c(ymd(lineage_date) - months(3), ymd(lineage_date)))+
+               limits = c(ymd(lineage_date_local) - months(3), ymd(lineage_date_local)))+
   scale_fill_manual("", values = pal) +
   ggtitle("Udział sekwencji z wariantem wirusa (GISAID, ostatnie 3 miesiące)") +
   theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0), labels = scales::percent)
@@ -301,6 +302,7 @@ pal <- structure(c("#E9C622", "#51A4B8", "#E5BC13", "#67AFBF", "#E1B103",
 ), .Names = c("20A.EU2", "19A", "20D", "19B", "20C", "20E (EU1)",
               "20G", "20A", "20B", "20H/501Y.V2", "20I/501Y.V1"))
 df5 <- df5[df5$variant %in% names(pal),]
+df5 <- df5[ymd(df5$date) > ymd(lineage_date_local) - months(3),]
 
 library(scales)
 logit_perc <- trans_new("logit perc",
@@ -311,17 +313,17 @@ logit_perc <- trans_new("logit perc",
 pl_var_all_2 <- ggplot(df5[df5$n > 0 & df5$n < 1,], aes(ymd(date), y=n, color = variant)) +
   geom_point( ) +
   scale_x_date("", date_breaks = "1 month", date_labels = "%m",
-               limits = c(ymd(lineage_date) - months(3), ymd(lineage_date)))+
+               limits = c(ymd(lineage_date_local) - months(3), ymd(lineage_date_local)))+
   theme_minimal(base_family = 'Arial') +
   geom_smooth(data = df5[(df5$variant %in% c("20I/501Y.V1", "20A", "20B")) &
-                           (ymd(df5$date) > ymd(lineage_date) - months(2)),],
+                           (ymd(df5$date) > ymd(lineage_date_local) - months(2)),],
               se = FALSE, span = 1) +
   scale_y_continuous("(probit)", expand = c(0,0),
                      breaks = c(0.01,0.1,0.5,0.9), trans = "probit") +
   scale_color_manual("", values = pal) +
   ggtitle("Udział sekwencji z wariantem wirusa (GISAID, ostatnie 3 miesiące)") +
   theme_minimal(base_family = 'Arial') +
-  coord_cartesian(xlim = c(ymd(lineage_date) - months(3), ymd(lineage_date)),
+  coord_cartesian(xlim = c(ymd(lineage_date_local) - months(3), ymd(lineage_date_local)),
                   ylim = c(0.001, 0.9))
 
 
