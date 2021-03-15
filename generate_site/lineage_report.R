@@ -255,6 +255,75 @@ pl_loc_2 <- ggplot(t_dat_loc_cla, aes(ymd(Var1), ymax=Freq, ymin=0, fill = Var3)
 
 
 
+# -------
+# Ewolucja clades
+
+t_cou_cla <- table(nextclade$date, nextclade$clade_small)
+# add +k days for reporting lag
+k <- 7
+for (i in nrow(t_cou_cla):k) {
+  t_cou_cla[i,] <- colSums(t_cou_cla[i-(1:k)+1,])
+}
+
+df4 <- as.data.frame(as.table(t_cou_cla))
+colnames(df4) <- c("date", "variant", "n")
+lineage_date <- max(as.character(df4$date))
+
+df4$variant <- reorder(df4$variant, df4$n, tail, 1)
+df4$variant <- fct_relevel(df4$variant, c("20H/501Y.V2"), "20I/501Y.V1", after = Inf)
+
+pal <- structure(c("#E9C622", "#51A4B8", "#E5BC13", "#67AFBF", "#E1B103",
+                   "#82B8B6", "#E58600", "#ACC07E", "#3B9AB2", "#EB5000", "#F21A00"
+), .Names = c("20A.EU2", "19A", "20D", "19B", "20C", "20E (EU1)",
+              "20G", "20A", "20B", "20H/501Y.V2", "20I/501Y.V1"))
+
+pl_var_all_1 <- ggplot(df4, aes(ymd(date), y=n, fill = variant)) +
+  geom_area( position = "fill", color = "white") +
+  coord_cartesian(xlim = c(ymd(lineage_date) - months(3), ymd(lineage_date)), ylim= c(0,1)) +
+  scale_x_date("", date_breaks = "1 month", date_labels = "%m")+
+  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0)) +
+  scale_fill_manual("", values = pal) +
+  ggtitle("Udział sekwencji z wariantem wirusa (GISAID, ostatnie 3 miesiące)") +
+  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0), labels = scales::percent)
+
+t_cou_cla <- apply(t_cou_cla, 1, function(x) x / sum(x))
+t_cou_cla <- t(t_cou_cla)
+
+df5 <- as.data.frame(as.table(t_cou_cla))
+colnames(df5) <- c("date", "variant", "n")
+
+df5$variant <- reorder(df5$variant, df5$n, tail, 1)
+df5$variant <- fct_relevel(df5$variant, c("20H/501Y.V2"), "20I/501Y.V1", after = Inf)
+
+pal <- structure(c("#E9C622", "#51A4B8", "#E5BC13", "#67AFBF", "#E1B103",
+                   "#82B8B6", "#E58600", "#ACC07E", "#3B9AB2", "#EB5000", "#F21A00"
+), .Names = c("20A.EU2", "19A", "20D", "19B", "20C", "20E (EU1)",
+              "20G", "20A", "20B", "20H/501Y.V2", "20I/501Y.V1"))
+
+
+library(scales)
+logit_perc <- trans_new("logit perc",
+                        transform = function(x)qnorm(x/100),
+                        inverse = function(x)100*pnorm(x)
+)
+
+pl_var_all_2 <- ggplot(df5[df5$n > 0 & df5$n < 1,], aes(ymd(date), y=n, color = variant)) +
+  geom_point( ) +
+  scale_x_date("", date_breaks = "1 month", date_labels = "%m")+
+  theme_minimal(base_family = 'Arial') +
+  geom_smooth(data = df5[(df5$variant %in% c("20I/501Y.V1", "20A", "20B")) &
+                           (ymd(df5$date) > ymd(lineage_date) - months(2)),],
+              se = FALSE, span = 1) +
+  scale_y_continuous("(probit)", expand = c(0,0),
+                     breaks = c(0.01,0.1,0.5,0.9), trans = "probit") +
+  scale_color_manual("", values = pal) +
+  ggtitle("Udział sekwencji z wariantem wirusa (GISAID, ostatnie 3 miesiące)") +
+  theme_minimal(base_family = 'Arial') +
+  coord_cartesian(xlim = c(ymd(lineage_date) - months(3), ymd(lineage_date)),
+                  ylim = c(0.001, 0.9))
+
+
+
 ############
 ## update HTML file
 
@@ -300,3 +369,7 @@ ggsave(plot = pl_war_3, file=paste0(output_dir, "/images/liczba_warianty_3.svg")
 ggsave(plot = pl_war_4, file=paste0(output_dir, "/images/liczba_warianty_4.svg"), width=8, height=3)
 
 ggsave(plot = pl_war_5, file=paste0(output_dir, "/images/liczba_warianty_5.svg"), width=8, height=5)
+
+ggsave(plot = pl_var_all_1, file=paste0(output_dir, "/images/udzial_warianty_1.svg"), width=8, height=4)
+
+ggsave(plot = pl_var_all_2, file=paste0(output_dir, "/images/udzial_warianty_2.svg"), width=8, height=4)
