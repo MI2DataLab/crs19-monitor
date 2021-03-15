@@ -28,5 +28,5 @@ for f in input_files:
         if out != 0:
             sys.exit(out)
 
-out = os.system('bash -c "cat ' + mutation_output_dir + '/*.csv' + ' > ' + mutation_merged_file + '"')
+out = os.system('bash -c "awk \'(NR == 1) || (FNR > 1)\' ' + mutation_output_dir + '/*.csv' + ' > ' + mutation_merged_file + '"')
 sys.exit(out)

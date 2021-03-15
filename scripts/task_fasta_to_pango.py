@@ -26,5 +26,5 @@ for f in input_files:
         if out != 0:
             sys.exit(out)
 
-out = os.system('bash -c "cat ' + pango_output_dir + '/*.csv' + ' > ' + pango_merged_file + '"')
+out = os.system('bash -c "awk \'(NR == 1) || (FNR > 1)\' ' + pango_output_dir + '/*.csv' + ' > ' + pango_merged_file + '"')
 sys.exit(out)

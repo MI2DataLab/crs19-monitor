@@ -22,5 +22,5 @@ for f in input_files:
         if out != 0:
             sys.exit(out)
 
-out = os.system('bash -c "cat ' + clades_output_dir + '/*.tsv' + ' > ' + clades_merged_file + '"')
+out = os.system('bash -c "awk \'(NR == 1) || (FNR > 1)\' ' + clades_output_dir + '/*.tsv' + ' > ' + clades_merged_file + '"')
 sys.exit(out)
