@@ -276,13 +276,13 @@ pal <- structure(c("#E9C622", "#51A4B8", "#E5BC13", "#67AFBF", "#E1B103",
                    "#82B8B6", "#E58600", "#ACC07E", "#3B9AB2", "#EB5000", "#F21A00"
 ), .Names = c("20A.EU2", "19A", "20D", "19B", "20C", "20E (EU1)",
               "20G", "20A", "20B", "20H/501Y.V2", "20I/501Y.V1"))
-df5 <- df5[df5$variant %in% names(pal),]
+df4 <- df4[df4$variant %in% names(pal),]
 
 pl_var_all_1 <- ggplot(df4, aes(ymd(date), y=n, fill = variant)) +
   geom_area( position = "fill", color = "white") +
   coord_cartesian(xlim = c(ymd(lineage_date) - months(3), ymd(lineage_date)), ylim= c(0,1)) +
-  scale_x_date("", date_breaks = "1 month", date_labels = "%m")+
-  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0)) +
+  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
+               limits = c(ymd(lineage_date) - months(3), ymd(lineage_date)))+
   scale_fill_manual("", values = pal) +
   ggtitle("Udział sekwencji z wariantem wirusa (GISAID, ostatnie 3 miesiące)") +
   theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0), labels = scales::percent)
@@ -310,7 +310,8 @@ logit_perc <- trans_new("logit perc",
 
 pl_var_all_2 <- ggplot(df5[df5$n > 0 & df5$n < 1,], aes(ymd(date), y=n, color = variant)) +
   geom_point( ) +
-  scale_x_date("", date_breaks = "1 month", date_labels = "%m")+
+  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
+               limits = c(ymd(lineage_date) - months(3), ymd(lineage_date)))+
   theme_minimal(base_family = 'Arial') +
   geom_smooth(data = df5[(df5$variant %in% c("20I/501Y.V1", "20A", "20B")) &
                            (ymd(df5$date) > ymd(lineage_date) - months(2)),],
