@@ -83,7 +83,7 @@ counts <- data.frame(variant = factor(names(t_cou_lin[nrow(t_cou_lin),]),
                                       labels = names(t_cou_lin[nrow(t_cou_lin),]),
                                       levels = names(t_cou_lin[nrow(t_cou_lin),])),
                      label = t_cou_lin[nrow(t_cou_lin),],
-                     date = "2020/12/15",
+                     date = as.character(ymd(lineage_date) - months(3)),
                      n = max(t_cou_lin[nrow(t_cou_lin),]))
 
 pl_war_1 <- ggplot(df3, aes(ymd(date), ymax=n, ymin=0, fill = variant == "B.1.1.7")) +
@@ -111,7 +111,7 @@ counts4 <- data.frame(variant = factor(names(t_cou_cla[nrow(t_cou_cla),]),
                                       labels = names(t_cou_cla[nrow(t_cou_cla),]),
                                       levels = names(t_cou_cla[nrow(t_cou_cla),])),
                      label = t_cou_cla[nrow(t_cou_cla),],
-                     date = "2020/12/15",
+                     date = as.character(ymd(lineage_date) - months(3)),
                      n = max(t_cou_cla[nrow(t_cou_cla),]))
 
 pl_war_3 <- ggplot(df4, aes(ymd(date), ymax=n, ymin=0, fill = grepl(variant, pattern = "501Y"))) +
