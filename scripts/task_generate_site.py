@@ -1,25 +1,27 @@
 import os
+import glob
+import sys
 from datetime import datetime
-
-repo_path = "/home/crs19monitor/crs19-monitor"
-data_dir = "/home/crs19monitor/data"
-output_path = "/home/crs19monitor/site_dist"
+from config import repo_path, site_dist, pango_merged_file, clades_merged_file, mutation_merged_file, gisaid_metadata_dir
 
 exec_path = repo_path + "/generate_site/lineage_report.R"
-csv_path = data_dir + "/lineage_report.csv"
-tsv_path = data_dir + "/nextclade.tsv"
-meta_path = data_dir + "/metadata.csv"
+
+# Find latest metadata file
+meta_files = glob.glob(gisaid_metadata_dir + '/*.csv')
+meta_path = max(meta_files, key=lambda f: int(os.path.basename(f).split('.')[0]))
 
 os.environ["LINEAGE_DATE"] = datetime.today().strftime('%Y/%m/%d')
-os.environ["LINEAGE_REPORT_PATH"] = csv_path
-os.environ["NEXTCLADE_REPORT_PATH"] = tsv_path
+os.environ["LINEAGE_REPORT_PATH"] = pango_merged_file
+os.environ["NEXTCLADE_REPORT_PATH"] = clades_merged_file
 os.environ["METADATA_REPORT_PATH"] = meta_path
-os.environ["OUTPUT_PATH"] = output_path
+os.environ["MUTATION_REPORT_PATH"] = mutation_merged_file
+os.environ["OUTPUT_PATH"] = site_dist
 
 remote =' origin' if not os.environ.get('DEV') else 'dev'
 
 out = os.system('Rscript ' + exec_path)
 if out == 0 and not os.environ.get('NOT_PUSH'):
-    os.system('cd ' + output_path + ' && git add -A && git commit -m "update" && git push -f -u ' + remote + ' gh-pages')
+    out = os.system('cd ' + site_dist + ' && git add -A && git commit -m "update" && git push -f -u ' + remote + ' gh-pages')
+    sys.exit(out >> 8)
 else:
-    pass
+    sys.exit(out >> 8)
