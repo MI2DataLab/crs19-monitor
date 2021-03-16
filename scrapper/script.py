@@ -61,7 +61,7 @@ def get_driver(download_dir, region):
     driver.find_element_by_class_name(
         "sys-event-hook.sys-fi-mark.yui-ac-input"
     ).send_keys(region)
-    time.sleep(4)
+    time.sleep(20)
 
     driver.execute_script("document.getElementById('sys_curtain').remove()")
 
