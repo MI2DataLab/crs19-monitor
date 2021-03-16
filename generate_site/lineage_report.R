@@ -357,23 +357,22 @@ writeLines(html, con = paste0(output_dir, "/index.html"))
 ## save plots
 
 ggsave(plot = pl_seq_1, file=paste0(output_dir, "/images/liczba_seq_1.svg"), width=4, height=2.5)
-
 ggsave(plot = pl_seq_2, file=paste0(output_dir, "/images/liczba_seq_2.svg"), width=4, height=2.5)
 
 ggsave(plot = pl_loc_1, file=paste0(output_dir, "/images/liczba_loc_1.svg"), width=8, height=3)
-
 ggsave(plot = pl_loc_2, file=paste0(output_dir, "/images/liczba_loc_2.svg"), width=8, height=3)
 
 ggsave(plot = pl_war_1, file=paste0(output_dir, "/images/liczba_warianty_1.svg"), width=8, height=3)
-
 ggsave(plot = pl_war_2, file=paste0(output_dir, "/images/liczba_warianty_2.svg"), width=8, height=3)
-
 ggsave(plot = pl_war_3, file=paste0(output_dir, "/images/liczba_warianty_3.svg"), width=8, height=3)
-
 ggsave(plot = pl_war_4, file=paste0(output_dir, "/images/liczba_warianty_4.svg"), width=8, height=3)
-
 ggsave(plot = pl_war_5, file=paste0(output_dir, "/images/liczba_warianty_5.svg"), width=8, height=5)
 
 ggsave(plot = pl_var_all_1, file=paste0(output_dir, "/images/udzial_warianty_1.svg"), width=7, height=5)
-
 ggsave(plot = pl_var_all_2, file=paste0(output_dir, "/images/udzial_warianty_2.svg"), width=7, height=5)
+
+
+save(pl_seq_1, pl_seq_2, pl_loc_1, pl_loc_2,
+     pl_war_1, pl_war_2, pl_war_3, pl_war_4, pl_war_5,
+     pl_var_all_1, pl_var_all_2,
+     file = paste0(output_dir, "/images/gg_objects.rda"))
