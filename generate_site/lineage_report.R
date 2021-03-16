@@ -21,11 +21,29 @@ lineage_report <- Sys.getenv("LINEAGE_REPORT_PATH")
 nextclade_report <- Sys.getenv("NEXTCLADE_REPORT_PATH")
 metadata_report <- Sys.getenv("METADATA_REPORT_PATH")
 output_dir <- Sys.getenv("OUTPUT_PATH")
+db_path <- Sys.getenv('DB_PATH')
+region <- Sys.getenv('REGION')
+
+con <- dbConnect(RSQLite::SQLite(), db_path)
+res <- dbSendQuery(con, 'SELECT key FROM sequences WHERE region = ?')
+dbBind(res, list(region))
+region_keys <- dbFetch(res)$key
+dbClearResult(res)
+dbDisconnect(con)
+
+dir.create(file.path(output_dir), showWarnings = FALSE)
+dir.create(file.path(output_dir, 'images'), showWarnings = FALSE)
 
 lineage <- read.table(lineage_report, sep = ",", header = TRUE)
 colnames(lineage)[1:2] = c('Sequence.name', 'Lineage')
 nextclade <- read.table(nextclade_report, sep = "\t", header = TRUE)
 metadata <- read.table(metadata_report, sep = ",", header = TRUE)
+metadata$seqName <- paste(metadata[, 2], metadata[, 4], metadata[, 5], sep='|')
+
+# Filter by region
+lineage <-subset(lineage, Sequence.name %in% region_keys)
+nextclade <-subset(nextclade, seqName %in% region_keys)
+metadata <-subset(metadata, seqName %in% region_keys)
 
 ############
 ## preprocess data

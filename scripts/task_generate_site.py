@@ -5,7 +5,8 @@ from datetime import datetime
 from config import repo_path, site_dist, pango_merged_file, clades_merged_file, mutation_merged_file, gisaid_metadata_dir, db_path
 
 work_dir = repo_path + '/generate_site'
-exec_path = "lineage_report.R"
+exec_path = "script.R"
+main_region = 'Europe / Poland'
 
 # Find latest metadata file
 meta_files = glob.glob(gisaid_metadata_dir + '/*.csv')
@@ -17,6 +18,7 @@ os.environ["NEXTCLADE_REPORT_PATH"] = clades_merged_file
 os.environ["METADATA_REPORT_PATH"] = meta_path
 os.environ["MUTATION_REPORT_PATH"] = mutation_merged_file
 os.environ["DB_PATH"] = db_path
+os.environ["MAIN_REGION"] = main_region
 os.environ["OUTPUT_PATH"] = site_dist
 
 remote =' origin' if not os.environ.get('DEV') else 'dev'
