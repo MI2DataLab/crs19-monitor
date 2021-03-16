@@ -1,7 +1,7 @@
 import os
 import time
 import sys
-from config import conda_sh_path, repo_path, gisaid_fasta_dir, gisaid_metadata_dir, diff_fasta_dir, data_dir
+from config import conda_sh_path, repo_path, gisaid_fasta_dir, gisaid_metadata_dir, diff_fasta_dir, db_path
 
 region = os.environ.get('REGION') or 'Europe / Poland'
 source = 'gisaid'
@@ -21,7 +21,6 @@ if not os.path.exists(diff_fasta_dir):
 fasta_path = gisaid_fasta_dir + '/' + str(timestamp) + '.fasta'
 meta_path = gisaid_metadata_dir + '/' + str(timestamp) + '.csv'
 work_dir = repo_path + '/scrapper'
-db_path = data_dir + '/sequences.sqlite'
 
 os.environ["FASTA_FILE_PATH"] = fasta_path
 os.environ["META_FILE_PATH"] = meta_path

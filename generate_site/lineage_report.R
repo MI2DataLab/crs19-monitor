@@ -331,7 +331,7 @@ pl_var_all_2 <- ggplot(df5[df5$n > 0 & df5$n < 1,], aes(ymd(date), y=n, color = 
 ############
 ## update HTML file
 
-html <- paste(readLines(paste0(output_dir, "/index_source.html")), collapse = "\n")
+html <- paste(readLines("index_source.html"), collapse = "\n")
 
 html <- gsub(pattern = "--DATE--", replacement = lineage_date, x = html)
 html <- gsub(pattern = "--NUMBER--", replacement = nrow(lineage), x = html)
