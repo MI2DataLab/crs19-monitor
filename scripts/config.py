@@ -5,6 +5,7 @@ site_dist = "/home/crs19monitor/site_dist"
 
 gisaid_fasta_dir = data_dir + '/gisaid_fasta'
 gisaid_metadata_dir = data_dir + '/gisaid_metadata'
+gisaid_metadata_merged_file = data_dir + '/gisaid_metadata.csv'
 diff_fasta_dir = data_dir + '/diff_fasta'
 clades_output_dir = data_dir + '/clades'
 clades_merged_file = data_dir + '/clades.tsv'

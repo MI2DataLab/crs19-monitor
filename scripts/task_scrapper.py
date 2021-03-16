@@ -1,7 +1,7 @@
 import os
 import time
 import sys
-from config import conda_sh_path, repo_path, gisaid_fasta_dir, gisaid_metadata_dir, diff_fasta_dir, db_path
+from config import conda_sh_path, repo_path, gisaid_fasta_dir, gisaid_metadata_dir, diff_fasta_dir, db_path, gisaid_metadata_merged_file
 
 region = os.environ.get('REGION') or 'Europe / Poland'
 source = 'gisaid'
@@ -35,7 +35,8 @@ if out == 0:
     os.environ['FASTA_SOURCE'] = source
     os.environ['DB_PATH'] = db_path
     os.environ['REGION'] = region
-    out = os.system('bash -c "source ' + conda_sh_path + ' && cd ' + work_dir + ' && conda activate crs19 && python script.py"')
-    sys.exit(out >> 8)
+    out1 = os.system('bash -c "source ' + conda_sh_path + ' && cd ' + work_dir + ' && conda activate crs19 && python script.py"')
+    out2 = os.system('bash -c "awk \'(NR == 1) || (FNR > 1)\' ' + gisaid_metadata_dir  + '/*.csv |sed \'s/^[0-9]*//g\' |sort -k 2 |uniq  > ' + gisaid_metadata_merged_file + '"')
+    sys.exit((out1 or out2) >> 8)
 else:
     sys.exit(out >> 8)

@@ -2,20 +2,16 @@ import os
 import glob
 import sys
 from datetime import datetime
-from config import repo_path, site_dist, pango_merged_file, clades_merged_file, mutation_merged_file, gisaid_metadata_dir, db_path
+from config import repo_path, site_dist, pango_merged_file, clades_merged_file, mutation_merged_file, gisaid_metadata_merged_file, db_path
 
 work_dir = repo_path + '/generate_site'
 exec_path = "script.R"
 main_region = 'Europe / Poland'
 
-# Find latest metadata file
-meta_files = glob.glob(gisaid_metadata_dir + '/*.csv')
-meta_path = max(meta_files, key=lambda f: int(os.path.basename(f).split('.')[0]))
-
 os.environ["LINEAGE_DATE"] = datetime.today().strftime('%Y/%m/%d')
 os.environ["LINEAGE_REPORT_PATH"] = pango_merged_file
 os.environ["NEXTCLADE_REPORT_PATH"] = clades_merged_file
-os.environ["METADATA_REPORT_PATH"] = meta_path
+os.environ["METADATA_REPORT_PATH"] = gisaid_metadata_merged_file
 os.environ["MUTATION_REPORT_PATH"] = mutation_merged_file
 os.environ["DB_PATH"] = db_path
 os.environ["MAIN_REGION"] = main_region
