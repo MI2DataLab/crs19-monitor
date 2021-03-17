@@ -1,6 +1,6 @@
 # crs19-monitor
 
-Monitoring of SARS-CoV-2 variants in Poland ▶️ https://monitor.crs19.pl/
+Monitor of SARS-CoV-2 variants in Poland ▶️ https://monitor.crs19.pl/
 
 ## [Materials](https://github.com/MI2DataLab/crs19-monitor/wiki/Materials)
 
