@@ -1,0 +1,16 @@
+tag:names
+pl_seq_1_tit:Nowych sekwencji na tydzień
+pl_seq_2_tit:Łącznie zebranych sekwencji
+pl_war_1_tit:Skumulowana liczba sekwencji wariantów wirusa (Pango, ostatnie 3 miesiące)
+pl_war_3_tit:Skumulowana liczba sekwencji wariantów wirusa (GISAID, ostatnie 3 miesiące)
+pl_war_2_tit:Skumulowana liczba sekwencji wariantów wirusa (Pango, ostatnie 6 miesięcy)
+pl_war_4_tit:Skumulowana liczba sekwencji wariantów wirusa (GISAID, ostatnie 6 miesięcy)
+pl_war_5_tit:Przerywane linie - opóźnienie 0, 2 i 4 tygodnie. Czerwone punkty - warianty z mutacją N501Y
+pl_war_5_scx:Data pobrania materiału (ostatnie 3 miesiące)
+pl_war_5_scy:Data zgłoszenia
+pl_loc_1_tit:Liczba sekwencji na tydzień w województwach (ostatnie 3 miesiące)
+pl_loc_2_tit:Proporcja sekwencji na tydzień w województwach (ostatnie 3 miesiące)
+pl_var_all_1_tit:Udział sekwencji z wariantem wirusa
+pl_var_all_2_tit:Tygodniowy udział sekwencji z wariantem wirusa
+pl_var_all_3_tit:Tygodniowa liczba sekwencji z wariantem wirusa
+pl_var_all_4_tit:Udział sekwencji z wariantem wirusa

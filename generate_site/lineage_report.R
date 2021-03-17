@@ -8,13 +8,17 @@ library(ggrepel)
 library(lubridate)
 library(pammtools)
 library(forcats)
+library("RSQLite")
 
 ############
 ## read data
-# lineage_report =  "../dane/lineage_report.csv"
-# nextclade_report = "../dane/nextclade.tsv"
-# metadata_report = "../dane/metadata.csv"
-# lineage_date <- "2021/03/09"
+# lineage_report =  "../../data/pango.csv"
+# nextclade_report = "../../data/clades.tsv"
+# metadata_report = "../../data/gisaid_metadata.csv"
+# lineage_date <- "2021/03/17"
+# region <- "Europe / Poland"
+# db_path <- "../../data/sequences.sqlite"
+# output_dir <- "./output/"
 
 lineage_date <- Sys.getenv("LINEAGE_DATE")
 lineage_report <- Sys.getenv("LINEAGE_REPORT_PATH")
@@ -56,6 +60,12 @@ print(paste('Region nextclade rows:',nrow(nextclade)))
 print(paste('Region metadata rows:',nrow(metadata)))
 
 ############
+## read titles
+
+descriptions <- read.table("lang_pl.txt", sep=":", header = TRUE, row.names = 1)
+
+
+############
 ## preprocess data
 lineage$date <- sapply(strsplit(lineage$Sequence.name, split = "|", fixed = TRUE),
                        function(x) substr(paste0(tail(x, 1), "-01"), 1, 10))
@@ -78,24 +88,25 @@ nextclade$clade_small <- fct_lump(nextclade$clade_small, n = 12, other_level = "
 # -------
 # Liczba na tydzień
 
-pl_seq_1 <- ggplot(lineage, aes(ymd(date))) +
-  geom_histogram(binwidth = 7, color = "white") +
+pl_seq_1 <- ggplot(lineage, aes(ymd(date) - wday(ymd(date)))) +
+  geom_bar(binwidth = 7, color = "white") +
   theme_minimal(base_family = 'Arial') +
   scale_x_date("", date_breaks = "2 months", date_labels = "%m") +
   scale_y_continuous("", expand = c(0,0)) +
-  ggtitle("Nowych sekwencji na tydzień")
+  ggtitle(descriptions["pl_seq_1_tit", "names"])
+
 
 # ---------------
 
 t_cou_lin <- table(lineage$date)
 df <- as.data.frame(t_cou_lin)
 
-pl_seq_2 <- ggplot(df, aes(ymd(Var1), y = cumsum(Freq))) +
-  geom_step() + geom_hline(yintercept = 0) +
+pl_seq_2 <- ggplot(df, aes(ymd(Var1), ymin = 0, ymax = cumsum(Freq))) +
+  geom_stepribbon() + geom_hline(yintercept = 0) +
   theme_minimal(base_family = 'Arial') +
   scale_x_date("", date_breaks = "2 months", date_labels = "%m") +
   scale_y_continuous("", expand = c(0,0)) +
-  ggtitle("Łącznie zebranych sekwencji")
+  ggtitle(descriptions["pl_seq_2_tit", "names"])
 
 
 # -------
@@ -114,7 +125,7 @@ counts <- data.frame(variant = factor(names(t_cou_lin[nrow(t_cou_lin),]),
                      date = as.character(ymd(lineage_date) - months(3)),
                      n = max(t_cou_lin[nrow(t_cou_lin),]))
 
-pl_war_1 <- ggplot(df3, aes(ymd(date), ymax=n, ymin=0, fill = variant == "B.1.1.7")) +
+pl_war_1 <- ggplot(df3, aes(ymd(date), ymax=n, ymin=0, fill = variant %in% c("B.1.1.7", "B.1.351"))) +
   geom_stepribbon() +
   geom_text(data = counts, aes(x = ymd(date), y = n, label = label, hjust = 0, vjust = 1), size=2.7) +
   scale_fill_manual(values = c("blue4", "red4")) +
@@ -123,7 +134,7 @@ pl_war_1 <- ggplot(df3, aes(ymd(date), ymax=n, ymin=0, fill = variant == "B.1.1.
   #  scale_x_date("", date_breaks = "2 months", date_labels = "%m") +
   facet_wrap(~variant, ncol = 5) +
   theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0)) +
-  ggtitle("Skumulowana liczba sekwencji wariantów wirusa (Pango, ostatnie 3 miesiące)") +
+  ggtitle(descriptions["pl_war_1_tit", "names"]) +
   theme(legend.position = "none")
 
 # -------
@@ -151,7 +162,7 @@ pl_war_3 <- ggplot(df4, aes(ymd(date), ymax=n, ymin=0, fill = grepl(variant, pat
   #  scale_x_date("", date_breaks = "2 months", date_labels = "%m") +
   facet_wrap(~variant, ncol = 6) +
   theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0)) +
-  ggtitle("Skumulowana liczba sekwencji wariantów wirusa (GISAID, ostatnie 3 miesiące)") +
+  ggtitle(descriptions["pl_war_3_tit", "names"]) +
   theme(legend.position = "none")
 
 # ----------
@@ -178,7 +189,7 @@ pl_war_2 <- ggplot(df3, aes(ymd(date), y=n, color = variant %in% c("B.1.1.7","B.
   scale_x_date("", date_breaks = "2 weeks", date_labels = "%m/%d",
                limits = c(ymd(lineage_date) - months(6), ymd(lineage_date))) +
   theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0)) +
-  ggtitle("Skumulowana liczba sekwencji wariantów wirusa (Pango, ostatnie 6 miesięcy)") +
+  ggtitle(descriptions["pl_war_3_tit", "names"]) +
   theme(legend.position = "none")
 
 # ----------
@@ -204,7 +215,7 @@ pl_war_4 <- ggplot(df5, aes(ymd(date), y=n, color = variant %in% c("20I/501Y.V1"
   scale_x_date("", date_breaks = "2 weeks", date_labels = "%m/%d",
                limits = c(ymd(lineage_date) - months(6), ymd(lineage_date))) +
   theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0)) +
-  ggtitle("Skumulowana liczba sekwencji wariantów wirusa (GISAID, ostatnie 6 miesięcy)") +
+  ggtitle(descriptions["pl_war_4_tit", "names"]) +
   theme(legend.position = "none")
 
 ############
@@ -218,12 +229,12 @@ pl_war_5 <- ggplot(metadata_ext, aes(ymd(Collection.date), ymd(Submission.Date),
   geom_abline(slope = 1, intercept = 14, color = "grey", lty = 2) +
   geom_abline(slope = 1, intercept = 28, color = "grey", lty = 3) +
   geom_jitter(size = 0.5) +
-  ggtitle("", "Przerywane linie - opóźnienie 0, 2 i 4 tygodnie. Czerwone punkty - warianty z mutacją N501Y") +
+  ggtitle("", descriptions["pl_war_5_tit", "names"]) +
   theme_bw(base_family = 'Arial') + coord_fixed() +
   scale_color_manual("", values = c("blue4", "red2")) +
-  scale_x_date("Data pobrania materiału (ostatnie 3 miesiące)", date_breaks = "2 weeks", date_labels = "%m/%d",
+  scale_x_date(descriptions["pl_war_5_scx", "names"], date_breaks = "2 weeks", date_labels = "%m/%d",
                limits = c(ymd(lineage_date) - months(3), ymd(lineage_date)))  +
-  scale_y_date("Data zgłoszenia", date_breaks = "2 weeks", date_labels = "%m/%d",
+  scale_y_date(descriptions["pl_war_5_scy", "names"], date_breaks = "2 weeks", date_labels = "%m/%d",
                limits = c(ymd(lineage_date) - months(2), ymd(lineage_date)))+
   theme(legend.position = "none")
 
@@ -287,37 +298,40 @@ metadata_ext$LocationClean <- c(" Pomorskie" = "Pomorskie", " Wielkopolskie " = 
   " Litomerice-Brnay" = "Litomerice-Brnay",
   " Litovel" = "Litovel",
   " Jihlava" = "Jihlava",
-  " Slaný" = "Slaný"  
+  " Slaný" = "Slaný"
   )[metadata_ext$LocationClean]
 
-t_dat_loc_cla <- table(metadata_ext$Collection.date, metadata_ext$LocationClean, ifelse(grepl(metadata_ext$clade_small, pattern = "501Y"), "N501Y", "-"))
-t_dat_loc_cla[,,1] <- t_dat_loc_cla[,,1] + t_dat_loc_cla[,,2]
-t_dat_loc_cla <- apply(t_dat_loc_cla, 2:3, cumsum)
+metadata_ext$week_start <- ymd(metadata_ext$Collection.date) - days(wday(ymd(metadata_ext$Collection.date)))
+t_dat_loc_cla <- table(metadata_ext$week_start, metadata_ext$LocationClean, ifelse(grepl(metadata_ext$clade_small, pattern = "501Y"), "N501Y", "-"))
+#t_dat_loc_cla[,,1] <- t_dat_loc_cla[,,1] + t_dat_loc_cla[,,2]
+#t_dat_loc_cla <- apply(t_dat_loc_cla, 2:3, cumsum)
 t_dat_loc_cla <- data.frame(as.table(t_dat_loc_cla))
 
 t_dat_loc_cla$Var2 <- reorder(t_dat_loc_cla$Var2, -t_dat_loc_cla$Freq, sum)
+levels1 <- levels(t_dat_loc_cla$Var2)
 
-pl_loc_1 <- ggplot(t_dat_loc_cla, aes(ymd(Var1), ymax=Freq, ymin=0, fill = Var3)) +
-  geom_stepribbon() +
+pl_loc_1 <- ggplot(t_dat_loc_cla, aes(ymd(Var1), y=Freq, fill = Var3)) +
+  geom_col() +
 #  geom_text(data = counts4, aes(x = ymd(date), y = n, label = label, hjust = 0, vjust = 1), size=2.7) +
   scale_fill_manual(values = c("grey", "red3")) +
   scale_x_date("", date_breaks = "1 month", date_labels = "%m",
                limits = c(ymd(lineage_date) - months(3), ymd(lineage_date))) +
   facet_wrap(~Var2, ncol = 5) +
   theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0)) +
-  ggtitle("Skumulowana liczba sekwencji w województwach (ostatnie 3 miesiące)") +
+  ggtitle(descriptions["pl_loc_1_tit", "names"]) +
   theme(legend.position = "none")
 
 
-t_dat_loc_cla <- table(metadata_ext$Collection.date, metadata_ext$LocationClean, ifelse(grepl(metadata_ext$clade_small, pattern = "501Y"), "N501Y", "-"))
-t_dat_loc_cla <- apply(t_dat_loc_cla, 2:3, cumsum)
-t_dat_loc_cla[,,1] <- t_dat_loc_cla[,,1] + t_dat_loc_cla[,,2]
-t_dat_loc_cla[,,2] <- t_dat_loc_cla[,,2] / t_dat_loc_cla[,,1]
-t_dat_loc_cla[,,1] <- 1
+t_dat_loc_cla <- table(metadata_ext$week_start, metadata_ext$LocationClean, ifelse(grepl(metadata_ext$clade_small, pattern = "501Y"), "N501Y", "-"))
+normalizer <-  t_dat_loc_cla[,,1] + t_dat_loc_cla[,,2]
+t_dat_loc_cla[,,1] <- t_dat_loc_cla[,,1] / normalizer
+t_dat_loc_cla[,,2] <- t_dat_loc_cla[,,2] /normalizer
 t_dat_loc_cla <- data.frame(as.table(t_dat_loc_cla))
 
-pl_loc_2 <- ggplot(t_dat_loc_cla, aes(ymd(Var1), ymax=Freq, ymin=0, fill = Var3)) +
-  geom_stepribbon() +
+t_dat_loc_cla$Var2 <- factor(t_dat_loc_cla$Var2, levels = levels1)
+
+pl_loc_2 <- ggplot(t_dat_loc_cla, aes(ymd(Var1), y=Freq, fill = Var3)) +
+  geom_col() +
   #  geom_text(data = counts4, aes(x = ymd(date), y = n, label = label, hjust = 0, vjust = 1), size=2.7) +
   scale_fill_manual(values = c("#77777777", "red3")) +
   scale_y_continuous("", labels = scales::percent, expand = c(0,0)) +
@@ -325,13 +339,50 @@ pl_loc_2 <- ggplot(t_dat_loc_cla, aes(ymd(Var1), ymax=Freq, ymin=0, fill = Var3)
                limits = c(ymd(lineage_date) - months(3), ymd(lineage_date))) +
   facet_wrap(~Var2, ncol = 5) +
   theme_minimal(base_family = 'Arial') +
-  ggtitle("Skumulowany procent sekwencji w województwach (ostatnie 3 miesiące)") +
+  ggtitle(descriptions["pl_loc_2_tit", "names"]) +
   theme(legend.position = "none")
 
 
 
 # -------
 # Ewolucja clades
+
+
+# round weeks
+lineage_date_local <- lineage_date # max(as.character(df4$date)) # something is wrong with the input file
+
+t_cou_cla <- table(ymd(nextclade$date) - days(wday(ymd(nextclade$date))), nextclade$clade_small)
+df4 <- as.data.frame(as.table(t_cou_cla))
+colnames(df4) <- c("date", "variant", "n")
+
+df4$variant <- reorder(df4$variant, df4$n, tail, 1)
+df4$variant <- fct_relevel(df4$variant, c("20H/501Y.V2"), "20I/501Y.V1", after = Inf)
+
+pal <- structure(c("#E9C622", "#51A4B8", "#E5BC13", "#67AFBF", "#E1B103",
+                   "#82B8B6", "#E58600", "#ACC07E", "#3B9AB2", "#EB5000", "#F21A00"
+), .Names = c("20A.EU2", "19A", "20D", "19B", "20C", "20E (EU1)",
+              "20G", "20A", "20B", "20H/501Y.V2", "20I/501Y.V1"))
+df4 <- df4[df4$variant %in% names(pal),]
+df4 <- df4[ymd(df4$date) > ymd(lineage_date_local) - months(3),]
+
+pl_var_all_2 <- ggplot(df4, aes(ymd(date) + days(3), y=n, fill = variant)) +
+  geom_col( position = "fill", color = "white") +
+  coord_cartesian(xlim = c(ymd(lineage_date_local) - months(3), ymd(lineage_date_local)), ylim= c(0,1)) +
+  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
+               limits = c(ymd(lineage_date_local) - months(3), ymd(lineage_date_local)))+
+  scale_fill_manual("", values = pal) +
+  ggtitle(descriptions["pl_var_all_2_tit", "names"]) +
+  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0), labels = scales::percent)
+
+pl_var_all_3 <- ggplot(df4, aes(ymd(date) + days(3), y=n, fill = variant)) +
+  geom_col( position = "stack", color = "white") +
+  coord_cartesian(xlim = c(ymd(lineage_date_local) - months(3), ymd(lineage_date_local))) +
+  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
+               limits = c(ymd(lineage_date_local) - months(3), ymd(lineage_date_local)))+
+  scale_fill_manual("", values = pal) +
+  ggtitle(descriptions["pl_var_all_3_tit", "names"]) +
+  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0))
+
 
 t_cou_cla <- table(nextclade$date, nextclade$clade_small)
 # add +k days for reporting lag
@@ -342,7 +393,6 @@ for (i in nrow(t_cou_cla):k) {
 
 df4 <- as.data.frame(as.table(t_cou_cla))
 colnames(df4) <- c("date", "variant", "n")
-lineage_date_local <- lineage_date # max(as.character(df4$date)) # something is wrong with the input file
 
 df4$variant <- reorder(df4$variant, df4$n, tail, 1)
 df4$variant <- fct_relevel(df4$variant, c("20H/501Y.V2"), "20I/501Y.V1", after = Inf)
@@ -360,8 +410,10 @@ pl_var_all_1 <- ggplot(df4, aes(ymd(date), y=n, fill = variant)) +
   scale_x_date("", date_breaks = "1 month", date_labels = "%m",
                limits = c(ymd(lineage_date_local) - months(3), ymd(lineage_date_local)))+
   scale_fill_manual("", values = pal) +
-  ggtitle("Udział sekwencji z wariantem wirusa (GISAID, ostatnie 3 miesiące)") +
+  ggtitle(descriptions["pl_var_all_1_tit", "names"]) +
   theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0), labels = scales::percent)
+
+# profiles
 
 t_cou_cla <- apply(t_cou_cla, 1, function(x) x / sum(x))
 t_cou_cla <- t(t_cou_cla)
@@ -379,13 +431,7 @@ pal <- structure(c("#E9C622", "#51A4B8", "#E5BC13", "#67AFBF", "#E1B103",
 df5 <- df5[df5$variant %in% names(pal),]
 df5 <- df5[ymd(df5$date) > ymd(lineage_date_local) - months(3),]
 
-library(scales)
-logit_perc <- trans_new("logit perc",
-                        transform = function(x)qnorm(x/100),
-                        inverse = function(x)100*pnorm(x)
-)
-
-pl_var_all_2 <- ggplot(df5[df5$n > 0 & df5$n < 1,], aes(ymd(date), y=n, color = variant)) +
+pl_var_all_4 <- ggplot(na.omit(df5[df5$n > 0 & df5$n < 1,]), aes(ymd(date), y=n, color = variant)) +
   geom_point( ) +
   scale_x_date("", date_breaks = "1 month", date_labels = "%m",
                limits = c(ymd(lineage_date_local) - months(3), ymd(lineage_date_local)))+
@@ -393,13 +439,12 @@ pl_var_all_2 <- ggplot(df5[df5$n > 0 & df5$n < 1,], aes(ymd(date), y=n, color = 
   geom_smooth(data = df5[(df5$variant %in% c("20I/501Y.V1", "20A", "20B")) &
                            (ymd(df5$date) > ymd(lineage_date_local) - months(2)),],
               se = FALSE, span = 1) +
-  scale_y_continuous("(probit)", expand = c(0,0),
-                     breaks = c(0.01,0.1,0.5,0.9), trans = "probit") +
+  scale_y_continuous("",expand = c(0,0),
+                     breaks = c(0.01,0.1,0.25,0.5,0.75,0.9, 0.99), limits = c(0,1)) +
   scale_color_manual("", values = pal) +
-  ggtitle("Udział sekwencji z wariantem wirusa (GISAID, ostatnie 3 miesiące)") +
+  ggtitle(descriptions["pl_var_all_4_tit", "names"]) +
   theme_minimal(base_family = 'Arial') +
-  coord_cartesian(xlim = c(ymd(lineage_date_local) - months(3), ymd(lineage_date_local)),
-                  ylim = c(0.001, 0.9))
+  coord_cartesian(xlim = c(ymd(lineage_date_local) - months(3), ymd(lineage_date_local)))
 
 
 
@@ -443,11 +488,14 @@ ggsave(plot = pl_war_3, file=paste0(output_dir, "/images/liczba_warianty_3.svg")
 ggsave(plot = pl_war_4, file=paste0(output_dir, "/images/liczba_warianty_4.svg"), width=8, height=3)
 ggsave(plot = pl_war_5, file=paste0(output_dir, "/images/liczba_warianty_5.svg"), width=8, height=5)
 
-ggsave(plot = pl_var_all_1, file=paste0(output_dir, "/images/udzial_warianty_1.svg"), width=7, height=5)
-ggsave(plot = pl_var_all_2, file=paste0(output_dir, "/images/udzial_warianty_2.svg"), width=7, height=5)
+ggsave(plot = pl_var_all_1, file=paste0(output_dir, "/images/udzial_warianty_1.svg"), width=5.5, height=3.5)
+ggsave(plot = pl_var_all_2, file=paste0(output_dir, "/images/udzial_warianty_2.svg"), width=5.5, height=3.5)
+ggsave(plot = pl_var_all_3, file=paste0(output_dir, "/images/udzial_warianty_3.svg"), width=5.5, height=3.5)
+ggsave(plot = pl_var_all_4, file=paste0(output_dir, "/images/udzial_warianty_4.svg"), width=5.5, height=3.5)
 
 
 save(pl_seq_1, pl_seq_2, pl_loc_1, pl_loc_2,
      pl_war_1, pl_war_2, pl_war_3, pl_war_4, pl_war_5,
-     pl_var_all_1, pl_var_all_2,
+     pl_var_all_1, pl_var_all_2,pl_var_all_3, pl_var_all_4,
      file = paste0(output_dir, "/images/gg_objects.rda"))
+
