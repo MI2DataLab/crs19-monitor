@@ -26,7 +26,7 @@ def get_driver(download_dir, region):
     Returns firefox driver logged to https://@epicov.org/epi3/ 
     @param region - used to filtered by Location for example "Europe / Poland" 
     """
-
+    print("Setting up driver")
     url = "https://@epicov.org/epi3/"
     
     profile = webdriver.FirefoxProfile()
@@ -47,6 +47,7 @@ def get_driver(download_dir, region):
     driver.get(url)
     time.sleep(3)
 
+    print("Logging in as ", elogin)
     # login
     driver.find_element_by_id("elogin").send_keys(elogin)
     driver.find_element_by_id("epassword").send_keys(epass)
@@ -57,6 +58,7 @@ def get_driver(download_dir, region):
     driver.find_elements_by_class_name("sys-actionbar-action")[1].click()
     time.sleep(3)
 
+    print("Filtering by ", region)
     # filter
     driver.find_element_by_class_name(
         "sys-event-hook.sys-fi-mark.yui-ac-input"
@@ -78,10 +80,12 @@ def scrap_fasta(region):
     n_files_before = get_number_of_files(download_dir)
     driver = get_driver(download_dir, region)
 
+    print("Select all")
     # select all
     driver.find_elements_by_xpath("//input[starts-with(@type, 'checkbox')]")[5].click()
     time.sleep(20)
 
+    print("Downloading fasta file")
     # download
     driver.find_elements_by_class_name("sys-form-button")[4].click()
     time.sleep(3)
@@ -104,6 +108,7 @@ def scrap_fasta(region):
     ) 
     fasta = max(list_of_files, key=os.path.getmtime)
 
+    print("Saving fasta as ", fasta)
     if os.environ["FASTA_FILE_PATH"]:
         shutil.copyfile(fasta, os.environ["FASTA_FILE_PATH"])
 
@@ -120,18 +125,24 @@ def scrap_meta_table(region):
     # scrap first page
     page = driver.find_element_by_class_name("yui-dt-bd").get_attribute("innerHTML")
     meta_df = pd.read_html(page)[0]
+    print("Scrapping page 1")
 
     # go to next page
     driver.find_element_by_class_name("yui-pg-next").click()
+    time.sleep(5)
 
     while True:
         page = driver.find_element_by_class_name("yui-dt-bd").get_attribute("innerHTML")
         df = pd.read_html(page)[0]
         meta_df = pd.concat([meta_df, df])
-        time.sleep(5)
+        
+        #get current page number
+        page_num = driver.find_element_by_class_name("yui-pg-current-page.yui-pg-page").text
+        print("Scrapping page {}".format(page_num))
 
         # stop if reached last page
         if not ('href' in driver.find_element_by_class_name("yui-pg-next").get_attribute("outerHTML")):
+            print("Got to last page, exiting")
             break
 
         # go to next page
