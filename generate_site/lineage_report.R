@@ -88,7 +88,12 @@ nextclade$sample <- gsub(sapply(strsplit(nextclade$seqName, split = "\\|"), `[`,
 nextclade$clade_small <- fct_infreq(nextclade$clade)
 nextclade$clade_small <- fct_lump(nextclade$clade_small, n = 12, other_level = "Inne")
 
+# -------
+# global variables
+
 DATE_LAST_SAMPLE <- max(ymd(metadata$Collection.date), na.rm = T)
+ALARM_MUTATION <- "N501Y"
+ALARM_PATTERN <- "501Y"
 
 # -------
 # Liczba na tydzień
@@ -246,8 +251,6 @@ pl_war_5 <- ggplot(metadata_ext, aes(ymd(Collection.date), ymd(Submission.Date),
 
 ############
 ## plots for regions
-ALARM_MUTATION <- "N501Y"
-ALARM_PATTERN <- "501Y"
 
 metadata_ext$LocationClean <- sapply(strsplit(metadata_ext$Location, split = "/"), `[`, 3)
 metadata_ext$LocationClean <- c(" Pomorskie" = "Pomorskie", " Wielkopolskie " = "Wielkopolskie", " Warminsko-Mazurskie " = "Warmińsko-Mazurskie", " Dolnoslaskie" = "Dolnośląskie",
