@@ -8,8 +8,12 @@ library(ggrepel)
 library(lubridate)
 library(pammtools)
 library(forcats)
-library("RSQLite")
+library(RSQLite)
 
+library(tidyr)
+library(rgdal)
+library(scatterpie)
+library(sf)
 ############
 ## read data
 # lineage_report =  "../../data/pango.csv"
@@ -62,7 +66,7 @@ print(paste('Region metadata rows:',nrow(metadata)))
 ############
 ## read titles
 
-descriptions <- read.table("lang_pl.txt", sep=":", header = TRUE, row.names = 1)
+descriptions <- read.table("lang_pl.txt", sep=":", header = TRUE, row.names = 1, fileEncoding = "UTF-8")
 
 
 ############
@@ -84,6 +88,12 @@ nextclade$sample <- gsub(sapply(strsplit(nextclade$seqName, split = "\\|"), `[`,
 nextclade$clade_small <- fct_infreq(nextclade$clade)
 nextclade$clade_small <- fct_lump(nextclade$clade_small, n = 12, other_level = "Inne")
 
+# -------
+# global variables
+
+DATE_LAST_SAMPLE <- max(ymd(metadata$Collection.date), na.rm = T)
+ALARM_MUTATION <- "N501Y"
+ALARM_PATTERN <- "501Y"
 
 # -------
 # Liczba na tydzień
@@ -302,7 +312,9 @@ metadata_ext$LocationClean <- c(" Pomorskie" = "Pomorskie", " Wielkopolskie " = 
   )[metadata_ext$LocationClean]
 
 metadata_ext$week_start <- ymd(metadata_ext$Collection.date) - days(wday(ymd(metadata_ext$Collection.date)))
-t_dat_loc_cla <- table(metadata_ext$week_start, metadata_ext$LocationClean, ifelse(grepl(metadata_ext$clade_small, pattern = "501Y"), "N501Y", "-"))
+t_dat_loc_cla <- table(metadata_ext$week_start, metadata_ext$LocationClean,
+                       ifelse(grepl(metadata_ext$clade_small, pattern = ALARM_PATTERN), ALARM_MUTATION, "-"))
+
 #t_dat_loc_cla[,,1] <- t_dat_loc_cla[,,1] + t_dat_loc_cla[,,2]
 #t_dat_loc_cla <- apply(t_dat_loc_cla, 2:3, cumsum)
 t_dat_loc_cla <- data.frame(as.table(t_dat_loc_cla))
@@ -321,8 +333,12 @@ pl_loc_1 <- ggplot(t_dat_loc_cla, aes(ymd(Var1), y=Freq, fill = Var3)) +
   ggtitle(descriptions["pl_loc_1_tit", "names"]) +
   theme(legend.position = "none")
 
+#
+t_dat_map <- t_dat_loc_cla %>% rename(date = Var1, name = Var2, type = Var3, count = Freq)
+#
 
-t_dat_loc_cla <- table(metadata_ext$week_start, metadata_ext$LocationClean, ifelse(grepl(metadata_ext$clade_small, pattern = "501Y"), "N501Y", "-"))
+t_dat_loc_cla <- table(metadata_ext$week_start, metadata_ext$LocationClean,
+                       ifelse(grepl(metadata_ext$clade_small, pattern = ALARM_PATTERN), ALARM_MUTATION, "-"))
 normalizer <-  t_dat_loc_cla[,,1] + t_dat_loc_cla[,,2]
 t_dat_loc_cla[,,1] <- t_dat_loc_cla[,,1] / normalizer
 t_dat_loc_cla[,,2] <- t_dat_loc_cla[,,2] /normalizer
@@ -343,6 +359,68 @@ pl_loc_2 <- ggplot(t_dat_loc_cla, aes(ymd(Var1), y=Freq, fill = Var3)) +
   theme(legend.position = "none")
 
 
+# --------------------------------- #
+# --------------MAP---------------- #
+# --------------------------------- #
+
+((t_dat_map %>%
+  filter(ymd(date) + weeks(1) >= DATE_LAST_SAMPLE) %>%
+  mutate(name = tolower(name)) -> t_map_metadata_week) %>%
+  group_by(name, type) %>%
+  summarise(count = sum(count))  %>%
+  pivot_wider(id_cols = name, names_from = type, values_from = count) %>%
+  inner_join(t_map_metadata_week %>%
+               group_by(name) %>%
+               summarise(ratio = sum(count) / sum(t_map_metadata_week$count))) -> t_map_metadata_week) %>%
+  mutate(ratio = 2 * (10e12 * ratio / max(t_map_metadata_week$ratio)) ** (1/3)) -> t_map_metadata_week
+
+((t_dat_map %>%
+  filter(ymd(date) + months(1) >= DATE_LAST_SAMPLE) %>%
+  mutate(name = tolower(name)) -> t_map_metadata_month) %>%
+  group_by(name, type) %>%
+  summarise(count = sum(count))  %>%
+  pivot_wider(id_cols = name, names_from = type, values_from = count) %>%
+  inner_join(t_map_metadata_month %>%
+               group_by(name) %>%
+               summarise(ratio = sum(count) / sum(t_map_metadata_month$count))) -> t_map_metadata_month) %>%
+  mutate(ratio = 2 * (10e12 * ratio / max(t_map_metadata_month$ratio)) ** (1/3)) -> t_map_metadata_month
+
+map_cord <- st_read("./map/pl-voi.shp")
+map_cord <- st_transform(map_cord, 2180) # long and lat is no longer used
+map_cord_df <- as.data.frame(st_coordinates(map_cord)) %>% rename(id = L3)
+centroid_cord <- as.data.frame(st_coordinates(st_centroid(map_cord)))
+
+map_metadata <- data.frame(
+  id   = as.data.frame(map_cord)$JPT_KOD_JE,
+  name = as.data.frame(map_cord)$JPT_NAZWA_,
+  X = centroid_cord$X,
+  Y  = centroid_cord$Y
+)
+
+pl_map_1 <- ggplot(map_cord_df) +
+  geom_polygon(aes(X, Y, group = id), color = "black", fill = "white") +
+  geom_scatterpie(data = map_metadata  %>% left_join(t_map_metadata_week, by = "name") %>% drop_na(),
+                  cols = c(ALARM_MUTATION, "-"),
+                  aes(x = X, y = Y, r = ratio, group = id)) +
+  coord_equal() +
+  scale_fill_manual(values = c("red3", "grey")) +
+  theme_void() +
+  theme(legend.position = "none") +
+  ggtitle(descriptions["pl_map_1", "names"])
+
+pl_map_2 <- ggplot(map_cord_df) +
+  geom_polygon(aes(X, Y, group = id), color = "black", fill = "white") +
+  geom_scatterpie(data = map_metadata  %>% left_join(t_map_metadata_month, by = "name") %>% drop_na(),
+                  cols = c(ALARM_MUTATION, "-"),
+                  aes(x = X, y = Y, r = ratio, group = id)) +
+  coord_equal() +
+  scale_fill_manual(values = c("red3", "grey")) +
+  theme_void() +
+  theme(legend.position = "none") +
+  ggtitle(descriptions["pl_map_2", "names"])
+
+# --------------------------------- #
+# --------------------------------- #
 
 # -------
 # Ewolucja clades
@@ -493,9 +571,13 @@ ggsave(plot = pl_var_all_2, file=paste0(output_dir, "/images/udzial_warianty_2.s
 ggsave(plot = pl_var_all_3, file=paste0(output_dir, "/images/udzial_warianty_3.svg"), width=5.5, height=3.5)
 ggsave(plot = pl_var_all_4, file=paste0(output_dir, "/images/udzial_warianty_4.svg"), width=5.5, height=3.5)
 
+ggsave(plot = pl_map_1, file=paste0(output_dir, "/images/mapa_mutacje_1.svg"), width=6, height=5)
+ggsave(plot = pl_map_2, file=paste0(output_dir, "/images/mapa_mutacje_2.svg"), width=6, height=5)
+
 
 save(pl_seq_1, pl_seq_2, pl_loc_1, pl_loc_2,
      pl_war_1, pl_war_2, pl_war_3, pl_war_4, pl_war_5,
      pl_var_all_1, pl_var_all_2,pl_var_all_3, pl_var_all_4,
+     pl_map_1, pl_map_2,
      file = paste0(output_dir, "/images/gg_objects.rda"))
 
