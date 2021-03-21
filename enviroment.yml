@@ -12,3 +12,4 @@ dependencies:
   - pandas
   - biotite
   - selenium
+  - sqlite3
