@@ -97,6 +97,7 @@ def scrap_fasta(db_path, fasta_files_dir):
         wait_for_timer(driver)
 
         driver.find_elements_by_class_name("sys-form-button")[1].click()
+        time.sleep(3)
         buttons = driver.find_elements_by_class_name("sys-form-button")
 
         if len(buttons) == 3:
@@ -230,7 +231,10 @@ def scrap_meta_table(region, db_path, start_date, end_date):
             page_loading_counter = 0
             while last_readed_page == page_num:
                 time.sleep(0.5)
-                page_num = int(driver.find_element_by_class_name("yui-pg-current-page.yui-pg-page").text)
+                try:
+                    page_num = int(driver.find_element_by_class_name("yui-pg-current-page.yui-pg-page").text)
+                except:
+                    page_num = int(driver.find_element_by_class_name("yui-pg-current-page.yui-pg-page").text)
                 page_loading_counter += 1
                 if page_loading_counter == 120:
                     raise Exception("Scrapping same page twice for 60s")
