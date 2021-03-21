@@ -70,9 +70,9 @@ def get_driver(region = None, download_dir = None):
 
     return driver
 
-def scrap_fasta(DB_PATH):
+def scrap_fasta(db_path, fasta_files_dir):
     
-    con = sqlite3.connect(DB_PATH)
+    con = sqlite3.connect(db_path)
     cur = con.cursor()
 
     cur.execute("SELECT accession_id FROM metadata WHERE fasta_file IS NULL LIMIT 10000")
@@ -119,29 +119,36 @@ def scrap_fasta(DB_PATH):
             # sleep until file is downloaded
             time.sleep(1)
 
+        list_of_files = glob.glob(download_dir + "/*") 
+        fasta = max(list_of_files, key=os.path.getmtime)
+        if fasta.endswith('.part'):
+            fasta = fasta[:-5]
+        last_size = os.path.getsize(fasta)
+        time.sleep(20)
+        while last_size < os.path.getsize(fasta):
+            last_size = os.path.getsize(fasta)
+            time.sleep(20)
+
         time.sleep(1)
-    except:
+    except Exception as e:
         driver.save_screenshot(str(int(time.time() * 1000)) + ".png")
+        raise e
     driver.close()
 
-    list_of_files = glob.glob(
-            download_dir + "/*"
-    ) 
-    fasta = max(list_of_files, key=os.path.getmtime)
     time_file = str(int(time.time() * 1000))
-    move_fast = os.environ["FASTA_FILE_DIR"] + "/" + time_file + ".fasta"
-    shutil.move(fasta, move_fasta)
+    move_fasta = fasta_files_dir + "/" + time_file + ".fasta"
+    shutil.copyfile(fasta, move_fasta)
 
     for p in part_ids: 
-        cur.execute("UPDATE metadata SET fast_file=? WHERE accession_id=?", (time_file, p[0]))
+        cur.execute("UPDATE metadata SET fasta_file=? WHERE accession_id=?", (time_file, p[0]))
 
     con.commit()
     con.close()
 
     return len(part_ids)
 
-def manage_fasta_scrapping(DB_PATH):
-    while scrap_fasta(DB_PATH) == 10**4:
+def manage_fasta_scrapping(db_path, fasta_files_dir):
+    while scrap_fasta(db_path, fasta_files_dir) == 10**4:
         pass
 
 def get_elem_or_None(driver,class_name):
@@ -171,7 +178,6 @@ def set_region(driver, region):
     return
 
 def scrap_meta_table(region, db_path, start_date, end_date):
-
     try:
         driver = get_driver()
         set_region(driver, region)
@@ -179,6 +185,10 @@ def scrap_meta_table(region, db_path, start_date, end_date):
         con = sqlite3.connect(db_path)
         cur = con.cursor()
 
+        cur.execute("SELECT COUNT(*) FROM metadata WHERE submission_date <= ? AND submission_date >= ?", (end_date, start_date))
+        total_records_in_db = cur.fetchone()[0]
+        con.commit()
+        
         print("Scrapping date from ", start_date, "to ", end_date)
         driver.find_elements_by_class_name("sys-event-hook.sys-fi-mark.hasDatepicker")[2].send_keys(start_date.strftime('%Y-%m-%d'))
         driver.find_elements_by_class_name("sys-event-hook.sys-fi-mark.hasDatepicker")[3].send_keys(end_date.strftime('%Y-%m-%d'))
@@ -188,6 +198,9 @@ def scrap_meta_table(region, db_path, start_date, end_date):
         total_records = int(re.sub(r'[^0-9]*', "", total_records))
         if total_records == 0:
             print("No records found")
+            return
+        elif total_records <= total_records_in_db:
+            print('Skipping range %s : %s because total_records[%s] <= total_records_in_db[%s]' % (start_date, end_date, total_records, total_records_in_db))
             return
 
         expected_pages = math.ceil(total_records / 50)
@@ -219,13 +232,13 @@ def scrap_meta_table(region, db_path, start_date, end_date):
                 time.sleep(0.5)
                 page_num = int(driver.find_element_by_class_name("yui-pg-current-page.yui-pg-page").text)
                 page_loading_counter += 1
-                if page_loading_counter == 30:
-                    raise Exception("Scrapping same page twice for 15s")
+                if page_loading_counter == 120:
+                    raise Exception("Scrapping same page twice for 60s")
 
             last_readed_page = page_num
-
-     except:
-         driver.save_screenshot(str(int(time.time() * 1000)) + ".png")
+    except Exception as e:
+        driver.save_screenshot(str(int(time.time() * 1000)) + ".png")
+        raise e
 
 
     driver.close()
@@ -236,9 +249,14 @@ def scrap_meta_table(region, db_path, start_date, end_date):
     
     df_clean = meta_df.drop_duplicates()
 
+    cur.execute("SELECT accession_id FROM metadata WHERE submission_date <= ? AND submission_date >= ?", (end_date, start_date))
+    duplicated = [x[0] for x in cur.fetchall()]
+    
     for index, row in df_clean.iterrows():
-        country = row['Location'].split(" / ")[1]
-        cur.execute(""" INSERT INTO metadata (accession_id, 
+        if row['Accession ID'] not in duplicated:
+            country = row['Location'].split(" / ")[1]
+            cur.execute("""INSERT INTO metadata (
+                                                accession_id, 
                                                 passage,
                                                 submission_date,
                                                 collection_date,
@@ -246,39 +264,68 @@ def scrap_meta_table(region, db_path, start_date, end_date):
                                                 location,
                                                 originating_lab,
                                                 submitting_lab,
-                                                country) VALUES (?,?,?,?,?,?,?,?,?)""", 
-                                                (row['Accession ID'],
-                                                 row['Passage details/history'],
-                                                 row['Submission Date'],
-                                                 row['Collection date'],
-                                                 row['Host'],
-                                                 row['Location'],
-                                                 row['Originating lab'],
-                                                 row['Submitting lab'],
-                                                 country
-                                                 ))
+                                                country
+                                                ) VALUES (?,?,?,?,?,?,?,?,?)""", 
+                                                (
+                                                row['Accession ID'],
+                                                row['Passage details/history'],
+                                                row['Submission Date'],
+                                                row['Collection date'],
+                                                row['Host'],
+                                                row['Location'],
+                                                row['Originating lab'],
+                                                row['Submitting lab'],
+                                                country
+                                                ))
     con.commit()
     con.close()
     return
 
-def manage_table_scrapping(DB_PATH, region):
+def manage_table_scrapping(db_path, minimum_start_date, max_date_range, region):
 
-    LAST_START_DATE = datetime.date(2021, 2, 10)
-    MAX_DATE_RANGE = 10
+    con = sqlite3.connect(db_path)
+    cur = con.cursor()
+    cur.execute("SELECT MAX(submission_date) FROM metadata")
+    start_date = cur.fetchone()[0]
+    con.close()
 
     if start_date is None:
-        start_date = LAST_START_DATE
+        start_date = minimum_start_date
     else:
         start_date = datetime.datetime.strptime(start_date, '%Y-%m-%d').date()
-        start_date = start_date - datetime.timedelta(days=3)
+        print('Scrapping 3 days before proper date range')
+        scrap_meta_table(region, db_path, start_date - datetime.timedelta(days=3), start_date - datetime.timedelta(days=1))
 
-    end_date = min(datetime.date.today(), start_date + datetime.timedelta(days = MAX_DATE_RANGE))
+    end_date = min(datetime.date.today(), start_date + datetime.timedelta(days = max_date_range))
 
-    scrap_meta_table(region, DB_PATH, start_date, end_date)
+    scrap_meta_table(region, db_path, start_date, end_date)
 
+def init_db(db_path):
+    con = sqlite3.connect(db_path)
+    cur = con.cursor()
+    cur.execute("""CREATE TABLE IF NOT EXISTS metadata (
+                          accession_id CHAR(16) PRIMARY KEY NOT NULL, 
+                          fasta_file VARCHAR(16) NULL,
+                          passage VARCHAR(32) NULL,
+                          submission_date DATE NOT NULL, 
+                          collection_date DATE NULL,
+                          host VARCHAR(32) NULL,
+                          location VARCHAR(128) NULL,
+                          originating_lab TEXT NULL,
+                          submitting_lab TEXT NULL,
+                          country VARCHAR(32) NULL
+    )""")
+    con.commit()
 
 if __name__ == "__main__":
-
-    DB_PATH = "gisaid_meta.db"
-    manage_table_scrapping(DB_PATH, "Europe / Poland")
-    manage_fasta_scrapping(DB_PATH)
+    DB_PATH = os.environ["DB_PATH"]
+    FASTA_FILES_DIR = os.environ["FASTA_FILES_DIR"]
+    MINIMUM_START_DATE = datetime.datetime.strptime(os.environ['MINIMUM_START_DATE'], '%Y-%m-%d').date()
+    MAX_DATE_RANGE = int(os.environ['MAX_DATE_RANGE'])
+    ROOT_REGION = os.environ['ROOT_REGION']
+    
+    init_db(DB_PATH)
+    if not os.environ.get('SKIP_METATABLE'):
+        manage_table_scrapping(DB_PATH, MINIMUM_START_DATE, MAX_DATE_RANGE, ROOT_REGION)
+    if not os.environ.get('SKIP_FASTA'):
+        manage_fasta_scrapping(DB_PATH, FASTA_FILES_DIR)
