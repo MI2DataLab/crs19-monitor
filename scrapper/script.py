@@ -8,6 +8,8 @@ import shutil
 import re
 import datetime
 import math
+import sys
+import traceback
 
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
@@ -178,7 +180,17 @@ def set_region(driver, region):
     
     return
 
-def scrap_meta_table(region, db_path, start_date, end_date):
+class ScrappingMetaHistory:
+    def __init__(self):
+        self.pages_list = []
+        self.last_done_page = 0
+    def add_page(self, page_num, data):
+        if page_num != self.last_done_page + 1:
+            raise Exception("page_num(%s) != last_done_page(%s) + 1" % (page_num, self.last_done_page))
+        self.pages_list.append(data)
+        self.last_done_page = page_num
+
+def scrap_meta_table(region, db_path, start_date, end_date, history):
     try:
         driver = get_driver()
         set_region(driver, region)
@@ -205,21 +217,33 @@ def scrap_meta_table(region, db_path, start_date, end_date):
             return
 
         expected_pages = math.ceil(total_records / 50)
-        pages_list = []
 
-        last_readed_page = 1
+        if history.last_done_page != 0:
+            driver.execute_script('document.getElementsByClassName("yui-pg-page")[1].setAttribute("page", %s)' % (history.last_done_page + 1,))
+            time.sleep(3)
+            driver.find_elements_by_class_name("yui-pg-page")[1].click()
+            time.sleep(30)
+        
+        last_readed_page = history.last_done_page + 1
 
         while True:
-
-            page = driver.find_element_by_class_name("yui-dt-bd").get_attribute("innerHTML")
-            df = pd.read_html(page)[0]
-
-            pages_list.append(df)
-
+                
             #get current page number
             page_num = int(driver.find_element_by_class_name("yui-pg-current-page.yui-pg-page").text)
+            
             print("Scrapping page %s / %s" %(page_num,expected_pages))
+            
+            page = driver.find_element_by_class_name("yui-dt-bd").get_attribute("innerHTML")
+            df = pd.read_html(page)[0]
+            
+            #get page number after read
+            page_num_post = int(driver.find_element_by_class_name("yui-pg-current-page.yui-pg-page").text)
+            
+            if page_num != page_num_post:
+                raise Exception('Page skipped while reading')
 
+            history.add_page(page_num, df)
+            
             # stop if reached last page
             if not ('href' in driver.find_element_by_class_name("yui-pg-next").get_attribute("outerHTML")):
                 print("Got to last page, exiting")
@@ -247,7 +271,7 @@ def scrap_meta_table(region, db_path, start_date, end_date):
 
     driver.close()
         
-    meta_df = pd.concat(pages_list)
+    meta_df = pd.concat(history.pages_list)
         # drop column of checkboxes and symbol
     meta_df = meta_df.drop(['Unnamed: 0', 'Unnamed: 6'], axis=1)
     
@@ -258,7 +282,8 @@ def scrap_meta_table(region, db_path, start_date, end_date):
     
     for index, row in df_clean.iterrows():
         if row['Accession ID'] not in duplicated:
-            country = row['Location'].split(" / ")[1]
+            region_parts = row['Location'].split(" / ")
+            country = None if len(region_parts) < 2 else region_parts[1]
             cur.execute("""INSERT INTO metadata (
                                                 accession_id, 
                                                 passage,
@@ -285,6 +310,21 @@ def scrap_meta_table(region, db_path, start_date, end_date):
     con.close()
     return
 
+def scrap_table_repeater(region, db_path, start_date, end_date):
+    history = ScrappingMetaHistory()
+    for i in range(4):
+        try:
+            scrap_meta_table(region, db_path, start_date, end_date, history)
+            return
+        except Exception as e:
+            exc_info = sys.exc_info()
+            if i == 3:
+                raise e
+            else:
+                traceback.print_exception(*exc_info)
+            del exc_info
+            print('%s try failed' % (i,))
+
 def manage_table_scrapping(db_path, minimum_start_date, max_date_range, region):
 
     con = sqlite3.connect(db_path)
@@ -298,11 +338,14 @@ def manage_table_scrapping(db_path, minimum_start_date, max_date_range, region):
     else:
         start_date = datetime.datetime.strptime(start_date, '%Y-%m-%d').date()
         print('Scrapping 3 days before proper date range')
-        scrap_meta_table(region, db_path, start_date - datetime.timedelta(days=3), start_date - datetime.timedelta(days=1))
+        scrap_table_repeater(region, db_path, start_date - datetime.timedelta(days=3), start_date - datetime.timedelta(days=1))
+        print('Scrapping starting day')
+        scrap_table_repeater(region, db_path, start_date, start_date)
+        start_date = start_date + datetime.timedelta(days=1)
 
     end_date = min(datetime.date.today(), start_date + datetime.timedelta(days = max_date_range))
 
-    scrap_meta_table(region, db_path, start_date, end_date)
+    scrap_table_repeater(region, db_path, start_date, end_date)
 
 def init_db(db_path):
     con = sqlite3.connect(db_path)
