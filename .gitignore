@@ -7,3 +7,7 @@ results.csv
 *.pyc
 fasta_to_pango/logs/minimap2_sam.log
 .Rproj.user
+.Rhistory
+.Rapp.history
+.RData
+**.sqlite
