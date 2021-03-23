@@ -191,6 +191,8 @@ class ScrappingMetaHistory:
         self.last_done_page = page_num
 
 def scrap_meta_table(region, db_path, start_date, end_date, history):
+    if end_date < start_date:
+        print('Skipping, invalid date range')
     try:
         driver = get_driver()
         set_region(driver, region)
@@ -231,7 +233,7 @@ def scrap_meta_table(region, db_path, start_date, end_date, history):
             #get current page number
             page_num = int(driver.find_element_by_class_name("yui-pg-current-page.yui-pg-page").text)
             
-            print("Scrapping page %s / %s" %(page_num,expected_pages))
+            print("Scrapping page %s / %s (%s%%)" %(page_num, expected_pages, ((10**4 * page_num) // expected_pages) / 10**2 ))
             
             page = driver.find_element_by_class_name("yui-dt-bd").get_attribute("innerHTML")
             df = pd.read_html(page)[0]
@@ -312,13 +314,14 @@ def scrap_meta_table(region, db_path, start_date, end_date, history):
 
 def scrap_table_repeater(region, db_path, start_date, end_date):
     history = ScrappingMetaHistory()
-    for i in range(4):
+    repeats = 15
+    for i in range(repeats):
         try:
             scrap_meta_table(region, db_path, start_date, end_date, history)
             return
         except Exception as e:
             exc_info = sys.exc_info()
-            if i == 3:
+            if i == repeats - 1:
                 raise e
             else:
                 traceback.print_exception(*exc_info)
