@@ -1,17 +1,17 @@
 import os
 import glob
 import sys
-from config import diff_fasta_dir, clades_output_dir, clades_merged_file
+from config import gisaid_fasta_dir, clades_output_dir, clades_merged_file
 
 # Create output directory if not exists
 if not os.path.exists(clades_output_dir):
     os.makedirs(clades_output_dir)
 
 # Check if input directory exists
-if not os.path.exists(diff_fasta_dir):
-    raise Exception("Directory %s does not exist" % (diff_fasta_dir,))
+if not os.path.exists(gisaid_fasta_dir):
+    raise Exception("Directory %s does not exist" % (gisaid_fasta_dir,))
 
-input_files = glob.glob(diff_fasta_dir + '/*.fasta')
+input_files = glob.glob(gisaid_fasta_dir + '/*.fasta')
 processed_files = glob.glob(clades_output_dir + '/*.tsv')
 
 for f in input_files:

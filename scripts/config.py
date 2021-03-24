@@ -1,12 +1,10 @@
 conda_sh_path = "/home/crs19monitor/miniconda3/etc/profile.d/conda.sh"
-repo_path = "/home/crs19monitor/crs19-monitor"
-data_dir = "/home/crs19monitor/data"
-site_dist = "/home/crs19monitor/site_dist"
+repo_path = "/crs19/production/repo"
+data_dir = "/crs19/production/data"
+site_dist = "/crs19/production/site_dist"
 
 gisaid_fasta_dir = data_dir + '/gisaid_fasta'
 gisaid_metadata_dir = data_dir + '/gisaid_metadata'
-gisaid_metadata_merged_file = data_dir + '/gisaid_metadata.csv'
-diff_fasta_dir = data_dir + '/diff_fasta'
 clades_output_dir = data_dir + '/clades'
 clades_merged_file = data_dir + '/clades.tsv'
 pango_output_dir = data_dir + '/pango'
