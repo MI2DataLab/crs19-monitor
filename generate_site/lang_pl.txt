@@ -14,3 +14,8 @@ pl_var_all_1_tit:Udział sekwencji z wariantem wirusa
 pl_var_all_2_tit:Tygodniowy udział sekwencji z wariantem wirusa
 pl_var_all_3_tit:Tygodniowa liczba sekwencji z wariantem wirusa
 pl_var_all_4_tit:Udział sekwencji z wariantem wirusa
+pl_map_sub1:Suma z tygodnia poprzedzającego
+pl_map_sub2:Suma z miesiąca poprzedzającego
+pl_map_pt1:Proporcja sekwencji z mutacją
+pl_map_pt2:w województwach
+

@@ -36,7 +36,7 @@ if out == 0:
     os.environ['DB_PATH'] = db_path
     os.environ['REGION'] = region
     out1 = os.system('bash -c "source ' + conda_sh_path + ' && cd ' + work_dir + ' && conda activate crs19 && python script.py"')
-    out2 = os.system('bash -c "awk \'(NR == 1) || (FNR > 1)\' ' + gisaid_metadata_dir  + '/*.csv |sed \'s/^[0-9]*//g\' |sort -k 2 |uniq  > ' + gisaid_metadata_merged_file + '"')
+    out2 = os.system('bash -c "awk \'(NR == 1) || (FNR > 1)\' ' + gisaid_metadata_dir  + '/*.csv |sed \'s/^[0-9]*//g\' |(sed -u 1q; sort) |uniq  > ' + gisaid_metadata_merged_file + '"')
     sys.exit((out1 or out2) >> 8)
 else:
     sys.exit(out >> 8)

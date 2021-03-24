@@ -6,16 +6,20 @@ library(grid)
 library(dplyr)
 library(ggrepel)
 library(lubridate)
-library(pammtools)
 library(forcats)
-library("RSQLite")
+library(RSQLite)
 
+library(tidyr)
+library(rgdal)
+library(scatterpie)
+library(sf)
+library(patchwork)
 ############
 ## read data
 # lineage_report =  "../../data/pango.csv"
 # nextclade_report = "../../data/clades.tsv"
 # metadata_report = "../../data/gisaid_metadata.csv"
-# lineage_date <- "2021/03/17"
+# lineage_date <- "2021/03/19"
 # region <- "Europe / Poland"
 # db_path <- "../../data/sequences.sqlite"
 # output_dir <- "./output/"
@@ -40,15 +44,6 @@ print(paste('Found', nrow(metadata), 'rows in database'))
 # Create output dirs
 dir.create(paste0(output_dir, '/', 'images'), recursive=TRUE, showWarnings=FALSE)
 
-# Moved to script.R
-#lineage <- read.table(lineage_report, sep = ",", header = TRUE)
-#colnames(lineage)[1:2] = c('Sequence.name', 'Lineage')
-#lineage$accession_id <- stringi::stri_extract_first_regex(lineage$Sequence.name, 'EPI_ISL_[0-9]+')
-#nextclade <- read.table(nextclade_report, sep = "\t", header = TRUE)
-#nextclade$accession_id <- stringi::stri_extract_first_regex(nextclade$seqName, 'EPI_ISL_[0-9]+')
-#print(paste('Full pango rows:',nrow(lineage)))
-#print(paste('Full nextclade rows:',nrow(nextclade)))
-
 # Filter by region
 lineage <-subset(lineage_full, accession_id %in% metadata$accession_id)
 nextclade <-subset(nextclade_full, accession_id %in% metadata$accession_id)
@@ -58,7 +53,7 @@ print(paste('Region nextclade rows:',nrow(nextclade)))
 ############
 ## read titles
 
-descriptions <- read.table("lang_pl.txt", sep=":", header = TRUE, row.names = 1)
+descriptions <- read.table("lang_pl.txt", sep=":", header = TRUE, row.names = 1, fileEncoding = "UTF-8")
 
 
 ############
@@ -80,12 +75,18 @@ nextclade$sample <- gsub(sapply(strsplit(nextclade$seqName, split = "\\|"), `[`,
 nextclade$clade_small <- fct_infreq(nextclade$clade)
 nextclade$clade_small <- fct_lump(nextclade$clade_small, n = 12, other_level = "Inne")
 
+# -------
+# global variables
+
+DATE_LAST_SAMPLE <- max(ymd(metadata$Collection.date), na.rm = T)
+ALARM_MUTATION <- "N501Y"
+ALARM_PATTERN <- "501Y"
 
 # -------
 # Liczba na tydzień
 
 pl_seq_1 <- ggplot(lineage, aes(ymd(date) - wday(ymd(date)))) +
-  geom_bar(binwidth = 7, color = "white") +
+  geom_histogram(binwidth = 7, color = "white") +
   theme_minimal(base_family = 'Arial') +
   scale_x_date("", date_breaks = "2 months", date_labels = "%m") +
   scale_y_continuous("", expand = c(0,0)) +
@@ -98,7 +99,7 @@ t_cou_lin <- table(lineage$date)
 df <- as.data.frame(t_cou_lin)
 
 pl_seq_2 <- ggplot(df, aes(ymd(Var1), ymin = 0, ymax = cumsum(Freq))) +
-  geom_stepribbon() + geom_hline(yintercept = 0) +
+  pammtools::geom_stepribbon() + geom_hline(yintercept = 0) +
   theme_minimal(base_family = 'Arial') +
   scale_x_date("", date_breaks = "2 months", date_labels = "%m") +
   scale_y_continuous("", expand = c(0,0)) +
@@ -121,7 +122,7 @@ counts <- data.frame(variant = factor(names(t_cou_lin[nrow(t_cou_lin),]),
                      date = as.character(ymd(lineage_date) - months(3)),
                      n = max(t_cou_lin[nrow(t_cou_lin),]))
 pl_war_1 <- ggplot(df3, aes(ymd(date), ymax=n, ymin=0, fill = variant %in% c("B.1.1.7", "B.1.351"))) +
-  geom_stepribbon() +
+  pammtools::geom_stepribbon() +
   geom_text(data = counts, aes(x = ymd(date), y = n, label = label, hjust = 0, vjust = 1), size=2.7) +
   scale_fill_manual(values = c("blue4", "red4")) +
   scale_x_date("", date_breaks = "1 month", date_labels = "%m",
@@ -149,7 +150,7 @@ counts4 <- data.frame(variant = factor(names(t_cou_cla[nrow(t_cou_cla),]),
                      n = max(t_cou_cla[nrow(t_cou_cla),]))
 
 pl_war_3 <- ggplot(df4, aes(ymd(date), ymax=n, ymin=0, fill = grepl(variant, pattern = "501Y"))) +
-  geom_stepribbon() +
+  pammtools::geom_stepribbon() +
   geom_text(data = counts4, aes(x = ymd(date), y = n, label = label, hjust = 0, vjust = 1), size=2.7) +
   scale_fill_manual(values = c("blue4", "red4")) +
   scale_x_date("", date_breaks = "1 month", date_labels = "%m",
@@ -234,70 +235,379 @@ pl_war_5 <- ggplot(metadata_ext, aes(ymd(collection_date), ymd(submission_date),
   theme(legend.position = "none")
 
 
-############
-## plots for regions
+# --------------------------------- #
+# ------------LOCATION------------- #
+# --------------------------------- #
 
-metadata_ext$LocationClean <- sapply(strsplit(metadata_ext$location, split = "/"), `[`, 3)
-#metadata_ext$LocationClean <- c(" Pomorskie" = "Pomorskie", " Wielkopolskie " = "Wielkopolskie", " Warminsko-Mazurskie " = "Warmińsko-Mazurskie", " Dolnoslaskie" = "Dolnośląskie",
-#  " warminsko-mazurskie" = "Warmińsko-Mazurskie", " pomorskie" = "Pomorskie", " lubuskie" = "Lubuskie", " zachodniopomorskie" = "Zachodniopomorskie",
-#  " malopolskie" = "Małopolskie", " Zachodniopomorskie" = "Zachodniopomorskie", " Zachodniopomorskie " = "Zachodniopomorskie",
-#  " Dolnośląskie " = "Dolnośląskie", " slaskie" = "Śląskie", " dolnoslaskie" = "Dolnośląskie", " Malopolskie" = "Małopolskie",
-#  " Dolnośląskie" = "Dolnośląskie", " swietokrzyskie" = "Świętokrzyskie", " opolskie" = "Opolskie", " Warmińsko-mazurskie" = "Warmińsko-Mazurskie",
-#  " Opolskie" = "Opolskie", " Iodzkie" = "Łódzkie", " podkarpackie" = "Podkarpackie", " Lodzkie" = "Łódzkie", " Podlaskie " = "Podlaskie",
-#  " Bielsk Podlaski", " Lodzkie " = "Łódzkie", " Wielkopolskie" = "Wielkopolskie",
-#  " Łódzkie" = "Łódzkie", " Masovia" = "Mazowieckie", " Mazowieckie" = "Mazowieckie", " Mazowieckie " = "Mazowieckie", " Pomorskie " = "Pomorskie",
-#  " Dolnoslaskie " = "Dolnośląskie", " Malopolska " = "Małopolskie", " Malopolska" = "Małopolskie", " Wielkopolska " = "Wielkopolskie",
-#  " Pomorze" = "Pomorskie", " Slask" = "Śląskie",
-#  " Vysocina Region " = "Vysocina Region",
-#  " Vysocina " = "Vysocina Region",
-#  " Klatovy" = "Klatovy",
-#  " Brno" = "Brno",
-#  " Olomouc" = "Olomouc Region",
-#  " Olomouc Region" = "Olomouc Region",
-#  " Olomouc Region " = "Olomouc Region",
-#  " Ústí nad Labem Region " = "Ústí nad Labem Region",
-#  " Ústí nad Labem Region" = "Ústí nad Labem Region",
-#  " Usti nad Labem Region " = "Ústí nad Labem Region",
-#  " Ústí nad Labem" = "Ústí nad Labem Region",
-#  " Usti nad Labem" = "Ústí nad Labem Region",
-#  " Ústí nad Labem " = "Ústí nad Labem Region",
-#  " Usti nad Labem " = "Ústí nad Labem Region",
-#  " Plzeň Region " = "Plzeň Region",
-#  " Plzen " = "Plzeň Region",
-#  " Plzeň " = "Plzeň Region",
-#  " Plzen Region " = "Plzeň Region",
-#  " Hradec Králové Region " = "Hradec Králové Region",
-#  " Hradec Kralove Region " = "Hradec Králové Region",
-#  " Moravian-Silesian Region " = "Moravian-Silesian Region",
-#  " Zlín Region " = "Zlín Region",
-#  " Zlin " = "Zlín Region",
-#  " Zlin Region " = "Zlín Region",
-#  " Melnik" = "Melnik",
-#  " Prague-Miskovice" = "Prague",
-#  " Domažlice" = "Domažlice",
-#  " Prague" = "Prague",
-#  " Prague " = "Prague",
-#  " South Bohemian Region " = "South Bohemian Region",
-#  " Southern Bohemia Region " = "South Bohemian Region",
-#  " Central Bohemian Region " = "Central Bohemian Region",
-#  " Central Bohemia Region " = "Central Bohemian Region",
-#  " Northern Bohemia Region " = "Northern Bohemia Region",
-#  " South Moravian Region " = "South Moravian Region",
-#  " Pivo" = "Pivo",
-#  " Pilsen" = "Pilsen",
-#  " Breclav" = "Breclav",
-#  " Liberec Region " = "Liberec Region",
-#  " Liberec Region" = "Liberec Region",
-#  " Hranice na Moravě " = "Hranice na Moravě",
-#  " Pardubice Region " = "Pardubice Region",
-#  " Litomerice-Brnay" = "Litomerice-Brnay",
-#  " Litovel" = "Litovel",
-#  " Jihlava" = "Jihlava",
-#  " Slaný" = "Slaný"
-#  )[metadata_ext$LocationClean]
+### reversed dict
+## NOTE: gsub(" ", "", x) is not possible due to other countries than PL
+# TODO: consider only lowercase keys
+
+location_dict_to_from <- list(
+  # https://pl.wikipedia.org/wiki/Województwo
+  ######## PL
+
+  "Dolnośląskie" =
+    c(
+      "Dolnoslaskie" , "dolnoslaskie"
+    , " Dolnoslaskie" , " dolnoslaskie"
+    , " Dolnoslaskie " , " dolnoslaskie "
+    , "Dolnośląskie", "dolnośląskie"
+    , " Dolnośląskie", " dolnośląskie"
+    , " Dolnośląskie ", " dolnośląskie "
+    , "Dolnoslakie", "dolnoslakie"
+    , " Dolnoslakie", " dolnoslakie"
+    , " Dolnoslakie ", " dolnoslakie "
+    , "DolnoSlaskie" , "dolnoSlaskie"
+    , " DolnoSlaskie" , " dolnoSlaskie"
+    , " DolnoSlaskie " , " dolnoSlaskie "
+    )
+, "Kujawsko-Pomorskie" =
+    c(
+      "Kujawsko-Pomorskie" , "kujawsko-pomorskie", "Kujawsko-pomorskie"
+    , " Kujawsko-Pomorskie" , " kujawsko-pomorskie", " Kujawsko-pomorskie"
+    , " Kujawsko-Pomorskie " , " kujawsko-pomorskie ", " Kujawsko-pomorskie "
+    )
+, "Lubelskie" =
+    c(
+      "Lubelskie" , "lubelskie"
+    , " Lubelskie", " lubelskie"
+    , " Lubelskie ", " lubelskie "
+    )
+, "Lubuskie" =
+    c(
+      "Lubuskie" , "lubuskie"
+    , " Lubuskie" , " lubuskie"
+    , " Lubuskie " , " lubuskie "
+    )
+, "Łódzkie" =
+    c(
+      "Lodzkie", "lodzkie"
+    , " Lodzkie", " lodzkie"
+    , " Lodzkie ", " lodzkie "
+    , "Łódzkie", "łódzkie"
+    , " Łódzkie", " łódzkie"
+    , " Łódzkie ", " łódzkie "
+    , "Iodzkie", "lodzkie"
+    , " Iodzkie", " lodzkie"
+    , " Iodzkie ", " lodzkie "
+    )
+, "Małopolskie" =
+    c(
+      "Malopolskie" , "malopolskie"
+    , " Malopolskie" , " malopolskie"
+    , " Malopolskie " , " malopolskie "
+    , "Małopolskie", "małopolskie"
+    , " Małopolskie", " małopolskie"
+    , " Małopolskie ", " małopolskie "
+    , "Malopolska", "malopolska"
+    , " Malopolska", " malopolska"
+    , " Malopolska ", " malopolska "
+    , "Małopolska", "małopolska"
+    , " Małopolska", " małopolska"
+    , " Małopolska ", " małopolska "
+    , "MalOpolskie", "malOpolskie"
+    , " MalOpolskie", " malOpolskie"
+    , " MalOpolskie ", " malOpolskie "
+    )
+, "Mazowieckie" =
+    c(
+      "Mazowieckie", "mazowieckie"
+    , " Mazowieckie", " mazowieckie"
+    , " Mazowieckie ", " mazowieckie "
+    , "Masovia", "masovia"
+    , " Masovia", " masovia"
+    , " Masovia ", " masovia "
+    )
+, "Opolskie" =
+    c(
+      "Opolskie", "opolskie"
+    , " Opolskie", " opolskie"
+    , " Opolskie ", " opolskie "
+    )
+, "Podkarpackie" =
+    c(
+      "Podkarpackie", "podkarpackie"
+    , " Podkarpackie", " podkarpackie"
+    , " Podkarpackie ", " podkarpackie "
+    )
+, "Podlaskie" =
+    c(
+      "Podlaskie", "podlaskie"
+    , " Podlaskie", " podlaskie"
+    , " Podlaskie ", " podlaskie "
+    , "Bielsk Podlaski", "bielsk podlaski"
+    , " Bielsk Podlaski", " bielsk podlaski"
+    , " Bielsk Podlaski ", " bielsk podlaski "
+    )
+, "Pomorskie" =
+    c(
+      "Pomorskie", "pomorskie"
+    , " Pomorskie", " pomorskie"
+    , " Pomorskie ", " pomorskie "
+    , "Pomerania", "pomerania"
+    , " Pomerania", " pomerania"
+    , " Pomerania ", " pomerania "
+    , "Pomorze", "pomorze"
+    , " Pomorze", " pomorze"
+    , " Pomorze ", " pomorze "
+    )
+, "Śląskie" =
+    c(
+      "Slaskie", "slaskie"
+    , " Slaskie", " slaskie"
+    , " Slaskie ", " slaskie "
+    , "Śląskie", "śląskie"
+    , " Śląskie", " śląskie"
+    , " Śląskie ", " śląskie "
+    , "Slask", "slask"
+    , " Slask", " slask"
+    , " Slask ", " slask "
+    )
+, "Świętokrzyskie" =
+    c(
+      "Swietokrzyskie", "swietokrzyskie"
+    , " Swietokrzyskie", " swietokrzyskie"
+    , " Swietokrzyskie ", " swietokrzyskie "
+    , "Świętokrzyskie", "świętokrzyskie"
+    , " Świętokrzyskie", " świętokrzyskie"
+    , " Świętokrzyskie ", " świętokrzyskie "
+    )
+, "Warmińsko-Mazurskie" =
+    c(
+      "Warminsko-Mazurskie", "warminsko-mazurskie", "Warminsko-mazurskie"
+    , " Warminsko-Mazurskie", " warminsko-mazurskie", " Warminsko-mazurskie"
+    , " Warminsko-Mazurskie ", " warminsko-mazurskie ", " Warminsko-mazurskie "
+    , "Warmińsko-Mazurskie", "warmińsko-mazurskie", "Warmińsko-mazurskie"
+    , " Warmińsko-Mazurskie", " warmińsko-mazurskie", " Warmińsko-mazurskie"
+    , " Warmińsko-Mazurskie ", " warmińsko-mazurskie ", " Warmińsko-mazurskie "
+    )
+, "Wielkopolskie" =
+    c(
+      "Wielkopolskie", "wielkopolskie"
+    , " Wielkopolskie", " wielkopolskie"
+    , " Wielkopolskie ", " wielkopolskie "
+    , "Wielkopolska", "wielkopolska"
+    , " Wielkopolska", " wielkopolska"
+    , " Wielkopolska ", " wielkopolska "
+    , "WielkOpolskie", "wielkOpolskie"
+    , " WielkOpolskie", " wielkOpolskie"
+    , " WielkOpolskie ", " wielkOpolskie "
+    )
+, "Zachodniopomorskie" =
+    c(
+      "Zachodniopomorskie", "zachodniopomorskie"
+    , " Zachodniopomorskie", " zachodniopomorskie"
+    , " Zachodniopomorskie ", " zachodniopomorskie "
+    , "ZachodnioPomorskie", "zachodnioPomorskie"
+    , " ZachodnioPomorskie", " zachodnioPomorskie"
+    , " ZachodnioPomorskie ", " zachodnioPomorskie "
+    )
+
+  ########
+, "Central Bohemian Region" =
+    c(
+      "Central Bohemian Region", "central bohemian region"
+    , " Central Bohemian Region", " central bohemian region"
+    , " Central Bohemian Region ", " central bohemian region "
+    , "Central Bohemia Region", "central bohemia region"
+    , " Central Bohemia Region", " central bohemia region"
+    , " Central Bohemia Region ", " central bohemia region "
+    , "Melnik", "melnik"
+    , " Melnik", " melnik"
+    , " Melnik ", " melnik "
+    , "Slaný", "slaný"
+    , " Slaný", " slaný"
+    , " Slaný ", " slaný "
+    )
+, "Hradec Králové Region" =
+    c(
+      "Hradec Králové Region", "hradec králové region"
+    , " Hradec Králové Region", " hradec králové region"
+    , " Hradec Králové Region ", " hradec králové region "
+    , "Hradec Kralove Region", "hradec kralove region"
+    , " Hradec Kralove Region", " hradec kralove region"
+    , " Hradec Kralove Region ", " hradec kralove region "
+    )
+, "Liberec Region" =
+    c(
+      "Liberec Region", "liberec region"
+    , " Liberec Region", " liberec region"
+    , " Liberec Region ", " liberec region "
+    )
+, "Moravian-Silesian Region" =
+    c(
+      "Moravian-Silesian Region", "moravian-silesian region"
+    , " Moravian-Silesian Region", " moravian-silesian region"
+    , " Moravian-Silesian Region ", " moravian-silesian region "
+    )
+, "Northern Bohemian Region" =
+    c(
+      "Northern Bohemian Region", "northern bohemian region"
+    , " Northern Bohemian Region", " northern bohemian region"
+    , " Northern Bohemian Region ", " northern bohemian region "
+    , "Northern Bohemia Region", "northern bohemia region"
+    , " Northern Bohemia Region", " northern bohemia region"
+    , " Northern Bohemia Region ", " northern bohemia region "
+    , "North Bohemian Region", "north bohemian region"
+    , " North Bohemian Region", " north bohemian region"
+    , " North Bohemian Region ", " north bohemian region "
+    , "North Bohemia Region", "north bohemia region"
+    , " North Bohemia Region", " north bohemia region"
+    , " North Bohemia Region ", " north bohemia region "
+    )
+, "Olomouc Region" =
+    c(
+      "Olomouc", "olomouc"
+    , " Olomouc", " olomouc"
+    , " Olomouc ", " olomouc "
+    , "Olomouc Region", "olomouc region"
+    , " Olomouc Region", " olomouc region"
+    , " Olomouc Region ", " olomouc region "
+    , "Litovel", "litovel"
+    , " Litovel", " litovel"
+    , " Litovel ", " litovel "
+    , "Hranice na Moravě", "hranice na moravě"
+    , " Hranice na Moravě", " hranice na moravě"
+    , " Hranice na Moravě ", " hranice na moravě "
+    , "Hranice", "hranice"
+    , " Hranice", " hranice"
+    , " Hranice ", " hranice "
+    )
+, "Pardubice Region" =
+    c(
+      "Pardubice Region", "pardubice region"
+    , " Pardubice Region", " pardubice region"
+    , " Pardubice Region ", " pardubice region "
+    )
+, "Plzeň Region" =
+    c(
+      "Plzen", "plzen"
+    , " Plzen", " plzen"
+    , " Plzen ", " plzen "
+    , "Plzeň", "plzeň"
+    , " Plzeň", " plzeň"
+    , " Plzeň ", " plzeň "
+    , "Plzen Region", "plzen region"
+    , " Plzen Region", " plzen region"
+    , " Plzen Region ", " plzen region "
+    , "Plzeň Region", "plzeň region"
+    , " Plzeň Region", " plzeň region"
+    , " Plzeň Region ", " plzeň region "
+    , "Klatovy", "klatovy"
+    , " Klatovy", " klatovy"
+    , " Klatovy ", " klatovy "
+    , "Domažlice", "domažlice"
+    , " Domažlice", " domažlice"
+    , " Domažlice ", " domažlice "
+    , "Pilsen", "pilsen"
+    , " Pilsen", " pilsen"
+    , " Pilsen ", " pilsen "
+    )
+, "Prague" =
+    c(
+      "Prague", "prague"
+    , " Prague", " prague"
+    , " Prague ", " prague "
+    , "Prague-Miskovice", "prague-miskovice"
+    , " Prague-Miskovice", " prague-miskovice"
+    , " Prague-Miskovice ", " prague-miskovice "
+    )
+, "South Bohemian Region" =
+    c(
+      "South Bohemian Region", "south bohemian region"
+    , " South Bohemian Region", " south bohemian region"
+    , " South Bohemian Region ", " south bohemian region "
+    , "South Bohemia Region", "south bohemia region"
+    , " South Bohemia Region", " south bohemia region"
+    , " South Bohemia Region ", " south bohemia region "
+    , "Southern Bohemian Region", "southern bohemian region"
+    , " Southern Bohemian Region", " southern bohemian region"
+    , " Southern Bohemian Region ", " southern bohemian region "
+    , "Southern Bohemia Region", "southern bohemia region"
+    , " Southern Bohemia Region", " southern bohemia region"
+    , " Southern Bohemia Region ", " southern bohemia region "
+    )
+, "South Moravian Region" =
+    c(
+      "South Moravian Region", "south moravian region"
+    , " South Moravian Region", " south moravian region"
+    , " South Moravian Region ", " south moravian region "
+    , "Brno", "brno"
+    , " Brno", " brno"
+    , " Brno ", " brno "
+    , "Breclav", "breclav"
+    , " Breclav", " breclav"
+    , " Breclav ", " breclav "
+    )
+, "Ústí nad Labem Region" =
+    c(
+      "Ústí nad Labem", "ústí nad labem"
+    , " Ústí nad Labem", " ústí nad labem"
+    , " Ústí nad Labem ", " ústí nad labem "
+    , "Ústí nad Labem Region", "ústí nad labem region"
+    , " Ústí nad Labem Region", " ústí nad labem region"
+    , " Ústí nad Labem Region ", " ústí nad labem region "
+    , "Usti nad Labem", "usti nad labem"
+    , " Usti nad Labem", " usti nad labem"
+    , " Usti nad Labem ", " usti nad labem "
+    )
+, "Vysocina Region" =
+    c(
+      "Vysocina Region", "vysocina region"
+    , " Vysocina Region", " vysocina region"
+    , " Vysocina Region ", " vysocina region "
+    , "Vysocina", "vysocina"
+    , " Vysocina", " vysocina"
+    , " Vysocina ", " vysocina "
+    , "Jihlava", "jihlava"
+    , " Jihlava", " jihlava"
+    , " Jihlava ", " jihlava "
+    )
+, "Zlín Region" =
+    c(
+      "Zlin", "zlin"
+    , " Zlin", " zlin"
+    , " Zlin ", " zlin "
+    , "Zlin Region", "zlin region"
+    , " Zlin Region", " zlin region"
+    , " Zlin Region ", " zlin region "
+    , "Zlín", "zlín"
+    , " Zlín", " zlín"
+    , " Zlín ", " zlín "
+    , "Zlín Region", "zlín region"
+    , " Zlín Region", " zlín region"
+    , " Zlín Region ", " zlín region "
+    )
+)
+
+reverse_dict <- function(dict) {
+  # https://stackoverflow.com/a/35827024
+  split(rep(names(dict), lengths(dict)), unlist(dict))
+}
+
+### proper dict
+location_dict_from_to <- reverse_dict(location_dict_to_from)
+
+### clean location
+location_from <- sapply(strsplit(metadata_ext$location, split = "/"), `[`, 3, simplify = T, USE.NAMES = F)
+location_to <- location_dict_from_to[location_from]
+location_to[is.na(names(location_to))] <- NA
+metadata_ext$LocationClean <- unlist(location_to)
+
+### print info about new misspelled data
+misspelled_rows <- is.na(metadata_ext$LocationClean)
+misspelled_locations <- table(metadata_ext$location[misspelled_rows])
+print(paste("There are", length(misspelled_locations), "misspelled locations"))
+print(paste("There are", sum(misspelled_rows), "unique misspelled rows"))
+print(as.data.frame(misspelled_locations))
+
+### PLOTS
 
 metadata_ext$week_start <- ymd(metadata_ext$collection_date) - days(wday(ymd(metadata_ext$collection_date)))
-t_dat_loc_cla <- table(metadata_ext$week_start, metadata_ext$LocationClean, ifelse(grepl(metadata_ext$clade_small, pattern = "501Y"), "N501Y", "-"))
+t_dat_loc_cla <- table(metadata_ext$week_start, metadata_ext$LocationClean,
+                       ifelse(grepl(metadata_ext$clade_small, pattern = ALARM_PATTERN), ALARM_MUTATION, "-"))
+
 #t_dat_loc_cla[,,1] <- t_dat_loc_cla[,,1] + t_dat_loc_cla[,,2]
 #t_dat_loc_cla <- apply(t_dat_loc_cla, 2:3, cumsum)
 t_dat_loc_cla <- data.frame(as.table(t_dat_loc_cla))
@@ -316,8 +626,12 @@ pl_loc_1 <- ggplot(t_dat_loc_cla, aes(ymd(Var1), y=Freq, fill = Var3)) +
   ggtitle(descriptions["pl_loc_1_tit", "names"]) +
   theme(legend.position = "none")
 
+#
+t_dat_map <- t_dat_loc_cla %>% rename(date = Var1, name = Var2, type = Var3, count = Freq)
+#
 
-t_dat_loc_cla <- table(metadata_ext$week_start, metadata_ext$LocationClean, ifelse(grepl(metadata_ext$clade_small, pattern = "501Y"), "N501Y", "-"))
+t_dat_loc_cla <- table(metadata_ext$week_start, metadata_ext$LocationClean,
+                       ifelse(grepl(metadata_ext$clade_small, pattern = ALARM_PATTERN), ALARM_MUTATION, "-"))
 normalizer <-  t_dat_loc_cla[,,1] + t_dat_loc_cla[,,2]
 t_dat_loc_cla[,,1] <- t_dat_loc_cla[,,1] / normalizer
 t_dat_loc_cla[,,2] <- t_dat_loc_cla[,,2] /normalizer
@@ -338,6 +652,79 @@ pl_loc_2 <- ggplot(t_dat_loc_cla, aes(ymd(Var1), y=Freq, fill = Var3)) +
   theme(legend.position = "none")
 
 
+# --------------------------------- #
+# --------------MAP---------------- #
+# --------------------------------- #
+
+if (region == "Europe / Poland") {
+
+  ((t_dat_map %>%
+      filter(ymd(date) + weeks(1) >= DATE_LAST_SAMPLE) %>%
+      mutate(name = tolower(name)) -> t_map_metadata_week) %>%
+     group_by(name, type) %>%
+     summarise(count = sum(count))  %>%
+     pivot_wider(id_cols = name, names_from = type, values_from = count) %>%
+     inner_join(t_map_metadata_week %>%
+                  group_by(name) %>%
+                  summarise(ratio = sum(count) / sum(t_map_metadata_week$count))) -> t_map_metadata_week) %>%
+    mutate(ratio = 2 * (10e12 * ratio / max(t_map_metadata_week$ratio)) ** (1/3)) -> t_map_metadata_week
+
+  ((t_dat_map %>%
+      filter(ymd(date) + months(1) >= DATE_LAST_SAMPLE) %>%
+      mutate(name = tolower(name)) -> t_map_metadata_month) %>%
+      group_by(name, type) %>%
+      summarise(count = sum(count))  %>%
+      pivot_wider(id_cols = name, names_from = type, values_from = count) %>%
+      inner_join(t_map_metadata_month %>%
+                   group_by(name) %>%
+                   summarise(ratio = sum(count) / sum(t_map_metadata_month$count))) -> t_map_metadata_month) %>%
+    mutate(ratio = 2 * (10e12 * ratio / max(t_map_metadata_month$ratio)) ** (1/3)) -> t_map_metadata_month
+
+  map_cord <- st_read("./map/pl-voi.shp")
+  map_cord <- st_transform(map_cord, 2180) # long and lat is no longer used
+  map_cord_df <- as.data.frame(st_coordinates(map_cord)) %>% rename(id = L3)
+  centroid_cord <- as.data.frame(st_coordinates(st_centroid(map_cord)))
+
+  map_metadata <- data.frame(
+    id   = as.data.frame(map_cord)$JPT_KOD_JE,
+    name = as.data.frame(map_cord)$JPT_NAZWA_,
+    X = centroid_cord$X,
+    Y  = centroid_cord$Y
+  )
+
+  pl_map_1 <- ggplot(map_cord_df) +
+    geom_polygon(aes(X, Y, group = id), color = "black", fill = "white") +
+    geom_scatterpie(data = map_metadata  %>% left_join(t_map_metadata_week, by = "name") %>% drop_na(),
+                    cols = c(ALARM_MUTATION, "-"),
+                    aes(x = X, y = Y, r = ratio, group = id)) +
+    coord_equal() +
+    scale_fill_manual(values = c("red3", "grey")) +
+    theme_void() +
+    theme(legend.position = "none") +
+    ggtitle(paste(descriptions["pl_map_sub1", "names"], DATE_LAST_SAMPLE)) +
+    theme(plot.title = element_text(size=12, hjust = 0.5))
+
+  pl_map_2 <- ggplot(map_cord_df) +
+    geom_polygon(aes(X, Y, group = id), color = "black", fill = "white") +
+    geom_scatterpie(data = map_metadata  %>% left_join(t_map_metadata_month, by = "name") %>% drop_na(),
+                    cols = c(ALARM_MUTATION, "-"),
+                    aes(x = X, y = Y, r = ratio, group = id)) +
+    coord_equal() +
+    scale_fill_manual(values = c("red3", "grey")) +
+    theme_void() +
+    theme(legend.position = "none") +
+    ggtitle(paste(descriptions["pl_map_sub2", "names"], DATE_LAST_SAMPLE)) +
+    theme(plot.title = element_text(size=12, hjust = 0.5))
+
+  pl_map <- (pl_map_1 + pl_map_2) +
+    plot_annotation(
+      title=paste(descriptions["pl_map_pt1", "names"], ALARM_MUTATION, descriptions["pl_map_pt2", "names"]),
+      theme = theme(plot.title = element_text(size=15, hjust = 0.5))
+    )
+}
+
+# --------------------------------- #
+# --------------------------------- #
 
 # -------
 # Ewolucja clades
@@ -489,9 +876,18 @@ ggsave(plot = pl_var_all_2, file=paste0(output_dir, "/images/udzial_warianty_2.s
 ggsave(plot = pl_var_all_3, file=paste0(output_dir, "/images/udzial_warianty_3.svg"), width=5.5, height=3.5)
 ggsave(plot = pl_var_all_4, file=paste0(output_dir, "/images/udzial_warianty_4.svg"), width=5.5, height=3.5)
 
+if (region == "Europe / Poland") {
 
-save(pl_seq_1, pl_seq_2, pl_loc_1, pl_loc_2,
-     pl_war_1, pl_war_2, pl_war_3, pl_war_4, pl_war_5,
-     pl_var_all_1, pl_var_all_2,pl_var_all_3, pl_var_all_4,
-     file = paste0(output_dir, "/images/gg_objects.rda"))
+  ggsave(plot = pl_map, file=paste0(output_dir, "/images/mapa_mutacje.svg"), width=10, height=5)
 
+  save(pl_seq_1, pl_seq_2, pl_loc_1, pl_loc_2,
+       pl_war_1, pl_war_2, pl_war_3, pl_war_4, pl_war_5,
+       pl_var_all_1, pl_var_all_2,pl_var_all_3, pl_var_all_4,
+       pl_map,
+       file = paste0(output_dir, "/images/gg_objects.rda"))
+} else {
+  save(pl_seq_1, pl_seq_2, pl_loc_1, pl_loc_2,
+       pl_war_1, pl_war_2, pl_war_3, pl_war_4, pl_war_5,
+       pl_var_all_1, pl_var_all_2,pl_var_all_3, pl_var_all_4,
+       file = paste0(output_dir, "/images/gg_objects.rda"))
+}
