@@ -19,13 +19,22 @@ import sqlite3
 from secret import elogin, epass  # file secret.py with credentials
 
 
-def get_number_of_files(dir):
+def get_number_of_files(dir : str):
     if os.path.exists(dir):
         files = [f for f in os.listdir("./gisaid_data") if ".part" not in f]
         n_files = len(os.listdir("./gisaid_data"))
     else:
         n_files = 0
     return n_files
+
+def extract_country(location: str):
+    l = location.split("/")
+    if len(l) < 2:
+        return None
+    
+    c = l[1].rstrip(" ").lstrip(" ")
+    
+    return c
 
 def get_driver(region = None, download_dir = None):
     """
@@ -285,8 +294,7 @@ def scrap_meta_table(region, db_path, start_date, end_date, history):
     
     for index, row in df_clean.iterrows():
         if row['Accession ID'] not in duplicated:
-            region_parts = row['Location'].split(" / ")
-            country = None if len(region_parts) < 2 else region_parts[1]
+            country = extract_country(row['Location'])
             cur.execute("""INSERT INTO metadata (
                                                 accession_id, 
                                                 passage,
