@@ -4,7 +4,6 @@ data_dir = "/crs19/production/data"
 site_dist = "/crs19/production/site_dist"
 
 gisaid_fasta_dir = data_dir + '/gisaid_fasta'
-gisaid_metadata_dir = data_dir + '/gisaid_metadata'
 clades_output_dir = data_dir + '/clades'
 clades_merged_file = data_dir + '/clades.tsv'
 pango_output_dir = data_dir + '/pango'

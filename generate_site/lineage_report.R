@@ -21,43 +21,39 @@ library("RSQLite")
 # output_dir <- "./output/"
 
 lineage_date <- Sys.getenv("LINEAGE_DATE")
-lineage_report <- Sys.getenv("LINEAGE_REPORT_PATH")
-nextclade_report <- Sys.getenv("NEXTCLADE_REPORT_PATH")
-metadata_report <- Sys.getenv("METADATA_REPORT_PATH")
+#lineage_report <- Sys.getenv("LINEAGE_REPORT_PATH")
+#nextclade_report <- Sys.getenv("NEXTCLADE_REPORT_PATH")
 output_dir <- Sys.getenv("OUTPUT_PATH")
 db_path <- Sys.getenv('DB_PATH')
 region <- Sys.getenv('REGION')
 
 print(paste('Region:', region))
-
 con <- dbConnect(RSQLite::SQLite(), db_path)
-res <- dbSendQuery(con, 'SELECT key FROM sequences WHERE region = ?')
+res <- dbSendQuery(con, 'SELECT * FROM metadata WHERE country = ?')
 dbBind(res, list(region))
-region_keys <- dbFetch(res)$key
+metadata <- dbFetch(res)
 dbClearResult(res)
 dbDisconnect(con)
 
-print(paste('Found', length(region_keys), 'region keys in database'))
+print(paste('Found', nrow(metadata), 'rows in database'))
 
-dir.create(file.path(output_dir), showWarnings = FALSE)
-dir.create(file.path(output_dir, 'images'), showWarnings = FALSE)
+# Create output dirs
+dir.create(paste0(output_dir, '/', 'images'), recursive=TRUE, showWarnings=FALSE)
 
-lineage <- read.table(lineage_report, sep = ",", header = TRUE)
-colnames(lineage)[1:2] = c('Sequence.name', 'Lineage')
-nextclade <- read.table(nextclade_report, sep = "\t", header = TRUE)
-metadata <- read.table(metadata_report, sep = ",", header = TRUE)
-metadata$seqName <- paste(metadata[, 2], metadata[, 4], metadata[, 5], sep='|')
-print(paste('Full pango rows:',nrow(lineage)))
-print(paste('Full nextclade rows:',nrow(nextclade)))
-print(paste('Full metadata rows:',nrow(metadata)))
+# Moved to script.R
+#lineage <- read.table(lineage_report, sep = ",", header = TRUE)
+#colnames(lineage)[1:2] = c('Sequence.name', 'Lineage')
+#lineage$accession_id <- stringi::stri_extract_first_regex(lineage$Sequence.name, 'EPI_ISL_[0-9]+')
+#nextclade <- read.table(nextclade_report, sep = "\t", header = TRUE)
+#nextclade$accession_id <- stringi::stri_extract_first_regex(nextclade$seqName, 'EPI_ISL_[0-9]+')
+#print(paste('Full pango rows:',nrow(lineage)))
+#print(paste('Full nextclade rows:',nrow(nextclade)))
 
 # Filter by region
-lineage <-subset(lineage, Sequence.name %in% gsub(' ', '_', region_keys))
-nextclade <-subset(nextclade, seqName %in% region_keys)
-metadata <-subset(metadata, seqName %in% region_keys)
+lineage <-subset(lineage_full, accession_id %in% metadata$accession_id)
+nextclade <-subset(nextclade_full, accession_id %in% metadata$accession_id)
 print(paste('Region pango rows:',nrow(lineage)))
 print(paste('Region nextclade rows:',nrow(nextclade)))
-print(paste('Region metadata rows:',nrow(metadata)))
 
 ############
 ## read titles
@@ -124,7 +120,6 @@ counts <- data.frame(variant = factor(names(t_cou_lin[nrow(t_cou_lin),]),
                      label = t_cou_lin[nrow(t_cou_lin),],
                      date = as.character(ymd(lineage_date) - months(3)),
                      n = max(t_cou_lin[nrow(t_cou_lin),]))
-
 pl_war_1 <- ggplot(df3, aes(ymd(date), ymax=n, ymin=0, fill = variant %in% c("B.1.1.7", "B.1.351"))) +
   geom_stepribbon() +
   geom_text(data = counts, aes(x = ymd(date), y = n, label = label, hjust = 0, vjust = 1), size=2.7) +
@@ -222,9 +217,9 @@ pl_war_4 <- ggplot(df5, aes(ymd(date), y=n, color = variant %in% c("20I/501Y.V1"
 ## plots from meta data
 
 nextclade$seqName <- gsub(nextclade$seqName, pattern = "\\|.*", replacement = "")
-metadata_ext <- merge(metadata, nextclade, by.x = "Virus.name", by.y = "seqName")
+metadata_ext <- merge(metadata, nextclade, by.x = "accession_id", by.y = "accession_id")
 
-pl_war_5 <- ggplot(metadata_ext, aes(ymd(Collection.date), ymd(Submission.Date), color = grepl(clade_small, pattern = "501Y"))) +
+pl_war_5 <- ggplot(metadata_ext, aes(ymd(collection_date), ymd(submission_date), color = grepl(clade_small, pattern = "501Y"))) +
   geom_abline(slope = 1, intercept = 0, color = "grey", lty = 4) +
   geom_abline(slope = 1, intercept = 14, color = "grey", lty = 2) +
   geom_abline(slope = 1, intercept = 28, color = "grey", lty = 3) +
@@ -242,66 +237,66 @@ pl_war_5 <- ggplot(metadata_ext, aes(ymd(Collection.date), ymd(Submission.Date),
 ############
 ## plots for regions
 
-metadata_ext$LocationClean <- sapply(strsplit(metadata_ext$Location, split = "/"), `[`, 3)
-metadata_ext$LocationClean <- c(" Pomorskie" = "Pomorskie", " Wielkopolskie " = "Wielkopolskie", " Warminsko-Mazurskie " = "Warmińsko-Mazurskie", " Dolnoslaskie" = "Dolnośląskie",
-  " warminsko-mazurskie" = "Warmińsko-Mazurskie", " pomorskie" = "Pomorskie", " lubuskie" = "Lubuskie", " zachodniopomorskie" = "Zachodniopomorskie",
-  " malopolskie" = "Małopolskie", " Zachodniopomorskie" = "Zachodniopomorskie", " Zachodniopomorskie " = "Zachodniopomorskie",
-  " Dolnośląskie " = "Dolnośląskie", " slaskie" = "Śląskie", " dolnoslaskie" = "Dolnośląskie", " Malopolskie" = "Małopolskie",
-  " Dolnośląskie" = "Dolnośląskie", " swietokrzyskie" = "Świętokrzyskie", " opolskie" = "Opolskie", " Warmińsko-mazurskie" = "Warmińsko-Mazurskie",
-  " Opolskie" = "Opolskie", " Iodzkie" = "Łódzkie", " podkarpackie" = "Podkarpackie", " Lodzkie" = "Łódzkie", " Podlaskie " = "Podlaskie",
-  " Bielsk Podlaski", " Lodzkie " = "Łódzkie", " Wielkopolskie" = "Wielkopolskie",
-  " Łódzkie" = "Łódzkie", " Masovia" = "Mazowieckie", " Mazowieckie" = "Mazowieckie", " Mazowieckie " = "Mazowieckie", " Pomorskie " = "Pomorskie",
-  " Dolnoslaskie " = "Dolnośląskie", " Malopolska " = "Małopolskie", " Malopolska" = "Małopolskie", " Wielkopolska " = "Wielkopolskie",
-  " Pomorze" = "Pomorskie", " Slask" = "Śląskie",
-  " Vysocina Region " = "Vysocina Region",
-  " Vysocina " = "Vysocina Region",
-  " Klatovy" = "Klatovy",
-  " Brno" = "Brno",
-  " Olomouc" = "Olomouc Region",
-  " Olomouc Region" = "Olomouc Region",
-  " Olomouc Region " = "Olomouc Region",
-  " Ústí nad Labem Region " = "Ústí nad Labem Region",
-  " Ústí nad Labem Region" = "Ústí nad Labem Region",
-  " Usti nad Labem Region " = "Ústí nad Labem Region",
-  " Ústí nad Labem" = "Ústí nad Labem Region",
-  " Usti nad Labem" = "Ústí nad Labem Region",
-  " Ústí nad Labem " = "Ústí nad Labem Region",
-  " Usti nad Labem " = "Ústí nad Labem Region",
-  " Plzeň Region " = "Plzeň Region",
-  " Plzen " = "Plzeň Region",
-  " Plzeň " = "Plzeň Region",
-  " Plzen Region " = "Plzeň Region",
-  " Hradec Králové Region " = "Hradec Králové Region",
-  " Hradec Kralove Region " = "Hradec Králové Region",
-  " Moravian-Silesian Region " = "Moravian-Silesian Region",
-  " Zlín Region " = "Zlín Region",
-  " Zlin " = "Zlín Region",
-  " Zlin Region " = "Zlín Region",
-  " Melnik" = "Melnik",
-  " Prague-Miskovice" = "Prague",
-  " Domažlice" = "Domažlice",
-  " Prague" = "Prague",
-  " Prague " = "Prague",
-  " South Bohemian Region " = "South Bohemian Region",
-  " Southern Bohemia Region " = "South Bohemian Region",
-  " Central Bohemian Region " = "Central Bohemian Region",
-  " Central Bohemia Region " = "Central Bohemian Region",
-  " Northern Bohemia Region " = "Northern Bohemia Region",
-  " South Moravian Region " = "South Moravian Region",
-  " Pivo" = "Pivo",
-  " Pilsen" = "Pilsen",
-  " Breclav" = "Breclav",
-  " Liberec Region " = "Liberec Region",
-  " Liberec Region" = "Liberec Region",
-  " Hranice na Moravě " = "Hranice na Moravě",
-  " Pardubice Region " = "Pardubice Region",
-  " Litomerice-Brnay" = "Litomerice-Brnay",
-  " Litovel" = "Litovel",
-  " Jihlava" = "Jihlava",
-  " Slaný" = "Slaný"
-  )[metadata_ext$LocationClean]
+metadata_ext$LocationClean <- sapply(strsplit(metadata_ext$location, split = "/"), `[`, 3)
+#metadata_ext$LocationClean <- c(" Pomorskie" = "Pomorskie", " Wielkopolskie " = "Wielkopolskie", " Warminsko-Mazurskie " = "Warmińsko-Mazurskie", " Dolnoslaskie" = "Dolnośląskie",
+#  " warminsko-mazurskie" = "Warmińsko-Mazurskie", " pomorskie" = "Pomorskie", " lubuskie" = "Lubuskie", " zachodniopomorskie" = "Zachodniopomorskie",
+#  " malopolskie" = "Małopolskie", " Zachodniopomorskie" = "Zachodniopomorskie", " Zachodniopomorskie " = "Zachodniopomorskie",
+#  " Dolnośląskie " = "Dolnośląskie", " slaskie" = "Śląskie", " dolnoslaskie" = "Dolnośląskie", " Malopolskie" = "Małopolskie",
+#  " Dolnośląskie" = "Dolnośląskie", " swietokrzyskie" = "Świętokrzyskie", " opolskie" = "Opolskie", " Warmińsko-mazurskie" = "Warmińsko-Mazurskie",
+#  " Opolskie" = "Opolskie", " Iodzkie" = "Łódzkie", " podkarpackie" = "Podkarpackie", " Lodzkie" = "Łódzkie", " Podlaskie " = "Podlaskie",
+#  " Bielsk Podlaski", " Lodzkie " = "Łódzkie", " Wielkopolskie" = "Wielkopolskie",
+#  " Łódzkie" = "Łódzkie", " Masovia" = "Mazowieckie", " Mazowieckie" = "Mazowieckie", " Mazowieckie " = "Mazowieckie", " Pomorskie " = "Pomorskie",
+#  " Dolnoslaskie " = "Dolnośląskie", " Malopolska " = "Małopolskie", " Malopolska" = "Małopolskie", " Wielkopolska " = "Wielkopolskie",
+#  " Pomorze" = "Pomorskie", " Slask" = "Śląskie",
+#  " Vysocina Region " = "Vysocina Region",
+#  " Vysocina " = "Vysocina Region",
+#  " Klatovy" = "Klatovy",
+#  " Brno" = "Brno",
+#  " Olomouc" = "Olomouc Region",
+#  " Olomouc Region" = "Olomouc Region",
+#  " Olomouc Region " = "Olomouc Region",
+#  " Ústí nad Labem Region " = "Ústí nad Labem Region",
+#  " Ústí nad Labem Region" = "Ústí nad Labem Region",
+#  " Usti nad Labem Region " = "Ústí nad Labem Region",
+#  " Ústí nad Labem" = "Ústí nad Labem Region",
+#  " Usti nad Labem" = "Ústí nad Labem Region",
+#  " Ústí nad Labem " = "Ústí nad Labem Region",
+#  " Usti nad Labem " = "Ústí nad Labem Region",
+#  " Plzeň Region " = "Plzeň Region",
+#  " Plzen " = "Plzeň Region",
+#  " Plzeň " = "Plzeň Region",
+#  " Plzen Region " = "Plzeň Region",
+#  " Hradec Králové Region " = "Hradec Králové Region",
+#  " Hradec Kralove Region " = "Hradec Králové Region",
+#  " Moravian-Silesian Region " = "Moravian-Silesian Region",
+#  " Zlín Region " = "Zlín Region",
+#  " Zlin " = "Zlín Region",
+#  " Zlin Region " = "Zlín Region",
+#  " Melnik" = "Melnik",
+#  " Prague-Miskovice" = "Prague",
+#  " Domažlice" = "Domažlice",
+#  " Prague" = "Prague",
+#  " Prague " = "Prague",
+#  " South Bohemian Region " = "South Bohemian Region",
+#  " Southern Bohemia Region " = "South Bohemian Region",
+#  " Central Bohemian Region " = "Central Bohemian Region",
+#  " Central Bohemia Region " = "Central Bohemian Region",
+#  " Northern Bohemia Region " = "Northern Bohemia Region",
+#  " South Moravian Region " = "South Moravian Region",
+#  " Pivo" = "Pivo",
+#  " Pilsen" = "Pilsen",
+#  " Breclav" = "Breclav",
+#  " Liberec Region " = "Liberec Region",
+#  " Liberec Region" = "Liberec Region",
+#  " Hranice na Moravě " = "Hranice na Moravě",
+#  " Pardubice Region " = "Pardubice Region",
+#  " Litomerice-Brnay" = "Litomerice-Brnay",
+#  " Litovel" = "Litovel",
+#  " Jihlava" = "Jihlava",
+#  " Slaný" = "Slaný"
+#  )[metadata_ext$LocationClean]
 
-metadata_ext$week_start <- ymd(metadata_ext$Collection.date) - days(wday(ymd(metadata_ext$Collection.date)))
+metadata_ext$week_start <- ymd(metadata_ext$collection_date) - days(wday(ymd(metadata_ext$collection_date)))
 t_dat_loc_cla <- table(metadata_ext$week_start, metadata_ext$LocationClean, ifelse(grepl(metadata_ext$clade_small, pattern = "501Y"), "N501Y", "-"))
 #t_dat_loc_cla[,,1] <- t_dat_loc_cla[,,1] + t_dat_loc_cla[,,2]
 #t_dat_loc_cla <- apply(t_dat_loc_cla, 2:3, cumsum)
@@ -472,15 +467,16 @@ html <- gsub(pattern = "--VARIANTS2--", replacement = length(colnames(t_cou_cla)
 
 writeLines(html, con = paste0(output_dir, "/index.html"))
 
-
+print('Saving plots')
 ############
 ## save plots
-
 ggsave(plot = pl_seq_1, file=paste0(output_dir, "/images/liczba_seq_1.svg"), width=4, height=2.5)
 ggsave(plot = pl_seq_2, file=paste0(output_dir, "/images/liczba_seq_2.svg"), width=4, height=2.5)
 
-ggsave(plot = pl_loc_1, file=paste0(output_dir, "/images/liczba_loc_1.svg"), width=8, height=length(unique(metadata_ext$LocationClean)) / 4)
-ggsave(plot = pl_loc_2, file=paste0(output_dir, "/images/liczba_loc_2.svg"), width=8, height=length(unique(metadata_ext$LocationClean)) / 4)
+if (sum(!is.na(metadata_ext$LocationClean)) > 0) {
+	ggsave(plot = pl_loc_1, file=paste0(output_dir, "/images/liczba_loc_1.svg"), width=8, height=ceiling(length(unique(metadata_ext$LocationClean)) / 5) * 5 / 4, limitsize=FALSE)
+	ggsave(plot = pl_loc_2, file=paste0(output_dir, "/images/liczba_loc_2.svg"), width=8, height=ceiling(length(unique(metadata_ext$LocationClean)) / 5) * 5 / 4, limitsize=FALSE)
+}
 
 ggsave(plot = pl_war_1, file=paste0(output_dir, "/images/liczba_warianty_1.svg"), width=8, height=3)
 ggsave(plot = pl_war_2, file=paste0(output_dir, "/images/liczba_warianty_2.svg"), width=8, height=3)
