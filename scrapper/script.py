@@ -193,6 +193,7 @@ class ScrappingMetaHistory:
 def scrap_meta_table(region, db_path, start_date, end_date, history):
     if end_date < start_date:
         print('Skipping, invalid date range')
+        return
     try:
         driver = get_driver()
         set_region(driver, region)
