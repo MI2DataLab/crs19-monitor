@@ -14,6 +14,7 @@ library(rgdal)
 library(scatterpie)
 library(sf)
 library(patchwork)
+library(jsonlite)
 ############
 ## read data
 # lineage_report =  "../../data/pango.csv"
@@ -594,6 +595,9 @@ location_from <- sapply(strsplit(metadata_ext$location, split = "/"), `[`, 3, si
 location_to <- location_dict_from_to[location_from]
 location_to[is.na(names(location_to))] <- NA
 metadata_ext$LocationClean <- unlist(location_to)
+if (sum(!is.na(metadata_ext$LocationClean)) == 0) {
+    metadata_ext$LocationClean <- unlist(location_from)
+}
 
 ### print info about new misspelled data
 misspelled_rows <- is.na(metadata_ext$LocationClean)
@@ -832,31 +836,27 @@ pl_var_all_4 <- ggplot(na.omit(df5[df5$n > 0 & df5$n < 1,]), aes(ymd(date), y=n,
 
 ############
 ## update HTML file
-
-html <- paste(readLines("index_source.html"), collapse = "\n")
-
-html <- gsub(pattern = "--DATE--", replacement = lineage_date, x = html)
-html <- gsub(pattern = "--NUMBER--", replacement = nrow(lineage), x = html)
-html <- gsub(pattern = "--DATELAST--", replacement = max(lineage$date), x = html)
-
-
 t_cou_lin <- table(lineage$date, lineage$lineage_small)
-
 warianty <- head(colnames(t_cou_lin)[-ncol(t_cou_lin)],7)
 warianty_list <- paste0(paste0('<a href="https://cov-lineages.org/lineages/lineage_',warianty,'.html">',warianty,'</a>'), collapse = ",\n")
-html <- gsub(pattern = "--VARIANTSLIST--", replacement = warianty_list, x = html)
-html <- gsub(pattern = "--VARIANTS--", replacement = length(unique(lineage$Lineage)), x = html)
-
 warianty2 <- head(colnames(t_cou_cla),5)
 warianty2_list <- paste0(paste0('<a href="https://www.cdc.gov/coronavirus/2019-ncov/more/science-and-research/scientific-brief-emerging-variants.html">',warianty2,'</a>'), collapse = ",\n")
-html <- gsub(pattern = "--VARIANTSLIST2--", replacement = warianty2_list, x = html)
-html <- gsub(pattern = "--VARIANTS2--", replacement = length(colnames(t_cou_cla)), x = html)
 
-writeLines(html, con = paste0(output_dir, "/index.html"))
+placeholders <- list(
+	DATE = lineage_date,
+	NUMBER = nrow(lineage),
+	DATELAST = max(lineage$date),
+	VARIANTSLIST = warianty_list,
+	VARIANTS = length(unique(lineage$Lineage)),
+	VARIANTSLIST2 = warianty2_list,
+	VARIANTS2 = length(colnames(t_cou_cla))
+)
+write(toJSON(placeholders, auto_unbox=TRUE), paste0(output_dir, '/placeholders.json'))
+file.copy('./index_source.html', paste0(output_dir, '/index.html'), overwrite=TRUE)
 
-print('Saving plots')
 ############
 ## save plots
+print('Saving plots')
 ggsave(plot = pl_seq_1, file=paste0(output_dir, "/images/liczba_seq_1.svg"), width=4, height=2.5)
 ggsave(plot = pl_seq_2, file=paste0(output_dir, "/images/liczba_seq_2.svg"), width=4, height=2.5)
 
