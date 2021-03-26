@@ -673,7 +673,7 @@ t_dat_loc_cla <- data.frame(as.table(t_dat_loc_cla))
 t_dat_loc_cla$Var2 <- factor(t_dat_loc_cla$Var2, levels = levels1)
 
 for (lang in langs) {
-	plots_output[[lang]][['pl_loc_1']] <-
+	plots_output[[lang]][['pl_loc_2']] <-
  	  ggplot(t_dat_loc_cla, aes(ymd(Var1), y=Freq, fill = Var3)) +
  	  geom_col() +
  	  #  geom_text(data = counts4, aes(x = ymd(date), y = n, label = label, hjust = 0, vjust = 1), size=2.7) +
