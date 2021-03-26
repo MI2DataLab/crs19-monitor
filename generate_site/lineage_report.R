@@ -85,7 +85,7 @@ nextclade$clade_small <- fct_lump(nextclade$clade_small, n = 12, other_level = "
 # -------
 # global variables
 
-DATE_LAST_SAMPLE <- max(ymd(metadata$Collection.date), na.rm = T)
+DATE_LAST_SAMPLE <- max(ymd(metadata$collection_date), na.rm = T)
 ALARM_MUTATION <- "N501Y"
 ALARM_PATTERN <- "501Y"
 
@@ -936,6 +936,10 @@ for (lang in langs) {
 	ggsave(plot = plots[['pl_var_all_2']], file=paste0(dir_prefix, "udzial_warianty_2.svg"), width=5.5, height=3.5)
 	ggsave(plot = plots[['pl_var_all_3']], file=paste0(dir_prefix, "udzial_warianty_3.svg"), width=5.5, height=3.5)
 	ggsave(plot = plots[['pl_var_all_4']], file=paste0(dir_prefix, "udzial_warianty_4.svg"), width=5.5, height=3.5)
+
+	if ('pl_map' %in% names(plots)) {
+		ggsave(plot = plots[['pl_map']], file=paste0(dir_prefix, "mapa_mutacje.svg"), width=10, height=5)
+	}
 
 	save(plots, file = paste0(dir_prefix, 'gg_objects.rda'))
 }
