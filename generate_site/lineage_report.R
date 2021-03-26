@@ -15,6 +15,7 @@ library(scatterpie)
 library(sf)
 library(patchwork)
 library(jsonlite)
+library(tmaptools)
 ############
 ## read data
 # lineage_report =  "../../data/pango.csv"
@@ -616,6 +617,7 @@ location_dict_from_to <- reverse_dict(location_dict_to_from)
 
 ### clean location
 location_from <- sapply(strsplit(metadata_ext$location, split = "/"), `[`, 3, simplify = T, USE.NAMES = F)
+metadata_ext$LocationRaw <- location_from
 location_to <- location_dict_from_to[location_from]
 location_to[is.na(names(location_to))] <- NA
 metadata_ext$LocationClean <- unlist(location_to)
@@ -715,6 +717,7 @@ if (region == "Europe / Poland") {
     mutate(ratio = 2 * (10e12 * ratio / max(t_map_metadata_month$ratio)) ** (1/3)) -> t_map_metadata_month
 
   map_cord <- st_read("./map/pl-voi.shp")
+  map_cord <- simplify_shape(map_cord, fact = 0.15) # 0.1 oversimplifies and returns error?
   map_cord <- st_transform(map_cord, 2180) # long and lat is no longer used
   map_cord_df <- as.data.frame(st_coordinates(map_cord)) %>% rename(id = L3)
   centroid_cord <- as.data.frame(st_coordinates(st_centroid(map_cord)))

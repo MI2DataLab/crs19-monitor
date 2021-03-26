@@ -19,6 +19,8 @@ Imports:
     rgdal,
     scatterpie,
     sf,
-    patchwork
+    patchwork,
+    tmaptools,
+    rmapshapper
 LazyData: true
 RoxygenNote: 7.1.1
