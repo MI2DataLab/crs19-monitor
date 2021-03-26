@@ -11,3 +11,6 @@ fasta_to_pango/logs/minimap2_sam.log
 .Rapp.history
 .RData
 **.sqlite
+fasta_to_clades/input.fasta
+fasta_to_clades/output.tsv
+fasta_to_mutation/tmp.blast.xml
