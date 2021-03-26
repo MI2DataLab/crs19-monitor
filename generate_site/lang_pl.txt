@@ -18,4 +18,25 @@ pl_map_sub1:Suma z tygodnia poprzedzającego
 pl_map_sub2:Suma z miesiąca poprzedzającego
 pl_map_pt1:Proporcja sekwencji z mutacją
 pl_map_pt2:w województwach
-
+site_title:Monitor wariantów SARS-CoV-2 w Polsce
+site_and:i
+site_date:Data
+site_country:Państwo
+site_seq_count_1:Na dzień
+site_seq_count_2:w bazie GISAID dla wybranego państwa są
+site_seq_count_3:sekwencje SARS-CoV-2.
+site_max_gisaid_date:Maksymalna data pobrania dla próbek z bazy GISAID
+site_description_1:Liczba (lewy panel) i udział (prawy panel) wariantów wirusa oznaczone z bazy GISAID. Dane prezentowane w agregacji tygodniowej. Wyniki dla ostatnich 3 miesięcy.
+site_description_2:Udział wariantów wirusa oznaczone z bazy GISAID. Prezentowane dane są wygładzone 7-dniowym oknem. Wyniki dla ostatnich 3 miesięcy.
+site_gisaid_variants_1:W bazie są
+site_gisaid_variants_2:warianty wirusa oznaczone z bazy GISAID. Najczęstsze to
+site_gisaid_variants_3:Warianty z mutacją N501Y (zaznaczone na czerwono) to warianty alarmowe o zwiększonej zakaźności.
+site_pango_variants_1:W bazie są
+site_pango_variants_2:linie wirusa oznaczone z bazy Pango. Najczęstsze to
+site_pango_variants_3:Warianty
+site_pango_variants_4:(zaznaczone na czerwono) to warianty alarmowe o zwiększonej zakaźności.
+site_description_3:Czas od pobrania materiału do zgłoszenia do bazy GISAID to najczęściej od 2 do 5 tygodni.
+site_description_4:Liczba wariantów z mutacją N501Y w województwach.
+site_description_5:Procent wariantów z mutacją N501Y w województwach.
+site_foot_1:Monitor wariantów SARS-CoV-2 w Polsce. Stworzony przez
+site_foot_2:W oparciu o dane z
