@@ -34,7 +34,7 @@ for part in tqdm(parts):
         part_output_lines = f.readlines()
         if len(output_lines) == 0: # Add header only one time
             part_output_lines = part_output_lines[1:]
-        output_lines.append(part_output_lines)
+        output_lines = output_lines + part_output_lines
 
 with open(output_file, 'w') as f:
     f.writelines(output_lines)
