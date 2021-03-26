@@ -1,7 +1,9 @@
 import os
 import glob
 import sys
-from config import gisaid_fasta_dir, clades_output_dir, clades_merged_file
+from config import gisaid_fasta_dir, clades_output_dir, clades_merged_file, repo_path, conda_sh_path
+
+work_dir = repo_path + '/fasta_to_clades'
 
 # Create output directory if not exists
 if not os.path.exists(clades_output_dir):
@@ -18,7 +20,9 @@ for f in input_files:
     timestamp = int(os.path.basename(f).split('.')[0])
     output_file = clades_output_dir + '/' + str(timestamp) + '.tsv'
     if output_file not in processed_files:
-        out = os.system('bash -c "source ~/.bashrc && nextclade --input-fasta ' + f + ' --output-tsv ' + output_file + ' "')
+        os.environ['OUTPUT'] = output_file
+        os.environ["INPUT_FASTA"] = f
+        out = os.system('bash -c "source ~/.bashrc && source ' + conda_sh_path + ' && cd ' + work_dir + ' && conda activate crs19 && python script.py"')
         if out != 0:
             sys.exit(out >> 8)
 

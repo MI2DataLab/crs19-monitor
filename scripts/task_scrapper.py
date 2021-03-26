@@ -1,42 +1,20 @@
 import os
 import time
 import sys
-from config import conda_sh_path, repo_path, gisaid_fasta_dir, gisaid_metadata_dir, diff_fasta_dir, db_path, gisaid_metadata_merged_file
+from config import conda_sh_path, repo_path, gisaid_fasta_dir, db_path
 
-region = os.environ.get('REGION') or 'Europe / Poland'
-source = 'gisaid'
-# In nanoseconds
-timestamp = int(time.time() * 1000)
+region = os.environ.get('REGION') or 'Europe'
 
 if not os.path.exists(gisaid_fasta_dir):
     os.makedirs(gisaid_fasta_dir)
 
-# Create output directory if not exists
-if not os.path.exists(gisaid_metadata_dir):
-    os.makedirs(gisaid_metadata_dir)
-
-if not os.path.exists(diff_fasta_dir):
-    os.makedirs(diff_fasta_dir)
-
-fasta_path = gisaid_fasta_dir + '/' + str(timestamp) + '.fasta'
-meta_path = gisaid_metadata_dir + '/' + str(timestamp) + '.csv'
 work_dir = repo_path + '/scrapper'
 
-os.environ["FASTA_FILE_PATH"] = fasta_path
-os.environ["META_FILE_PATH"] = meta_path
-os.environ["REGION"] = region
+os.environ["FASTA_FILES_DIR"] = gisaid_fasta_dir
+os.environ["ROOT_REGION"] = region
+os.environ["DB_PATH"] = db_path
+os.environ["MAX_DATE_RANGE"] = '6'
+os.environ["MINIMUM_START_DATE"] = '2020-01-29'
 
 out = os.system('bash -c "source ' + conda_sh_path + ' && cd ' + work_dir + ' && conda activate crs19 && python script.py"')
-if out == 0:
-    # Filter unprocessed fasta block
-    work_dir = repo_path + '/filter_unprocessed_fasta'
-    os.environ['INPUT_FASTA'] = fasta_path
-    os.environ['OUTPUT_FASTA'] = diff_fasta_dir + '/' + str(timestamp) + '.fasta'
-    os.environ['FASTA_SOURCE'] = source
-    os.environ['DB_PATH'] = db_path
-    os.environ['REGION'] = region
-    out1 = os.system('bash -c "source ' + conda_sh_path + ' && cd ' + work_dir + ' && conda activate crs19 && python script.py"')
-    out2 = os.system('bash -c "awk \'(NR == 1) || (FNR > 1)\' ' + gisaid_metadata_dir  + '/*.csv |sed \'s/^[0-9]*//g\' |sort -k 2 |uniq  > ' + gisaid_metadata_merged_file + '"')
-    sys.exit((out1 or out2) >> 8)
-else:
-    sys.exit(out >> 8)
+sys.exit(out >> 8)

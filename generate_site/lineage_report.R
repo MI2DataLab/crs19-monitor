@@ -6,16 +6,21 @@ library(grid)
 library(dplyr)
 library(ggrepel)
 library(lubridate)
-library(pammtools)
 library(forcats)
-library("RSQLite")
+library(RSQLite)
 
+library(tidyr)
+library(rgdal)
+library(scatterpie)
+library(sf)
+library(patchwork)
+library(jsonlite)
 ############
 ## read data
 # lineage_report =  "../../data/pango.csv"
 # nextclade_report = "../../data/clades.tsv"
 # metadata_report = "../../data/gisaid_metadata.csv"
-# lineage_date <- "2021/03/17"
+# lineage_date <- "2021/03/19"
 # region <- "Europe / Poland"
 # db_path <- "../../data/sequences.sqlite"
 # output_dir <- "./output/"
@@ -40,15 +45,6 @@ print(paste('Found', nrow(metadata), 'rows in database'))
 # Create output dirs
 dir.create(paste0(output_dir, '/', 'images'), recursive=TRUE, showWarnings=FALSE)
 
-# Moved to script.R
-#lineage <- read.table(lineage_report, sep = ",", header = TRUE)
-#colnames(lineage)[1:2] = c('Sequence.name', 'Lineage')
-#lineage$accession_id <- stringi::stri_extract_first_regex(lineage$Sequence.name, 'EPI_ISL_[0-9]+')
-#nextclade <- read.table(nextclade_report, sep = "\t", header = TRUE)
-#nextclade$accession_id <- stringi::stri_extract_first_regex(nextclade$seqName, 'EPI_ISL_[0-9]+')
-#print(paste('Full pango rows:',nrow(lineage)))
-#print(paste('Full nextclade rows:',nrow(nextclade)))
-
 # Filter by region
 lineage <-subset(lineage_full, accession_id %in% metadata$accession_id)
 nextclade <-subset(nextclade_full, accession_id %in% metadata$accession_id)
@@ -58,8 +54,13 @@ print(paste('Region nextclade rows:',nrow(nextclade)))
 ############
 ## read titles
 
-descriptions <- read.table("lang_pl.txt", sep=":", header = TRUE, row.names = 1)
-
+langs <- c('pl', 'en')
+descriptions <- list()
+plots_output <- list()
+for (lang in langs) {
+	descriptions[[lang]] <- read.table(paste0("lang_", lang, ".txt"), sep=":", header = TRUE, row.names = 1, fileEncoding = "UTF-8", quote=NULL)
+	plots_output[[lang]] <- list()
+}
 
 ############
 ## preprocess data
@@ -80,30 +81,39 @@ nextclade$sample <- gsub(sapply(strsplit(nextclade$seqName, split = "\\|"), `[`,
 nextclade$clade_small <- fct_infreq(nextclade$clade)
 nextclade$clade_small <- fct_lump(nextclade$clade_small, n = 12, other_level = "Inne")
 
+# -------
+# global variables
+
+DATE_LAST_SAMPLE <- max(ymd(metadata$Collection.date), na.rm = T)
+ALARM_MUTATION <- "N501Y"
+ALARM_PATTERN <- "501Y"
 
 # -------
 # Liczba na tydzień
-
-pl_seq_1 <- ggplot(lineage, aes(ymd(date) - wday(ymd(date)))) +
-  geom_bar(binwidth = 7, color = "white") +
-  theme_minimal(base_family = 'Arial') +
-  scale_x_date("", date_breaks = "2 months", date_labels = "%m") +
-  scale_y_continuous("", expand = c(0,0)) +
-  ggtitle(descriptions["pl_seq_1_tit", "names"])
-
+for (lang in langs) {
+	plots_output[[lang]][['pl_seq_1']] <-
+	  ggplot(lineage, aes(ymd(date) - wday(ymd(date)))) +
+	  geom_histogram(binwidth = 7, color = "white") +
+	  theme_minimal(base_family = 'Arial') +
+	  scale_x_date("", date_breaks = "2 months", date_labels = "%m") +
+	  scale_y_continuous("", expand = c(0,0)) +
+	  ggtitle(descriptions[[lang]]["pl_seq_1_tit", "names"])
+}
 
 # ---------------
 
 t_cou_lin <- table(lineage$date)
 df <- as.data.frame(t_cou_lin)
 
-pl_seq_2 <- ggplot(df, aes(ymd(Var1), ymin = 0, ymax = cumsum(Freq))) +
-  geom_stepribbon() + geom_hline(yintercept = 0) +
-  theme_minimal(base_family = 'Arial') +
-  scale_x_date("", date_breaks = "2 months", date_labels = "%m") +
-  scale_y_continuous("", expand = c(0,0)) +
-  ggtitle(descriptions["pl_seq_2_tit", "names"])
-
+for (lang in langs) {
+	plots_output[[lang]][['pl_seq_2']] <-
+	  ggplot(df, aes(ymd(Var1), ymin = 0, ymax = cumsum(Freq))) +
+	  pammtools::geom_stepribbon() + geom_hline(yintercept = 0) +
+	  theme_minimal(base_family = 'Arial') +
+	  scale_x_date("", date_breaks = "2 months", date_labels = "%m") +
+	  scale_y_continuous("", expand = c(0,0)) +
+	  ggtitle(descriptions[[lang]]["pl_seq_2_tit", "names"])
+}
 
 # -------
 # Ewolucja wariantów
@@ -120,17 +130,21 @@ counts <- data.frame(variant = factor(names(t_cou_lin[nrow(t_cou_lin),]),
                      label = t_cou_lin[nrow(t_cou_lin),],
                      date = as.character(ymd(lineage_date) - months(3)),
                      n = max(t_cou_lin[nrow(t_cou_lin),]))
-pl_war_1 <- ggplot(df3, aes(ymd(date), ymax=n, ymin=0, fill = variant %in% c("B.1.1.7", "B.1.351"))) +
-  geom_stepribbon() +
-  geom_text(data = counts, aes(x = ymd(date), y = n, label = label, hjust = 0, vjust = 1), size=2.7) +
-  scale_fill_manual(values = c("blue4", "red4")) +
-  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
-               limits = c(ymd(lineage_date) - months(3), ymd(lineage_date))) +
-  #  scale_x_date("", date_breaks = "2 months", date_labels = "%m") +
-  facet_wrap(~variant, ncol = 5) +
-  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0)) +
-  ggtitle(descriptions["pl_war_1_tit", "names"]) +
-  theme(legend.position = "none")
+
+for (lang in langs) {
+	plots_output[[lang]][['pl_war_1']] <-
+	  ggplot(df3, aes(ymd(date), ymax=n, ymin=0, fill = variant %in% c("B.1.1.7", "B.1.351"))) +
+	  pammtools::geom_stepribbon() +
+	  geom_text(data = counts, aes(x = ymd(date), y = n, label = label, hjust = 0, vjust = 1), size=2.7) +
+	  scale_fill_manual(values = c("blue4", "red4")) +
+	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
+	               limits = c(ymd(lineage_date) - months(3), ymd(lineage_date))) +
+	  #  scale_x_date("", date_breaks = "2 months", date_labels = "%m") +
+	  facet_wrap(~variant, ncol = 5) +
+	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0)) +
+	  ggtitle(descriptions[[lang]]["pl_war_1_tit", "names"]) +
+	  theme(legend.position = "none")
+}
 
 # -------
 # Ewolucja clades
@@ -148,17 +162,20 @@ counts4 <- data.frame(variant = factor(names(t_cou_cla[nrow(t_cou_cla),]),
                      date = as.character(ymd(lineage_date) - months(3)),
                      n = max(t_cou_cla[nrow(t_cou_cla),]))
 
-pl_war_3 <- ggplot(df4, aes(ymd(date), ymax=n, ymin=0, fill = grepl(variant, pattern = "501Y"))) +
-  geom_stepribbon() +
-  geom_text(data = counts4, aes(x = ymd(date), y = n, label = label, hjust = 0, vjust = 1), size=2.7) +
-  scale_fill_manual(values = c("blue4", "red4")) +
-  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
-               limits = c(ymd(lineage_date) - months(3), ymd(lineage_date))) +
-  #  scale_x_date("", date_breaks = "2 months", date_labels = "%m") +
-  facet_wrap(~variant, ncol = 6) +
-  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0)) +
-  ggtitle(descriptions["pl_war_3_tit", "names"]) +
-  theme(legend.position = "none")
+for (lang in langs) {
+	plots_output[[lang]][['pl_war_3']] <-
+	  ggplot(df4, aes(ymd(date), ymax=n, ymin=0, fill = grepl(variant, pattern = "501Y"))) +
+	  pammtools::geom_stepribbon() +
+	  geom_text(data = counts4, aes(x = ymd(date), y = n, label = label, hjust = 0, vjust = 1), size=2.7) +
+	  scale_fill_manual(values = c("blue4", "red4")) +
+	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
+	               limits = c(ymd(lineage_date) - months(3), ymd(lineage_date))) +
+	  #  scale_x_date("", date_breaks = "2 months", date_labels = "%m") +
+	  facet_wrap(~variant, ncol = 6) +
+	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0)) +
+	  ggtitle(descriptions[[lang]]["pl_war_3_tit", "names"]) +
+	  theme(legend.position = "none")
+}
 
 # ----------
 
@@ -176,16 +193,19 @@ counts <- data.frame(variant = factor(names(t_cou_lin[nrow(t_cou_lin),]),
                      date = "2020/03/01",
                      n = max(t_cou_lin[nrow(t_cou_lin),]))
 
-pl_war_2 <- ggplot(df3, aes(ymd(date), y=n, color = variant %in% c("B.1.1.7","B.1.351"), group = variant)) +
-  geom_step() +
-  geom_step(data = df3[df3$variant %in% c("B.1.1.7","B.1.351"),], size=1.1) +
-  geom_text_repel(data = counts[counts$variant %in% c("B.1.1.7","B.1.351"),], aes(x = ymd(lineage_date), y = label, label = variant, hjust = 0, vjust = 0.6), size=2.9, direction = "y") +
-  scale_color_manual(values = c("grey", "red3")) +
-  scale_x_date("", date_breaks = "2 weeks", date_labels = "%m/%d",
-               limits = c(ymd(lineage_date) - months(6), ymd(lineage_date))) +
-  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0)) +
-  ggtitle(descriptions["pl_war_3_tit", "names"]) +
-  theme(legend.position = "none")
+for (lang in langs) {
+	plots_output[[lang]][['pl_war_2']] <-
+	  ggplot(df3, aes(ymd(date), y=n, color = variant %in% c("B.1.1.7","B.1.351"), group = variant)) +
+	  geom_step() +
+	  geom_step(data = df3[df3$variant %in% c("B.1.1.7","B.1.351"),], size=1.1) +
+	  geom_text_repel(data = counts[counts$variant %in% c("B.1.1.7","B.1.351"),], aes(x = ymd(lineage_date), y = label, label = variant, hjust = 0, vjust = 0.6), size=2.9, direction = "y") +
+	  scale_color_manual(values = c("grey", "red3")) +
+	  scale_x_date("", date_breaks = "2 weeks", date_labels = "%m/%d",
+	               limits = c(ymd(lineage_date) - months(6), ymd(lineage_date))) +
+	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0)) +
+	  ggtitle(descriptions[[lang]]["pl_war_3_tit", "names"]) +
+	  theme(legend.position = "none")
+}
 
 # ----------
 
@@ -202,16 +222,19 @@ counts5 <- data.frame(variant = factor(names(t_cou_cla[nrow(t_cou_cla),]),
                      date = "2020/03/01",
                      n = max(t_cou_cla[nrow(t_cou_cla),]))
 
-pl_war_4 <- ggplot(df5, aes(ymd(date), y=n, color = variant %in% c("20I/501Y.V1","20H/501Y.V2"), group = variant)) +
-  geom_step() +
-  geom_step(data = df5[df5$variant %in% c("20I/501Y.V1","20H/501Y.V2"),], size=1.1) +
-  geom_text_repel(data = counts5[counts5$variant %in% c("20I/501Y.V1","20H/501Y.V2"),], aes(x = ymd(lineage_date), y = label, label = variant, hjust = 0, vjust = 0.6), size=2.9, direction = "y") +
-  scale_color_manual(values = c("grey", "red3")) +
-  scale_x_date("", date_breaks = "2 weeks", date_labels = "%m/%d",
-               limits = c(ymd(lineage_date) - months(6), ymd(lineage_date))) +
-  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0)) +
-  ggtitle(descriptions["pl_war_4_tit", "names"]) +
-  theme(legend.position = "none")
+for (lang in langs) {
+	plots_output[[lang]][['pl_war_4']] <-
+	  ggplot(df5, aes(ymd(date), y=n, color = variant %in% c("20I/501Y.V1","20H/501Y.V2"), group = variant)) +
+	  geom_step() +
+	  geom_step(data = df5[df5$variant %in% c("20I/501Y.V1","20H/501Y.V2"),], size=1.1) +
+	  geom_text_repel(data = counts5[counts5$variant %in% c("20I/501Y.V1","20H/501Y.V2"),], aes(x = ymd(lineage_date), y = label, label = variant, hjust = 0, vjust = 0.6), size=2.9, direction = "y") +
+	  scale_color_manual(values = c("grey", "red3")) +
+	  scale_x_date("", date_breaks = "2 weeks", date_labels = "%m/%d",
+	               limits = c(ymd(lineage_date) - months(6), ymd(lineage_date))) +
+	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0)) +
+	  ggtitle(descriptions[[lang]]["pl_war_4_tit", "names"]) +
+	  theme(legend.position = "none")
+}
 
 ############
 ## plots from meta data
@@ -219,85 +242,400 @@ pl_war_4 <- ggplot(df5, aes(ymd(date), y=n, color = variant %in% c("20I/501Y.V1"
 nextclade$seqName <- gsub(nextclade$seqName, pattern = "\\|.*", replacement = "")
 metadata_ext <- merge(metadata, nextclade, by.x = "accession_id", by.y = "accession_id")
 
-pl_war_5 <- ggplot(metadata_ext, aes(ymd(collection_date), ymd(submission_date), color = grepl(clade_small, pattern = "501Y"))) +
-  geom_abline(slope = 1, intercept = 0, color = "grey", lty = 4) +
-  geom_abline(slope = 1, intercept = 14, color = "grey", lty = 2) +
-  geom_abline(slope = 1, intercept = 28, color = "grey", lty = 3) +
-  geom_jitter(size = 0.5) +
-  ggtitle("", descriptions["pl_war_5_tit", "names"]) +
-  theme_bw(base_family = 'Arial') + coord_fixed() +
-  scale_color_manual("", values = c("blue4", "red2")) +
-  scale_x_date(descriptions["pl_war_5_scx", "names"], date_breaks = "2 weeks", date_labels = "%m/%d",
-               limits = c(ymd(lineage_date) - months(3), ymd(lineage_date)))  +
-  scale_y_date(descriptions["pl_war_5_scy", "names"], date_breaks = "2 weeks", date_labels = "%m/%d",
-               limits = c(ymd(lineage_date) - months(2), ymd(lineage_date)))+
-  theme(legend.position = "none")
+for (lang in langs) {
+	plots_output[[lang]][['pl_war_5']] <-
+	  ggplot(metadata_ext, aes(ymd(collection_date), ymd(submission_date), color = grepl(clade_small, pattern = "501Y"))) +
+	  geom_abline(slope = 1, intercept = 0, color = "grey", lty = 4) +
+	  geom_abline(slope = 1, intercept = 14, color = "grey", lty = 2) +
+	  geom_abline(slope = 1, intercept = 28, color = "grey", lty = 3) +
+	  geom_jitter(size = 0.5) +
+	  ggtitle("", descriptions[[lang]]["pl_war_5_tit", "names"]) +
+	  theme_bw(base_family = 'Arial') + coord_fixed() +
+	  scale_color_manual("", values = c("blue4", "red2")) +
+	  scale_x_date(descriptions[[lang]]["pl_war_5_scx", "names"], date_breaks = "2 weeks", date_labels = "%m/%d",
+	               limits = c(ymd(lineage_date) - months(3), ymd(lineage_date)))  +
+	  scale_y_date(descriptions[[lang]]["pl_war_5_scy", "names"], date_breaks = "2 weeks", date_labels = "%m/%d",
+	               limits = c(ymd(lineage_date) - months(2), ymd(lineage_date)))+
+	  theme(legend.position = "none")
+}
 
 
-############
-## plots for regions
+# --------------------------------- #
+# ------------LOCATION------------- #
+# --------------------------------- #
 
-metadata_ext$LocationClean <- sapply(strsplit(metadata_ext$location, split = "/"), `[`, 3)
-#metadata_ext$LocationClean <- c(" Pomorskie" = "Pomorskie", " Wielkopolskie " = "Wielkopolskie", " Warminsko-Mazurskie " = "Warmińsko-Mazurskie", " Dolnoslaskie" = "Dolnośląskie",
-#  " warminsko-mazurskie" = "Warmińsko-Mazurskie", " pomorskie" = "Pomorskie", " lubuskie" = "Lubuskie", " zachodniopomorskie" = "Zachodniopomorskie",
-#  " malopolskie" = "Małopolskie", " Zachodniopomorskie" = "Zachodniopomorskie", " Zachodniopomorskie " = "Zachodniopomorskie",
-#  " Dolnośląskie " = "Dolnośląskie", " slaskie" = "Śląskie", " dolnoslaskie" = "Dolnośląskie", " Malopolskie" = "Małopolskie",
-#  " Dolnośląskie" = "Dolnośląskie", " swietokrzyskie" = "Świętokrzyskie", " opolskie" = "Opolskie", " Warmińsko-mazurskie" = "Warmińsko-Mazurskie",
-#  " Opolskie" = "Opolskie", " Iodzkie" = "Łódzkie", " podkarpackie" = "Podkarpackie", " Lodzkie" = "Łódzkie", " Podlaskie " = "Podlaskie",
-#  " Bielsk Podlaski", " Lodzkie " = "Łódzkie", " Wielkopolskie" = "Wielkopolskie",
-#  " Łódzkie" = "Łódzkie", " Masovia" = "Mazowieckie", " Mazowieckie" = "Mazowieckie", " Mazowieckie " = "Mazowieckie", " Pomorskie " = "Pomorskie",
-#  " Dolnoslaskie " = "Dolnośląskie", " Malopolska " = "Małopolskie", " Malopolska" = "Małopolskie", " Wielkopolska " = "Wielkopolskie",
-#  " Pomorze" = "Pomorskie", " Slask" = "Śląskie",
-#  " Vysocina Region " = "Vysocina Region",
-#  " Vysocina " = "Vysocina Region",
-#  " Klatovy" = "Klatovy",
-#  " Brno" = "Brno",
-#  " Olomouc" = "Olomouc Region",
-#  " Olomouc Region" = "Olomouc Region",
-#  " Olomouc Region " = "Olomouc Region",
-#  " Ústí nad Labem Region " = "Ústí nad Labem Region",
-#  " Ústí nad Labem Region" = "Ústí nad Labem Region",
-#  " Usti nad Labem Region " = "Ústí nad Labem Region",
-#  " Ústí nad Labem" = "Ústí nad Labem Region",
-#  " Usti nad Labem" = "Ústí nad Labem Region",
-#  " Ústí nad Labem " = "Ústí nad Labem Region",
-#  " Usti nad Labem " = "Ústí nad Labem Region",
-#  " Plzeň Region " = "Plzeň Region",
-#  " Plzen " = "Plzeň Region",
-#  " Plzeň " = "Plzeň Region",
-#  " Plzen Region " = "Plzeň Region",
-#  " Hradec Králové Region " = "Hradec Králové Region",
-#  " Hradec Kralove Region " = "Hradec Králové Region",
-#  " Moravian-Silesian Region " = "Moravian-Silesian Region",
-#  " Zlín Region " = "Zlín Region",
-#  " Zlin " = "Zlín Region",
-#  " Zlin Region " = "Zlín Region",
-#  " Melnik" = "Melnik",
-#  " Prague-Miskovice" = "Prague",
-#  " Domažlice" = "Domažlice",
-#  " Prague" = "Prague",
-#  " Prague " = "Prague",
-#  " South Bohemian Region " = "South Bohemian Region",
-#  " Southern Bohemia Region " = "South Bohemian Region",
-#  " Central Bohemian Region " = "Central Bohemian Region",
-#  " Central Bohemia Region " = "Central Bohemian Region",
-#  " Northern Bohemia Region " = "Northern Bohemia Region",
-#  " South Moravian Region " = "South Moravian Region",
-#  " Pivo" = "Pivo",
-#  " Pilsen" = "Pilsen",
-#  " Breclav" = "Breclav",
-#  " Liberec Region " = "Liberec Region",
-#  " Liberec Region" = "Liberec Region",
-#  " Hranice na Moravě " = "Hranice na Moravě",
-#  " Pardubice Region " = "Pardubice Region",
-#  " Litomerice-Brnay" = "Litomerice-Brnay",
-#  " Litovel" = "Litovel",
-#  " Jihlava" = "Jihlava",
-#  " Slaný" = "Slaný"
-#  )[metadata_ext$LocationClean]
+### reversed dict
+## NOTE: gsub(" ", "", x) is not possible due to other countries than PL
+# TODO: consider only lowercase keys
+
+location_dict_to_from <- list(
+  # https://pl.wikipedia.org/wiki/Województwo
+  ######## PL
+
+  "Dolnośląskie" =
+    c(
+      "Dolnoslaskie" , "dolnoslaskie"
+    , " Dolnoslaskie" , " dolnoslaskie"
+    , " Dolnoslaskie " , " dolnoslaskie "
+    , "Dolnośląskie", "dolnośląskie"
+    , " Dolnośląskie", " dolnośląskie"
+    , " Dolnośląskie ", " dolnośląskie "
+    , "Dolnoslakie", "dolnoslakie"
+    , " Dolnoslakie", " dolnoslakie"
+    , " Dolnoslakie ", " dolnoslakie "
+    , "DolnoSlaskie" , "dolnoSlaskie"
+    , " DolnoSlaskie" , " dolnoSlaskie"
+    , " DolnoSlaskie " , " dolnoSlaskie "
+    )
+, "Kujawsko-Pomorskie" =
+    c(
+      "Kujawsko-Pomorskie" , "kujawsko-pomorskie", "Kujawsko-pomorskie"
+    , " Kujawsko-Pomorskie" , " kujawsko-pomorskie", " Kujawsko-pomorskie"
+    , " Kujawsko-Pomorskie " , " kujawsko-pomorskie ", " Kujawsko-pomorskie "
+    )
+, "Lubelskie" =
+    c(
+      "Lubelskie" , "lubelskie"
+    , " Lubelskie", " lubelskie"
+    , " Lubelskie ", " lubelskie "
+    )
+, "Lubuskie" =
+    c(
+      "Lubuskie" , "lubuskie"
+    , " Lubuskie" , " lubuskie"
+    , " Lubuskie " , " lubuskie "
+    )
+, "Łódzkie" =
+    c(
+      "Lodzkie", "lodzkie"
+    , " Lodzkie", " lodzkie"
+    , " Lodzkie ", " lodzkie "
+    , "Łódzkie", "łódzkie"
+    , " Łódzkie", " łódzkie"
+    , " Łódzkie ", " łódzkie "
+    , "Iodzkie", "lodzkie"
+    , " Iodzkie", " lodzkie"
+    , " Iodzkie ", " lodzkie "
+    )
+, "Małopolskie" =
+    c(
+      "Malopolskie" , "malopolskie"
+    , " Malopolskie" , " malopolskie"
+    , " Malopolskie " , " malopolskie "
+    , "Małopolskie", "małopolskie"
+    , " Małopolskie", " małopolskie"
+    , " Małopolskie ", " małopolskie "
+    , "Malopolska", "malopolska"
+    , " Malopolska", " malopolska"
+    , " Malopolska ", " malopolska "
+    , "Małopolska", "małopolska"
+    , " Małopolska", " małopolska"
+    , " Małopolska ", " małopolska "
+    , "MalOpolskie", "malOpolskie"
+    , " MalOpolskie", " malOpolskie"
+    , " MalOpolskie ", " malOpolskie "
+    )
+, "Mazowieckie" =
+    c(
+      "Mazowieckie", "mazowieckie"
+    , " Mazowieckie", " mazowieckie"
+    , " Mazowieckie ", " mazowieckie "
+    , "Masovia", "masovia"
+    , " Masovia", " masovia"
+    , " Masovia ", " masovia "
+    )
+, "Opolskie" =
+    c(
+      "Opolskie", "opolskie"
+    , " Opolskie", " opolskie"
+    , " Opolskie ", " opolskie "
+    )
+, "Podkarpackie" =
+    c(
+      "Podkarpackie", "podkarpackie"
+    , " Podkarpackie", " podkarpackie"
+    , " Podkarpackie ", " podkarpackie "
+    )
+, "Podlaskie" =
+    c(
+      "Podlaskie", "podlaskie"
+    , " Podlaskie", " podlaskie"
+    , " Podlaskie ", " podlaskie "
+    , "Bielsk Podlaski", "bielsk podlaski"
+    , " Bielsk Podlaski", " bielsk podlaski"
+    , " Bielsk Podlaski ", " bielsk podlaski "
+    )
+, "Pomorskie" =
+    c(
+      "Pomorskie", "pomorskie"
+    , " Pomorskie", " pomorskie"
+    , " Pomorskie ", " pomorskie "
+    , "Pomerania", "pomerania"
+    , " Pomerania", " pomerania"
+    , " Pomerania ", " pomerania "
+    , "Pomorze", "pomorze"
+    , " Pomorze", " pomorze"
+    , " Pomorze ", " pomorze "
+    )
+, "Śląskie" =
+    c(
+      "Slaskie", "slaskie"
+    , " Slaskie", " slaskie"
+    , " Slaskie ", " slaskie "
+    , "Śląskie", "śląskie"
+    , " Śląskie", " śląskie"
+    , " Śląskie ", " śląskie "
+    , "Slask", "slask"
+    , " Slask", " slask"
+    , " Slask ", " slask "
+    )
+, "Świętokrzyskie" =
+    c(
+      "Swietokrzyskie", "swietokrzyskie"
+    , " Swietokrzyskie", " swietokrzyskie"
+    , " Swietokrzyskie ", " swietokrzyskie "
+    , "Świętokrzyskie", "świętokrzyskie"
+    , " Świętokrzyskie", " świętokrzyskie"
+    , " Świętokrzyskie ", " świętokrzyskie "
+    )
+, "Warmińsko-Mazurskie" =
+    c(
+      "Warminsko-Mazurskie", "warminsko-mazurskie", "Warminsko-mazurskie"
+    , " Warminsko-Mazurskie", " warminsko-mazurskie", " Warminsko-mazurskie"
+    , " Warminsko-Mazurskie ", " warminsko-mazurskie ", " Warminsko-mazurskie "
+    , "Warmińsko-Mazurskie", "warmińsko-mazurskie", "Warmińsko-mazurskie"
+    , " Warmińsko-Mazurskie", " warmińsko-mazurskie", " Warmińsko-mazurskie"
+    , " Warmińsko-Mazurskie ", " warmińsko-mazurskie ", " Warmińsko-mazurskie "
+    )
+, "Wielkopolskie" =
+    c(
+      "Wielkopolskie", "wielkopolskie"
+    , " Wielkopolskie", " wielkopolskie"
+    , " Wielkopolskie ", " wielkopolskie "
+    , "Wielkopolska", "wielkopolska"
+    , " Wielkopolska", " wielkopolska"
+    , " Wielkopolska ", " wielkopolska "
+    , "WielkOpolskie", "wielkOpolskie"
+    , " WielkOpolskie", " wielkOpolskie"
+    , " WielkOpolskie ", " wielkOpolskie "
+    )
+, "Zachodniopomorskie" =
+    c(
+      "Zachodniopomorskie", "zachodniopomorskie"
+    , " Zachodniopomorskie", " zachodniopomorskie"
+    , " Zachodniopomorskie ", " zachodniopomorskie "
+    , "ZachodnioPomorskie", "zachodnioPomorskie"
+    , " ZachodnioPomorskie", " zachodnioPomorskie"
+    , " ZachodnioPomorskie ", " zachodnioPomorskie "
+    )
+
+  ########
+, "Central Bohemian Region" =
+    c(
+      "Central Bohemian Region", "central bohemian region"
+    , " Central Bohemian Region", " central bohemian region"
+    , " Central Bohemian Region ", " central bohemian region "
+    , "Central Bohemia Region", "central bohemia region"
+    , " Central Bohemia Region", " central bohemia region"
+    , " Central Bohemia Region ", " central bohemia region "
+    , "Melnik", "melnik"
+    , " Melnik", " melnik"
+    , " Melnik ", " melnik "
+    , "Slaný", "slaný"
+    , " Slaný", " slaný"
+    , " Slaný ", " slaný "
+    )
+, "Hradec Králové Region" =
+    c(
+      "Hradec Králové Region", "hradec králové region"
+    , " Hradec Králové Region", " hradec králové region"
+    , " Hradec Králové Region ", " hradec králové region "
+    , "Hradec Kralove Region", "hradec kralove region"
+    , " Hradec Kralove Region", " hradec kralove region"
+    , " Hradec Kralove Region ", " hradec kralove region "
+    )
+, "Liberec Region" =
+    c(
+      "Liberec Region", "liberec region"
+    , " Liberec Region", " liberec region"
+    , " Liberec Region ", " liberec region "
+    )
+, "Moravian-Silesian Region" =
+    c(
+      "Moravian-Silesian Region", "moravian-silesian region"
+    , " Moravian-Silesian Region", " moravian-silesian region"
+    , " Moravian-Silesian Region ", " moravian-silesian region "
+    )
+, "Northern Bohemian Region" =
+    c(
+      "Northern Bohemian Region", "northern bohemian region"
+    , " Northern Bohemian Region", " northern bohemian region"
+    , " Northern Bohemian Region ", " northern bohemian region "
+    , "Northern Bohemia Region", "northern bohemia region"
+    , " Northern Bohemia Region", " northern bohemia region"
+    , " Northern Bohemia Region ", " northern bohemia region "
+    , "North Bohemian Region", "north bohemian region"
+    , " North Bohemian Region", " north bohemian region"
+    , " North Bohemian Region ", " north bohemian region "
+    , "North Bohemia Region", "north bohemia region"
+    , " North Bohemia Region", " north bohemia region"
+    , " North Bohemia Region ", " north bohemia region "
+    )
+, "Olomouc Region" =
+    c(
+      "Olomouc", "olomouc"
+    , " Olomouc", " olomouc"
+    , " Olomouc ", " olomouc "
+    , "Olomouc Region", "olomouc region"
+    , " Olomouc Region", " olomouc region"
+    , " Olomouc Region ", " olomouc region "
+    , "Litovel", "litovel"
+    , " Litovel", " litovel"
+    , " Litovel ", " litovel "
+    , "Hranice na Moravě", "hranice na moravě"
+    , " Hranice na Moravě", " hranice na moravě"
+    , " Hranice na Moravě ", " hranice na moravě "
+    , "Hranice", "hranice"
+    , " Hranice", " hranice"
+    , " Hranice ", " hranice "
+    )
+, "Pardubice Region" =
+    c(
+      "Pardubice Region", "pardubice region"
+    , " Pardubice Region", " pardubice region"
+    , " Pardubice Region ", " pardubice region "
+    )
+, "Plzeň Region" =
+    c(
+      "Plzen", "plzen"
+    , " Plzen", " plzen"
+    , " Plzen ", " plzen "
+    , "Plzeň", "plzeň"
+    , " Plzeň", " plzeň"
+    , " Plzeň ", " plzeň "
+    , "Plzen Region", "plzen region"
+    , " Plzen Region", " plzen region"
+    , " Plzen Region ", " plzen region "
+    , "Plzeň Region", "plzeň region"
+    , " Plzeň Region", " plzeň region"
+    , " Plzeň Region ", " plzeň region "
+    , "Klatovy", "klatovy"
+    , " Klatovy", " klatovy"
+    , " Klatovy ", " klatovy "
+    , "Domažlice", "domažlice"
+    , " Domažlice", " domažlice"
+    , " Domažlice ", " domažlice "
+    , "Pilsen", "pilsen"
+    , " Pilsen", " pilsen"
+    , " Pilsen ", " pilsen "
+    )
+, "Prague" =
+    c(
+      "Prague", "prague"
+    , " Prague", " prague"
+    , " Prague ", " prague "
+    , "Prague-Miskovice", "prague-miskovice"
+    , " Prague-Miskovice", " prague-miskovice"
+    , " Prague-Miskovice ", " prague-miskovice "
+    )
+, "South Bohemian Region" =
+    c(
+      "South Bohemian Region", "south bohemian region"
+    , " South Bohemian Region", " south bohemian region"
+    , " South Bohemian Region ", " south bohemian region "
+    , "South Bohemia Region", "south bohemia region"
+    , " South Bohemia Region", " south bohemia region"
+    , " South Bohemia Region ", " south bohemia region "
+    , "Southern Bohemian Region", "southern bohemian region"
+    , " Southern Bohemian Region", " southern bohemian region"
+    , " Southern Bohemian Region ", " southern bohemian region "
+    , "Southern Bohemia Region", "southern bohemia region"
+    , " Southern Bohemia Region", " southern bohemia region"
+    , " Southern Bohemia Region ", " southern bohemia region "
+    )
+, "South Moravian Region" =
+    c(
+      "South Moravian Region", "south moravian region"
+    , " South Moravian Region", " south moravian region"
+    , " South Moravian Region ", " south moravian region "
+    , "Brno", "brno"
+    , " Brno", " brno"
+    , " Brno ", " brno "
+    , "Breclav", "breclav"
+    , " Breclav", " breclav"
+    , " Breclav ", " breclav "
+    )
+, "Ústí nad Labem Region" =
+    c(
+      "Ústí nad Labem", "ústí nad labem"
+    , " Ústí nad Labem", " ústí nad labem"
+    , " Ústí nad Labem ", " ústí nad labem "
+    , "Ústí nad Labem Region", "ústí nad labem region"
+    , " Ústí nad Labem Region", " ústí nad labem region"
+    , " Ústí nad Labem Region ", " ústí nad labem region "
+    , "Usti nad Labem", "usti nad labem"
+    , " Usti nad Labem", " usti nad labem"
+    , " Usti nad Labem ", " usti nad labem "
+    )
+, "Vysocina Region" =
+    c(
+      "Vysocina Region", "vysocina region"
+    , " Vysocina Region", " vysocina region"
+    , " Vysocina Region ", " vysocina region "
+    , "Vysocina", "vysocina"
+    , " Vysocina", " vysocina"
+    , " Vysocina ", " vysocina "
+    , "Jihlava", "jihlava"
+    , " Jihlava", " jihlava"
+    , " Jihlava ", " jihlava "
+    )
+, "Zlín Region" =
+    c(
+      "Zlin", "zlin"
+    , " Zlin", " zlin"
+    , " Zlin ", " zlin "
+    , "Zlin Region", "zlin region"
+    , " Zlin Region", " zlin region"
+    , " Zlin Region ", " zlin region "
+    , "Zlín", "zlín"
+    , " Zlín", " zlín"
+    , " Zlín ", " zlín "
+    , "Zlín Region", "zlín region"
+    , " Zlín Region", " zlín region"
+    , " Zlín Region ", " zlín region "
+    )
+)
+
+reverse_dict <- function(dict) {
+  # https://stackoverflow.com/a/35827024
+  split(rep(names(dict), lengths(dict)), unlist(dict))
+}
+
+### proper dict
+location_dict_from_to <- reverse_dict(location_dict_to_from)
+
+### clean location
+location_from <- sapply(strsplit(metadata_ext$location, split = "/"), `[`, 3, simplify = T, USE.NAMES = F)
+location_to <- location_dict_from_to[location_from]
+location_to[is.na(names(location_to))] <- NA
+metadata_ext$LocationClean <- unlist(location_to)
+if (sum(!is.na(metadata_ext$LocationClean)) == 0) {
+    metadata_ext$LocationClean <- unlist(location_from)
+}
+
+### print info about new misspelled data
+misspelled_rows <- is.na(metadata_ext$LocationClean)
+misspelled_locations <- table(metadata_ext$location[misspelled_rows])
+print(paste("There are", length(misspelled_locations), "misspelled locations"))
+print(paste("There are", sum(misspelled_rows), "unique misspelled rows"))
+print(as.data.frame(misspelled_locations))
+
+### PLOTS
 
 metadata_ext$week_start <- ymd(metadata_ext$collection_date) - days(wday(ymd(metadata_ext$collection_date)))
-t_dat_loc_cla <- table(metadata_ext$week_start, metadata_ext$LocationClean, ifelse(grepl(metadata_ext$clade_small, pattern = "501Y"), "N501Y", "-"))
+t_dat_loc_cla <- table(metadata_ext$week_start, metadata_ext$LocationClean,
+                       ifelse(grepl(metadata_ext$clade_small, pattern = ALARM_PATTERN), ALARM_MUTATION, "-"))
+
 #t_dat_loc_cla[,,1] <- t_dat_loc_cla[,,1] + t_dat_loc_cla[,,2]
 #t_dat_loc_cla <- apply(t_dat_loc_cla, 2:3, cumsum)
 t_dat_loc_cla <- data.frame(as.table(t_dat_loc_cla))
@@ -305,19 +643,26 @@ t_dat_loc_cla <- data.frame(as.table(t_dat_loc_cla))
 t_dat_loc_cla$Var2 <- reorder(t_dat_loc_cla$Var2, -t_dat_loc_cla$Freq, sum)
 levels1 <- levels(t_dat_loc_cla$Var2)
 
-pl_loc_1 <- ggplot(t_dat_loc_cla, aes(ymd(Var1), y=Freq, fill = Var3)) +
-  geom_col() +
-#  geom_text(data = counts4, aes(x = ymd(date), y = n, label = label, hjust = 0, vjust = 1), size=2.7) +
-  scale_fill_manual(values = c("grey", "red3")) +
-  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
-               limits = c(ymd(lineage_date) - months(3), ymd(lineage_date))) +
-  facet_wrap(~Var2, ncol = 5) +
-  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0)) +
-  ggtitle(descriptions["pl_loc_1_tit", "names"]) +
-  theme(legend.position = "none")
+for (lang in langs) {
+	plots_output[[lang]][['pl_loc_1']] <-
+	  ggplot(t_dat_loc_cla, aes(ymd(Var1), y=Freq, fill = Var3)) +
+	  geom_col() +
+	  #geom_text(data = counts4, aes(x = ymd(date), y = n, label = label, hjust = 0, vjust = 1), size=2.7) +
+	  scale_fill_manual(values = c("grey", "red3")) +
+	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
+	               limits = c(ymd(lineage_date) - months(3), ymd(lineage_date))) +
+	  facet_wrap(~Var2, ncol = 5) +
+	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0)) +
+	  ggtitle(descriptions[[lang]]["pl_loc_1_tit", "names"]) +
+	  theme(legend.position = "none")
+}
 
+#
+t_dat_map <- t_dat_loc_cla %>% rename(date = Var1, name = Var2, type = Var3, count = Freq)
+#
 
-t_dat_loc_cla <- table(metadata_ext$week_start, metadata_ext$LocationClean, ifelse(grepl(metadata_ext$clade_small, pattern = "501Y"), "N501Y", "-"))
+t_dat_loc_cla <- table(metadata_ext$week_start, metadata_ext$LocationClean,
+                       ifelse(grepl(metadata_ext$clade_small, pattern = ALARM_PATTERN), ALARM_MUTATION, "-"))
 normalizer <-  t_dat_loc_cla[,,1] + t_dat_loc_cla[,,2]
 t_dat_loc_cla[,,1] <- t_dat_loc_cla[,,1] / normalizer
 t_dat_loc_cla[,,2] <- t_dat_loc_cla[,,2] /normalizer
@@ -325,19 +670,98 @@ t_dat_loc_cla <- data.frame(as.table(t_dat_loc_cla))
 
 t_dat_loc_cla$Var2 <- factor(t_dat_loc_cla$Var2, levels = levels1)
 
-pl_loc_2 <- ggplot(t_dat_loc_cla, aes(ymd(Var1), y=Freq, fill = Var3)) +
-  geom_col() +
-  #  geom_text(data = counts4, aes(x = ymd(date), y = n, label = label, hjust = 0, vjust = 1), size=2.7) +
-  scale_fill_manual(values = c("#77777777", "red3")) +
-  scale_y_continuous("", labels = scales::percent, expand = c(0,0)) +
-  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
-               limits = c(ymd(lineage_date) - months(3), ymd(lineage_date))) +
-  facet_wrap(~Var2, ncol = 5) +
-  theme_minimal(base_family = 'Arial') +
-  ggtitle(descriptions["pl_loc_2_tit", "names"]) +
-  theme(legend.position = "none")
+for (lang in langs) {
+	plots_output[[lang]][['pl_loc_1']] <-
+ 	  ggplot(t_dat_loc_cla, aes(ymd(Var1), y=Freq, fill = Var3)) +
+ 	  geom_col() +
+ 	  #  geom_text(data = counts4, aes(x = ymd(date), y = n, label = label, hjust = 0, vjust = 1), size=2.7) +
+ 	  scale_fill_manual(values = c("#77777777", "red3")) +
+ 	  scale_y_continuous("", labels = scales::percent, expand = c(0,0)) +
+ 	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
+ 	               limits = c(ymd(lineage_date) - months(3), ymd(lineage_date))) +
+ 	  facet_wrap(~Var2, ncol = 5) +
+ 	  theme_minimal(base_family = 'Arial') +
+ 	  ggtitle(descriptions[[lang]]["pl_loc_2_tit", "names"]) +
+ 	  theme(legend.position = "none")
+}
 
 
+# --------------------------------- #
+# --------------MAP---------------- #
+# --------------------------------- #
+
+if (region == "Europe / Poland") {
+
+  ((t_dat_map %>%
+      filter(ymd(date) + weeks(1) >= DATE_LAST_SAMPLE) %>%
+      mutate(name = tolower(name)) -> t_map_metadata_week) %>%
+     group_by(name, type) %>%
+     summarise(count = sum(count))  %>%
+     pivot_wider(id_cols = name, names_from = type, values_from = count) %>%
+     inner_join(t_map_metadata_week %>%
+                  group_by(name) %>%
+                  summarise(ratio = sum(count) / sum(t_map_metadata_week$count))) -> t_map_metadata_week) %>%
+    mutate(ratio = 2 * (10e12 * ratio / max(t_map_metadata_week$ratio)) ** (1/3)) -> t_map_metadata_week
+
+  ((t_dat_map %>%
+      filter(ymd(date) + months(1) >= DATE_LAST_SAMPLE) %>%
+      mutate(name = tolower(name)) -> t_map_metadata_month) %>%
+      group_by(name, type) %>%
+      summarise(count = sum(count))  %>%
+      pivot_wider(id_cols = name, names_from = type, values_from = count) %>%
+      inner_join(t_map_metadata_month %>%
+                   group_by(name) %>%
+                   summarise(ratio = sum(count) / sum(t_map_metadata_month$count))) -> t_map_metadata_month) %>%
+    mutate(ratio = 2 * (10e12 * ratio / max(t_map_metadata_month$ratio)) ** (1/3)) -> t_map_metadata_month
+
+  map_cord <- st_read("./map/pl-voi.shp")
+  map_cord <- st_transform(map_cord, 2180) # long and lat is no longer used
+  map_cord_df <- as.data.frame(st_coordinates(map_cord)) %>% rename(id = L3)
+  centroid_cord <- as.data.frame(st_coordinates(st_centroid(map_cord)))
+
+  map_metadata <- data.frame(
+    id   = as.data.frame(map_cord)$JPT_KOD_JE,
+    name = as.data.frame(map_cord)$JPT_NAZWA_,
+    X = centroid_cord$X,
+    Y  = centroid_cord$Y
+  )
+
+
+  for (lang in langs) {
+	  pl_map_1 <- ggplot(map_cord_df) +
+	    geom_polygon(aes(X, Y, group = id), color = "black", fill = "white") +
+	    geom_scatterpie(data = map_metadata  %>% left_join(t_map_metadata_week, by = "name") %>% drop_na(),
+	                    cols = c(ALARM_MUTATION, "-"),
+	                    aes(x = X, y = Y, r = ratio, group = id)) +
+	    coord_equal() +
+	    scale_fill_manual(values = c("red3", "grey")) +
+	    theme_void() +
+	    theme(legend.position = "none") +
+	    ggtitle(paste(descriptions[[lang]]["pl_map_sub1", "names"], DATE_LAST_SAMPLE)) +
+	    theme(plot.title = element_text(size=12, hjust = 0.5))
+	
+	  pl_map_2 <- ggplot(map_cord_df) +
+	    geom_polygon(aes(X, Y, group = id), color = "black", fill = "white") +
+	    geom_scatterpie(data = map_metadata  %>% left_join(t_map_metadata_month, by = "name") %>% drop_na(),
+	                    cols = c(ALARM_MUTATION, "-"),
+	                    aes(x = X, y = Y, r = ratio, group = id)) +
+	    coord_equal() +
+	    scale_fill_manual(values = c("red3", "grey")) +
+	    theme_void() +
+	    theme(legend.position = "none") +
+	    ggtitle(paste(descriptions[[lang]]["pl_map_sub2", "names"], DATE_LAST_SAMPLE)) +
+	    theme(plot.title = element_text(size=12, hjust = 0.5))
+	
+	  plots_output[[lang]][['pl_map']] <- (pl_map_1 + pl_map_2) +
+	    plot_annotation(
+	      title=paste(descriptions[[lang]]["pl_map_pt1", "names"], ALARM_MUTATION, descriptions["pl_map_pt2", "names"]),
+	      theme = theme(plot.title = element_text(size=15, hjust = 0.5))
+	    )
+  }
+}
+
+# --------------------------------- #
+# --------------------------------- #
 
 # -------
 # Ewolucja clades
@@ -360,24 +784,29 @@ pal <- structure(c("#E9C622", "#51A4B8", "#E5BC13", "#67AFBF", "#E1B103",
 df4 <- df4[df4$variant %in% names(pal),]
 df4 <- df4[ymd(df4$date) > ymd(lineage_date_local) - months(3),]
 
-pl_var_all_2 <- ggplot(df4, aes(ymd(date) + days(3), y=n, fill = variant)) +
-  geom_col( position = "fill", color = "white") +
-  coord_cartesian(xlim = c(ymd(lineage_date_local) - months(3), ymd(lineage_date_local)), ylim= c(0,1)) +
-  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
-               limits = c(ymd(lineage_date_local) - months(3), ymd(lineage_date_local)))+
-  scale_fill_manual("", values = pal) +
-  ggtitle(descriptions["pl_var_all_2_tit", "names"]) +
-  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0), labels = scales::percent)
+for (lang in langs) {
+	plots_output[[lang]][['pl_var_all_2']] <-
+	  ggplot(df4, aes(ymd(date) + days(3), y=n, fill = variant)) +
+	  geom_col( position = "fill", color = "white") +
+	  coord_cartesian(xlim = c(ymd(lineage_date_local) - months(3), ymd(lineage_date_local)), ylim= c(0,1)) +
+	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
+	               limits = c(ymd(lineage_date_local) - months(3), ymd(lineage_date_local)))+
+	  scale_fill_manual("", values = pal) +
+	  ggtitle(descriptions[[lang]]["pl_var_all_2_tit", "names"]) +
+	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0), labels = scales::percent)
+}
 
-pl_var_all_3 <- ggplot(df4, aes(ymd(date) + days(3), y=n, fill = variant)) +
-  geom_col( position = "stack", color = "white") +
-  coord_cartesian(xlim = c(ymd(lineage_date_local) - months(3), ymd(lineage_date_local))) +
-  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
-               limits = c(ymd(lineage_date_local) - months(3), ymd(lineage_date_local)))+
-  scale_fill_manual("", values = pal) +
-  ggtitle(descriptions["pl_var_all_3_tit", "names"]) +
-  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0))
-
+for (lang in langs) {
+	plots_output[[lang]][['pl_var_all_3']] <-
+	  ggplot(df4, aes(ymd(date) + days(3), y=n, fill = variant)) +
+	  geom_col( position = "stack", color = "white") +
+	  coord_cartesian(xlim = c(ymd(lineage_date_local) - months(3), ymd(lineage_date_local))) +
+	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
+	               limits = c(ymd(lineage_date_local) - months(3), ymd(lineage_date_local)))+
+	  scale_fill_manual("", values = pal) +
+	  ggtitle(descriptions[[lang]]["pl_var_all_3_tit", "names"]) +
+	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0))
+}
 
 t_cou_cla <- table(nextclade$date, nextclade$clade_small)
 # add +k days for reporting lag
@@ -399,14 +828,17 @@ pal <- structure(c("#E9C622", "#51A4B8", "#E5BC13", "#67AFBF", "#E1B103",
 df4 <- df4[df4$variant %in% names(pal),]
 df4 <- df4[ymd(df4$date) > ymd(lineage_date_local) - months(3),]
 
-pl_var_all_1 <- ggplot(df4, aes(ymd(date), y=n, fill = variant)) +
-  geom_area( position = "fill", color = "white") +
-  coord_cartesian(xlim = c(ymd(lineage_date_local) - months(3), ymd(lineage_date_local)), ylim= c(0,1)) +
-  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
-               limits = c(ymd(lineage_date_local) - months(3), ymd(lineage_date_local)))+
-  scale_fill_manual("", values = pal) +
-  ggtitle(descriptions["pl_var_all_1_tit", "names"]) +
-  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0), labels = scales::percent)
+for (lang in langs) {
+	plots_output[[lang]][['pl_var_all_1']] <-
+	  ggplot(df4, aes(ymd(date), y=n, fill = variant)) +
+	  geom_area( position = "fill", color = "white") +
+	  coord_cartesian(xlim = c(ymd(lineage_date_local) - months(3), ymd(lineage_date_local)), ylim= c(0,1)) +
+	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
+	               limits = c(ymd(lineage_date_local) - months(3), ymd(lineage_date_local)))+
+	  scale_fill_manual("", values = pal) +
+	  ggtitle(descriptions[[lang]]["pl_var_all_1_tit", "names"]) +
+	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0), labels = scales::percent)
+}
 
 # profiles
 
@@ -426,72 +858,81 @@ pal <- structure(c("#E9C622", "#51A4B8", "#E5BC13", "#67AFBF", "#E1B103",
 df5 <- df5[df5$variant %in% names(pal),]
 df5 <- df5[ymd(df5$date) > ymd(lineage_date_local) - months(3),]
 
-pl_var_all_4 <- ggplot(na.omit(df5[df5$n > 0 & df5$n < 1,]), aes(ymd(date), y=n, color = variant)) +
-  geom_point( ) +
-  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
-               limits = c(ymd(lineage_date_local) - months(3), ymd(lineage_date_local)))+
-  theme_minimal(base_family = 'Arial') +
-  geom_smooth(data = df5[(df5$variant %in% c("20I/501Y.V1", "20A", "20B")) &
-                           (ymd(df5$date) > ymd(lineage_date_local) - months(2)),],
-              se = FALSE, span = 1) +
-  scale_y_continuous("",expand = c(0,0),
-                     breaks = c(0.01,0.1,0.25,0.5,0.75,0.9, 0.99), limits = c(0,1)) +
-  scale_color_manual("", values = pal) +
-  ggtitle(descriptions["pl_var_all_4_tit", "names"]) +
-  theme_minimal(base_family = 'Arial') +
-  coord_cartesian(xlim = c(ymd(lineage_date_local) - months(3), ymd(lineage_date_local)))
-
+for (lang in langs) {
+	plots_output[[lang]][['pl_var_all_4']] <-
+	  ggplot(na.omit(df5[df5$n > 0 & df5$n < 1,]), aes(ymd(date), y=n, color = variant)) +
+	  geom_point( ) +
+	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
+	               limits = c(ymd(lineage_date_local) - months(3), ymd(lineage_date_local)))+
+	  theme_minimal(base_family = 'Arial') +
+	  geom_smooth(data = df5[(df5$variant %in% c("20I/501Y.V1", "20A", "20B")) &
+	                           (ymd(df5$date) > ymd(lineage_date_local) - months(2)),],
+	              se = FALSE, span = 1) +
+	  scale_y_continuous("",expand = c(0,0),
+	                     breaks = c(0.01,0.1,0.25,0.5,0.75,0.9, 0.99), limits = c(0,1)) +
+	  scale_color_manual("", values = pal) +
+	  ggtitle(descriptions[[lang]]["pl_var_all_4_tit", "names"]) +
+	  theme_minimal(base_family = 'Arial') +
+	  coord_cartesian(xlim = c(ymd(lineage_date_local) - months(3), ymd(lineage_date_local)))
+}
 
 
 ############
 ## update HTML file
-
-html <- paste(readLines("index_source.html"), collapse = "\n")
-
-html <- gsub(pattern = "--DATE--", replacement = lineage_date, x = html)
-html <- gsub(pattern = "--NUMBER--", replacement = nrow(lineage), x = html)
-html <- gsub(pattern = "--DATELAST--", replacement = max(lineage$date), x = html)
-
-
 t_cou_lin <- table(lineage$date, lineage$lineage_small)
-
 warianty <- head(colnames(t_cou_lin)[-ncol(t_cou_lin)],7)
 warianty_list <- paste0(paste0('<a href="https://cov-lineages.org/lineages/lineage_',warianty,'.html">',warianty,'</a>'), collapse = ",\n")
-html <- gsub(pattern = "--VARIANTSLIST--", replacement = warianty_list, x = html)
-html <- gsub(pattern = "--VARIANTS--", replacement = length(unique(lineage$Lineage)), x = html)
-
 warianty2 <- head(colnames(t_cou_cla),5)
 warianty2_list <- paste0(paste0('<a href="https://www.cdc.gov/coronavirus/2019-ncov/more/science-and-research/scientific-brief-emerging-variants.html">',warianty2,'</a>'), collapse = ",\n")
-html <- gsub(pattern = "--VARIANTSLIST2--", replacement = warianty2_list, x = html)
-html <- gsub(pattern = "--VARIANTS2--", replacement = length(colnames(t_cou_cla)), x = html)
 
-writeLines(html, con = paste0(output_dir, "/index.html"))
+placeholders <- list(
+	DATE = lineage_date,
+	NUMBER = nrow(lineage),
+	DATELAST = max(lineage$date),
+	VARIANTSLIST = warianty_list,
+	VARIANTS = length(unique(lineage$Lineage)),
+	VARIANTSLIST2 = warianty2_list,
+	VARIANTS2 = length(colnames(t_cou_cla))
+)
+write(toJSON(placeholders, auto_unbox=TRUE), paste0(output_dir, '/placeholders.json'))
+file.copy('./index_source.html', paste0(output_dir, '/index.html'), overwrite=TRUE)
 
-print('Saving plots')
+i18n <- lapply(langs, function(lang) {
+	i18n_table <- read.table(paste0("lang_", lang, ".txt"), sep=":", header = TRUE, fileEncoding = "UTF-8", quote=NULL)
+	# Transform table to dictionary
+	obj = as.list(i18n_table[,"names"])
+	names(obj) <- i18n_table[,"tag"]
+	obj
+})
+names(i18n) <- langs
+write(toJSON(i18n, auto_unbox=TRUE), paste0(output_dir, '/i18n.json'))
+
 ############
 ## save plots
-ggsave(plot = pl_seq_1, file=paste0(output_dir, "/images/liczba_seq_1.svg"), width=4, height=2.5)
-ggsave(plot = pl_seq_2, file=paste0(output_dir, "/images/liczba_seq_2.svg"), width=4, height=2.5)
+for (lang in langs) {
+	print(paste0('Saving plots in ', lang))
+	plots <- plots_output[[lang]]
+	dir_prefix <- paste0(output_dir, '/images/', lang, '/')
+	dir.create(dir_prefix, recursive=TRUE, showWarnings=FALSE)
 
-if (sum(!is.na(metadata_ext$LocationClean)) > 0) {
-	ggsave(plot = pl_loc_1, file=paste0(output_dir, "/images/liczba_loc_1.svg"), width=8, height=ceiling(length(unique(metadata_ext$LocationClean)) / 5) * 5 / 4, limitsize=FALSE)
-	ggsave(plot = pl_loc_2, file=paste0(output_dir, "/images/liczba_loc_2.svg"), width=8, height=ceiling(length(unique(metadata_ext$LocationClean)) / 5) * 5 / 4, limitsize=FALSE)
+	ggsave(plot = plots[['pl_seq_1']], file=paste0(dir_prefix, "liczba_seq_1.svg"), width=4, height=2.5)
+	ggsave(plot = plots[['pl_seq_2']], file=paste0(dir_prefix, "liczba_seq_2.svg"), width=4, height=2.5)
+	
+	if (sum(!is.na(metadata_ext$LocationClean)) > 0) {
+		ggsave(plot = plots[['pl_loc_1']], file=paste0(dir_prefix, "liczba_loc_1.svg"), width=8, height=ceiling(length(unique(metadata_ext$LocationClean)) / 5) * 5 / 4, limitsize=FALSE)
+		ggsave(plot = plots[['pl_loc_2']], file=paste0(dir_prefix, "liczba_loc_2.svg"), width=8, height=ceiling(length(unique(metadata_ext$LocationClean)) / 5) * 5 / 4, limitsize=FALSE)
+	}
+	
+	ggsave(plot = plots[['pl_war_1']], file=paste0(dir_prefix, "liczba_warianty_1.svg"), width=8, height=3)
+	ggsave(plot = plots[['pl_war_2']], file=paste0(dir_prefix, "liczba_warianty_2.svg"), width=8, height=3)
+	ggsave(plot = plots[['pl_war_3']], file=paste0(dir_prefix, "liczba_warianty_3.svg"), width=8, height=3)
+	ggsave(plot = plots[['pl_war_4']], file=paste0(dir_prefix, "liczba_warianty_4.svg"), width=8, height=3)
+	ggsave(plot = plots[['pl_war_5']], file=paste0(dir_prefix, "liczba_warianty_5.svg"), width=8, height=5)
+	
+	ggsave(plot = plots[['pl_var_all_1']], file=paste0(dir_prefix, "udzial_warianty_1.svg"), width=5.5, height=3.5)
+	ggsave(plot = plots[['pl_var_all_2']], file=paste0(dir_prefix, "udzial_warianty_2.svg"), width=5.5, height=3.5)
+	ggsave(plot = plots[['pl_var_all_3']], file=paste0(dir_prefix, "udzial_warianty_3.svg"), width=5.5, height=3.5)
+	ggsave(plot = plots[['pl_var_all_4']], file=paste0(dir_prefix, "udzial_warianty_4.svg"), width=5.5, height=3.5)
+
+	save(plots, file = paste0(dir_prefix, 'gg_objects.rda'))
 }
-
-ggsave(plot = pl_war_1, file=paste0(output_dir, "/images/liczba_warianty_1.svg"), width=8, height=3)
-ggsave(plot = pl_war_2, file=paste0(output_dir, "/images/liczba_warianty_2.svg"), width=8, height=3)
-ggsave(plot = pl_war_3, file=paste0(output_dir, "/images/liczba_warianty_3.svg"), width=8, height=3)
-ggsave(plot = pl_war_4, file=paste0(output_dir, "/images/liczba_warianty_4.svg"), width=8, height=3)
-ggsave(plot = pl_war_5, file=paste0(output_dir, "/images/liczba_warianty_5.svg"), width=8, height=5)
-
-ggsave(plot = pl_var_all_1, file=paste0(output_dir, "/images/udzial_warianty_1.svg"), width=5.5, height=3.5)
-ggsave(plot = pl_var_all_2, file=paste0(output_dir, "/images/udzial_warianty_2.svg"), width=5.5, height=3.5)
-ggsave(plot = pl_var_all_3, file=paste0(output_dir, "/images/udzial_warianty_3.svg"), width=5.5, height=3.5)
-ggsave(plot = pl_var_all_4, file=paste0(output_dir, "/images/udzial_warianty_4.svg"), width=5.5, height=3.5)
-
-
-save(pl_seq_1, pl_seq_2, pl_loc_1, pl_loc_2,
-     pl_war_1, pl_war_2, pl_war_3, pl_war_4, pl_war_5,
-     pl_var_all_1, pl_var_all_2,pl_var_all_3, pl_var_all_4,
-     file = paste0(output_dir, "/images/gg_objects.rda"))
-
