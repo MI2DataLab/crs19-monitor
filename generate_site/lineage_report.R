@@ -692,7 +692,7 @@ for (lang in langs) {
 # --------------MAP---------------- #
 # --------------------------------- #
 
-if (region == "Europe / Poland") {
+if (region == "Poland") {
 
   ((t_dat_map %>%
       filter(ymd(date) + weeks(1) >= DATE_LAST_SAMPLE) %>%
