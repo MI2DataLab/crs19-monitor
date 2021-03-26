@@ -10,199 +10,290 @@
     <meta http-equiv="Expires" content="-1">
     <meta http-equiv="CACHE-CONTROL" content="NO-CACHE">
 
-    <link href='fonts/font-droid.css' rel='stylesheet' type='text/css'>
-    <link href='../fonts/font-droid.css' rel='stylesheet' type='text/css'>
+    <link href='../../fonts/font-droid.css' rel='stylesheet' type='text/css'>
     <!-- Add custom CSS here -->
-    <link href="css/lavish-bootstrap-sp.css" rel="stylesheet">
-    <link href="../css/lavish-bootstrap-sp.css" rel="stylesheet">
-<style>
- p {font-size:large}
-</style>
+    <link href="../../css/lavish-bootstrap-sp.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.12/dist/vue.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-resource@1.5.2"></script>
+    <style>
+       p {font-size:large}
+    </style>
 
-<script>
-  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+    <script>
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
 
-  ga('create', 'UA-5650686-2', 'auto');
-  ga('send', 'pageview');
-</script>
-
- </head>
+      ga('create', 'UA-5650686-2', 'auto');
+      ga('send', 'pageview');
+    </script>
+  </head>
   <body>
-    <nav class="navbar navbar-inverse" role="navigation" style="padding-bottom:0px; border-color:#4a423d!important; background-color:#4a423d!important;">
-      <div class="container" style="padding-bottom:5px; padding-top:5px; ">
-        <div class="navbar-header">
-          <a class="navbar-brand" href="#Monitor">Monitor wariantów SARS-CoV-2 w Polsce</a>
-          <div class="navbar-brand">
-            <a class="navbar-link" href="index.html">PL</a> / <a class="navbar-link" href="en.html">EN</a>
+    <div id="app">
+      <nav class="navbar navbar-inverse" role="navigation" style="padding-bottom:0px; border-color:#4a423d!important; background-color:#4a423d!important;">
+        <div class="container" style="padding-bottom:5px; padding-top:5px; ">
+          <div class="navbar-header">
+            <a class="navbar-brand" href="#Monitor">{{ i18n('site_title') }}</a>
+            <div class="navbar-brand">
+              <a class="navbar-link" href="javascript:void(0)" v-for="l in langs" :key="l" @click="setLang(l)" style="margin: 0 5px">{{ l.toUpperCase() }}</a>
+            </div>
           </div>
-        </div>
-      </div><!-- /.container -->
-    </nav>
-<div class="section" id="Mapa">
-  <div class="container">
+        </div><!-- /.container -->
+      </nav>
+      <div class="section" id="Mapa">
+        <div class="container">
 
-<div class="row" id="Liczba_seq">
-<div class="col-lg-4 col-md-4 col-sm-4">
-<p>Na dzień --DATE-- w bazie GISAID są --NUMBER-- sekwencje SARS-CoV-2 z Polski.</p>
-<p>Maksymalna data pobrania dla próbek z bazy GISAID: --DATELAST--.</p>
-</div>
-<div class="col-lg-4 col-md-4 col-sm-4">
-<img align="right" src="images/liczba_seq_1.svg" width="100%">
-</div>
-<div class="col-lg-4 col-md-4 col-sm-4">
-<img align="right" src="images/liczba_seq_2.svg" width="100%">
-</div>
-</div><!-- /.row -->
+          <div class="row">
+            <div class="col-lg-12 col-md-12 col-sm-12">
+              {{ i18n('site_date') }}:
+              <select id="select-date" style="margin-right: 2em;margin-left: 0.5em;" @change="updateDate">
+                <option v-for="o in dateOptions" :key="o.value" :value="o.value" :selected="o.value == selectedDate">{{ o.name }}</option>
+              </select>
+              {{ i18n('site_country') }}:
+              <select id="select-country" style="margin-left: 0.5em;" @change="updateCountry">
+                <option v-for="o in countryOptions" :key="o.value" :value="o.value" :selected="o.value == selectedCountry">{{ o.name }}</option>
+              </select>
+            </div>
+          </div>
 
-  <hr>
+          <hr>
 
-<div class="row" id="Liczba_wariantow2">
-<div class="col-lg-4 col-md-4 col-sm-4">
-<p>Liczba (lewy panel) i udział (prawy panel) wariantów wirusa oznaczone z bazy GISAID.
-Dane prezentowane w agregacji tygodniowej. Wyniki dla ostatnich 3 miesięcy. </p>
-</div>
-<div class="col-lg-4 col-md-4 col-sm-4">
-<img align="right" src="images/udzial_warianty_3.svg" width="100%">
-</div>
-<div class="col-lg-4 col-md-4 col-sm-4">
-<img align="right" src="images/udzial_warianty_2.svg" width="100%">
-</div>
-</div><!-- /.row -->
+          <div class="row" id="Liczba_seq">
+            <div class="col-lg-4 col-md-4 col-sm-4">
+              <p>
+                {{ [i18n('site_seq_count_1'), placeholders.DATE, i18n('site_seq_count_2'), placeholders.NUMBER, i18n('site_seq_count_3')].join(' ').replaceAll(' ,', ',') }}
+              </p>
+              <p>{{ i18n('site_max_gisaid_date') + ': ' + placeholders.DATELAST }}.</p>
+            </div>
+            <div class="col-lg-4 col-md-4 col-sm-4">
+              <img align="right" :src="'images/' + lang + '/liczba_seq_1.svg'" width="100%" onerror="this.parentElement.parentElement.style.display='none'" :key="editTime" >
+            </div>
+            <div class="col-lg-4 col-md-4 col-sm-4">
+              <img align="right" :src="'images/' + lang + '/liczba_seq_2.svg'" width="100%" onerror="this.parentElement.parentElement.style.display='none'" :key="editTime" >
+            </div>
+          </div><!-- /.row -->
 
-  <hr>
+          <hr>
 
-<div class="row" id="Liczba_wariantow2">
-<div class="col-lg-4 col-md-4 col-sm-4">
-<p>Udział wariantów wirusa oznaczone z bazy GISAID.
-Prezentowane dane są wygładzone 7-dniowym oknem. Wyniki dla ostatnich 3 miesięcy.</p>
-</div>
-<div class="col-lg-4 col-md-4 col-sm-4">
-<img align="right" src="images/udzial_warianty_1.svg" width="100%">
-</div>
-<div class="col-lg-4 col-md-4 col-sm-4">
-<img align="right" src="images/udzial_warianty_4.svg" width="100%">
-</div>
-</div><!-- /.row -->
+          <div class="row" id="Liczba_wariantow2">
+            <div class="col-lg-4 col-md-4 col-sm-4">
+              <p>{{ i18n('site_description_1') }}</p>
+            </div>
+            <div class="col-lg-4 col-md-4 col-sm-4">
+              <img align="right" :src="'images/' + lang + '/udzial_warianty_3.svg'" width="100%" onerror="this.parentElement.parentElement.style.display='none'" :key="editTime" >
+            </div>
+            <div class="col-lg-4 col-md-4 col-sm-4">
+              <img align="right" :src="'images/' + lang + '/udzial_warianty_2.svg'" width="100%" onerror="this.parentElement.parentElement.style.display='none'" :key="editTime" >
+            </div>
+          </div><!-- /.row -->
 
-  <hr>
+          <hr>
 
-<div class="row" id="Liczba_wariantow2">
-<div class="col-lg-4 col-md-4 col-sm-4">
-<p>
-  W bazie są --VARIANTS2-- warianty wirusa oznaczone z bazy GISAID.
-  Najczęstsze to --VARIANTSLIST2--.
-  Warianty z mutacją N501Y (zaznaczone na czerwono) to warianty alarmowe o&nbsp;zwiększonej zakaźności.</p>
-</div>
-<div class="col-lg-8 col-md-8 col-sm-8">
-<img align="right" src="images/liczba_warianty_3.svg" width="100%">
-</div>
-</div><!-- /.row -->
+          <div class="row" id="Liczba_wariantow2">
+            <div class="col-lg-4 col-md-4 col-sm-4">
+              <p>{{ i18n('site_description_2') }}</p>
+            </div>
+            <div class="col-lg-4 col-md-4 col-sm-4">
+              <img align="right" :src="'images/' + lang + '/udzial_warianty_1.svg'" width="100%" onerror="this.parentElement.parentElement.style.display='none'" :key="editTime" >
+            </div>
+            <div class="col-lg-4 col-md-4 col-sm-4">
+              <img align="right" :src="'images/' + lang + '/udzial_warianty_4.svg'" width="100%" onerror="this.parentElement.parentElement.style.display='none'" :key="editTime" >
+            </div>
+          </div><!-- /.row -->
 
-  <hr>
+          <hr>
 
-<div class="row" id="Liczba_wariantow">
-<div class="col-lg-4 col-md-4 col-sm-4">
-</div>
-<div class="col-lg-8 col-md-8 col-sm-8">
-<img align="right" src="images/liczba_warianty_4.svg" width="100%">
-</div>
-</div><!-- /.row -->
+          <div class="row" id="Liczba_wariantow2">
+            <div class="col-lg-4 col-md-4 col-sm-4">
+              <p>
+                {{ i18n('site_gisaid_variants_1') + ' ' + placeholders.VARIANTS2 + ' ' + i18n('site_gisaid_variants_2') }}
+                <span v-html="placeholders.VARIANTSLIST2"></span>.
+                {{ i18n('site_gisaid_variants_3') }}
+              </p>
+            </div>
+            <div class="col-lg-8 col-md-8 col-sm-8">
+              <img align="right" :src="'images/' + lang + '/liczba_warianty_3.svg'" width="100%" onerror="this.parentElement.parentElement.style.display='none'" :key="editTime" >
+            </div>
+          </div><!-- /.row -->
 
-  <hr>
+          <hr>
 
-<div class="row" id="Liczba_wariantow">
-<div class="col-lg-4 col-md-4 col-sm-4">
-<p>
-  W bazie są --VARIANTS-- linie wirusa oznaczone z bazy Pango.
-  Najczęstsze to --VARIANTSLIST--.
-  Warianty <a href="https://cov-lineages.org/lineages/lineage_B.1.1.7.html">B.1.1.7</a> i <a href="https://cov-lineages.org/lineages/lineage_B.1.351.html">B.1.351</a>
-  (zaznaczone na czerwono) to warianty alarmowe o&nbsp;zwiększonej zakaźności.</p>
-</div>
-<div class="col-lg-8 col-md-8 col-sm-8">
-<img align="right" src="images/liczba_warianty_1.svg" width="100%">
-</div>
-</div><!-- /.row -->
+          <div class="row" id="Liczba_wariantow">
+            <div class="col-lg-4 col-md-4 col-sm-4">
+            </div>
+            <div class="col-lg-8 col-md-8 col-sm-8">
+              <img align="right" :src="'images/' + lang + '/liczba_warianty_4.svg'" width="100%" onerror="this.parentElement.parentElement.style.display='none'" :key="editTime" >
+            </div>
+          </div><!-- /.row -->
 
-  <hr>
+          <hr>
 
-<div class="row" id="Liczba_wariantow">
-<div class="col-lg-4 col-md-4 col-sm-4">
-</div>
-<div class="col-lg-8 col-md-8 col-sm-8">
-<img align="right" src="images/liczba_warianty_2.svg" width="100%">
-</div>
-</div><!-- /.row -->
+          <div class="row" id="Liczba_wariantow">
+            <div class="col-lg-4 col-md-4 col-sm-4">
+              <p>
+                {{ i18n('site_pango_variants_1') + ' ' + placeholders.VARIANTS + ' ' + i18n('site_pango_variants_2') }}
+                <span v-html="placeholders.VARIANTSLIST"></span>
+                {{ i18n('site_pango_variants_3') }}
+                <a href="https://cov-lineages.org/lineages/lineage_B.1.1.7.html">B.1.1.7</a>
+                {{ i18n('site_and') }}
+                <a href="https://cov-lineages.org/lineages/lineage_B.1.351.html">B.1.351</a>
+                {{ i18n('site_pango_variants_4') }}
+              </p>
+            </div>
+            <div class="col-lg-8 col-md-8 col-sm-8">
+              <img align="right" :src="'images/' + lang + '/liczba_warianty_1.svg'" width="100%" onerror="this.parentElement.parentElement.style.display='none'" :key="editTime" >
+            </div>
+          </div><!-- /.row -->
 
-  <hr>
+          <hr>
 
-<div class="row" id="Liczba_wariantow3">
-<div class="col-lg-4 col-md-4 col-sm-4">
-<p>Czas od pobrania materiału do zgłoszenia do bazy GISAID to najczęściej od 2 do 5 tygodni.</p>
-</div>
-<div class="col-lg-8 col-md-8 col-sm-8">
-<img align="right" src="images/liczba_warianty_5.svg" width="100%">
-</div>
-</div><!-- /.row -->
+          <div class="row" id="Liczba_wariantow">
+            <div class="col-lg-4 col-md-4 col-sm-4">
+            </div>
+            <div class="col-lg-8 col-md-8 col-sm-8">
+              <img align="right" :src="'images/' + lang + '/liczba_warianty_2.svg'" width="100%" onerror="this.parentElement.parentElement.style.display='none'" :key="editTime" >
+            </div>
+          </div><!-- /.row -->
 
-  <hr>
+          <hr>
 
-<div class="row" id="Liczba_wariantow3">
-<div class="col-lg-4 col-md-4 col-sm-4">
-<p>Liczba wariantów z mutacją N501Y w województwach.</p>
-</div>
-<div class="col-lg-8 col-md-8 col-sm-8">
-<img align="right" src="images/liczba_loc_1.svg" width="100%">
-</div>
-</div><!-- /.row -->
+          <div class="row" id="Liczba_wariantow3">
+            <div class="col-lg-4 col-md-4 col-sm-4">
+              <p>{{ i18n('site_description_3') }}</p>
+            </div>
+            <div class="col-lg-8 col-md-8 col-sm-8">
+              <img align="right" :src="'images/' + lang + '/liczba_warianty_5.svg'" width="100%" onerror="this.parentElement.parentElement.style.display='none'" :key="editTime" >
+            </div>
+          </div><!-- /.row -->
 
-<div class="row" id="Liczba_wariantow3">
-<div class="col-lg-4 col-md-4 col-sm-4">
-<p>Procent wariantów z mutacją N501Y w województwach.</p>
-</div>
-<div class="col-lg-8 col-md-8 col-sm-8">
-<img align="right" src="images/liczba_loc_2.svg" width="100%">
-</div>
-</div><!-- /.row -->
+          <hr>
 
-<div class="row">
-<div class="col-lg-12 col-md-12 col-sm-12">
-<img align="right" src="images/mapa_mutacje.svg" width="100%" onerror="this.parentElement.parentElement.style.display='none'">
-</div>
-</div><!-- /.row -->
+          <div class="row" id="Liczba_wariantow3">
+            <div class="col-lg-4 col-md-4 col-sm-4">
+              <p>{{ i18n('site_description_4') }}</p>
+            </div>
+            <div class="col-lg-8 col-md-8 col-sm-8">
+              <img align="right" :src="'images/' + lang + '/liczba_loc_1.svg'" width="100%" onerror="this.parentElement.parentElement.style.display='none'" :key="editTime" >
+            </div>
+          </div><!-- /.row -->
 
+          <div class="row" id="Liczba_wariantow3">
+            <div class="col-lg-4 col-md-4 col-sm-4">
+              <p>{{ i18n('site_description_5') }}</p>
+            </div>
+            <div class="col-lg-8 col-md-8 col-sm-8">
+              <img align="right" :src="'images/' + lang + '/liczba_loc_2.svg'" width="100%" onerror="this.parentElement.parentElement.style.display='none'" :key="editTime" >
+            </div>
+          </div><!-- /.row -->
 
-  <hr>
-<div class="col-lg-12 col-md-12 col-sm-12">
-</div><!-- /.container -->
-</div><!-- /.section -->
+          <div class="row">
+            <div class="col-lg-12 col-md-12 col-sm-12">
+              <img align="right" :src="'images/' + lang + '/mapa_mutacje.svg'" width="100%" onerror="this.parentElement.parentElement.style.display='none'" :key="editTime" >
+            </div>
+          </div><!-- /.row -->
 
+          <hr>
 
-<div class="section-colored" id="Footer">
-  <div class="container">
-  <div class="row">
-  <div class="col-lg-12 col-md-12 col-sm-12"><center>
-    <center>
-      <p>
-        <br/>
-        Monitor wariantów SARS-CoV-2 w Polsce. 
-        Stworzony przez <a href="https://github.com/MI2DataLab/crs19-monitor">MI2 DataLab</a>.
-        W oparciu o dane z <a href="https://www.gisaid.org/">GISAID --DATE--</a>.
-      </p>
-    </center>
-  </div>
-  </div><!-- /.row -->
-  </div><!-- /.container -->
-</div><!-- /.section -->
+        </div><!-- /.container -->
+      </div><!-- /.section -->
+
+      <div class="section-colored" id="Footer">
+        <div class="container">
+          <div class="row">
+            <div class="col-lg-12 col-md-12 col-sm-12">
+              <center>
+                <p>
+                  <br/>
+                  {{ i18n('site_foot_1') }}
+                  <a href="https://github.com/MI2DataLab/crs19-monitor">MI2 DataLab</a>.
+                  {{ i18n('site_foot_2') }}
+                  <a href="https://www.gisaid.org/">GISAID {{ placeholders.DATE }}</a>.
+                </p>
+              </center>
+            </div>
+          </div><!-- /.row -->
+        </div><!-- /.container -->
+      </div><!-- /.section -->
+    </div>
 
      <!-- JavaScript -->
-    <script  src="js/jquery-1.10.2.js"></script>
-    <script  src="js/bootstrap.js"></script>
-    <script  src="../js/jquery-1.10.2.js"></script>
-    <script  src="../js/bootstrap.js"></script>
-
+    <script  src="../../js/jquery-1.10.2.js"></script>
+    <script  src="../../js/bootstrap.js"></script>
   </body>
 </html>
+<script>
+  const path = window.location.pathname
+  const parts = path.split('/').reverse().filter(p => p.length > 0)
+  const selected_date = parts[1]
+  const selected_country = parts[0]
 
+  const obj = {
+    el: '#app',
+    data: {
+      placeholders: {},
+      dateOptions: [],
+      countryOptions: [],
+      rawI18n: {},
+      lang: 'pl',
+      editTime: 0,
+      selectedDate: selected_date,
+      selectedCountry: selected_country
+    },
+    created () {
+      this.$http.get('placeholders.json').then(response => {
+        this.placeholders = response.body
+      })
+      this.$http.get('i18n.json').then(response => {
+        this.rawI18n = response.body
+      })
+      this.$http.get('../../dates.json').then(response => {
+        this.dateOptions = response.body.map(r => ({ name: r, value: r }))
+      })
+      this.$http.get('../regions.json').then(response => {
+        this.countryOptions = response.body.map(r => ({ name: r.name, value: r.dir }))
+      })
+      window.onpopstate = (event) => {
+          this.lang = event.state.lang || 'pl'
+      }
+      let lang = new URLSearchParams(window.location.search).get('lang')
+      if (lang) {
+        this.lang = lang
+      }
+    },
+    watch: {
+      lang: 'updateEditTime',
+      langs: 'updateEditTime',
+      rawI18n: 'updateEditTime'
+    },
+    computed: {
+      i18n () {
+        return (tag) => {
+          return (this.rawI18n[this.lang] || {})[tag] || tag
+        }
+      },
+      langs () {
+        return Object.keys(this.rawI18n)
+      }
+    },
+    methods: {
+      setLang (l) {
+        this.lang = l
+        history.pushState({ lang: this.lang }, "lang=" + this.lang, '?lang=' + this.lang)
+      },
+      updateEditTime () {
+        this.editTime = Date.now()
+      },
+      updateDate (e) {
+        window.location.pathname = window.location.pathname.replace(selected_date, e.target.value)
+      },
+      updateCountry (e) {
+        window.location.pathname = window.location.pathname.replace(selected_country, e.target.value)
+      }
+    }
+  }
+  let vm = null
+  document.addEventListener('DOMContentLoaded', () => {
+    vm = new Vue(obj)
+  })
+</script>

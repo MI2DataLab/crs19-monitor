@@ -1,7 +1,7 @@
 import os
 import glob
 import sys
-from config import conda_sh_path, diff_fasta_dir, pango_output_dir, repo_path, pango_merged_file
+from config import conda_sh_path, gisaid_fasta_dir, pango_output_dir, repo_path, pango_merged_file
 
 work_dir = repo_path + '/fasta_to_pango'
 
@@ -10,10 +10,10 @@ if not os.path.exists(pango_output_dir):
     os.makedirs(pango_output_dir)
 
 # Check if input directory exists
-if not os.path.exists(diff_fasta_dir):
-    raise Exception("Directory %s does not exist" % (diff_fasta_dir,))
+if not os.path.exists(gisaid_fasta_dir):
+    raise Exception("Directory %s does not exist" % (gisaid_fasta_dir,))
 
-input_files = glob.glob(diff_fasta_dir + '/*.fasta')
+input_files = glob.glob(gisaid_fasta_dir + '/*.fasta')
 processed_files = glob.glob(pango_output_dir + '/*.csv')
 
 for f in input_files:
