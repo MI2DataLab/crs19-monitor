@@ -757,7 +757,7 @@ if (region == "Poland") {
 	
 	  plots_output[[lang]][['pl_map']] <- (pl_map_1 + pl_map_2) +
 	    plot_annotation(
-	      title=paste(descriptions[[lang]]["pl_map_pt1", "names"], ALARM_MUTATION, descriptions["pl_map_pt2", "names"]),
+	      title=paste(descriptions[[lang]]["pl_map_pt1", "names"], ALARM_MUTATION, descriptions[[lang]]["pl_map_pt2", "names"]),
 	      theme = theme(plot.title = element_text(size=15, hjust = 0.5))
 	    )
   }
