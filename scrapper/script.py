@@ -20,14 +20,21 @@ from secret import elogin, epass  # file secret.py with credentials
 
 
 def get_number_of_files(dir : str):
+    """
+    Returns number of files in dir
+    Excludes .part files
+    """
     if os.path.exists(dir):
-        files = [f for f in os.listdir("./gisaid_data") if ".part" not in f]
-        n_files = len(os.listdir("./gisaid_data"))
+        files = [f for f in os.listdir(dir) if ".part" not in f]
+        n_files = len(os.listdir(dir))
     else:
         n_files = 0
     return n_files
 
 def extract_country(location: str):
+    """
+    Returns country from location string
+    """
     l = location.split("/")
     if len(l) < 2:
         return None
@@ -82,12 +89,21 @@ def get_driver(region = None, download_dir = None):
     return driver
 
 def scrap_fasta(db_path, fasta_files_dir):
+    """
+    Downloads fasta files and updates them in given database
+    """
     
+    # connect to db
     con = sqlite3.connect(db_path)
     cur = con.cursor()
 
+    # get ids from db without fasta file
     cur.execute("SELECT accession_id FROM metadata WHERE fasta_file IS NULL LIMIT 10000")
     part_ids = cur.fetchall()
+
+    # handle empty list
+    if len(part_ids) == 0:
+        return 0
 
     ids_str = ",".join([ p[0] for p in part_ids])
 
@@ -147,10 +163,12 @@ def scrap_fasta(db_path, fasta_files_dir):
         raise e
     driver.close()
 
+    # move file
     time_file = str(int(time.time() * 1000))
     move_fasta = fasta_files_dir + "/" + time_file + ".fasta"
     shutil.copyfile(fasta, move_fasta)
 
+    # update db
     for p in part_ids: 
         cur.execute("UPDATE metadata SET fasta_file=? WHERE accession_id=?", (time_file, p[0]))
 
@@ -160,10 +178,16 @@ def scrap_fasta(db_path, fasta_files_dir):
     return len(part_ids)
 
 def manage_fasta_scrapping(db_path, fasta_files_dir):
+    """
+    Loop fasta scrapping
+    """
     while scrap_fasta(db_path, fasta_files_dir) == 10**4:
         pass
 
 def get_elem_or_None(driver,class_name):
+    """
+    Returns element by class_name or None if it doesn't exist
+    """
     try:
         elem = driver.find_element_by_class_name(class_name)
     except:
@@ -171,15 +195,24 @@ def get_elem_or_None(driver,class_name):
     return elem
 
 def is_spinning(driver, class_name):
+    """
+    Returns bool if element with class_name is visible
+    """
     elem = get_elem_or_None(driver, class_name)
     return elem is not None and list(elem.rect.values()) != [0,0,0,0]
 
 def wait_for_timer(driver):
+    """
+    Sleeps until "sys_timer_img" and "small_spinner" are visible
+    """
     time.sleep(5)
     while is_spinning(driver, "sys_timer_img") or is_spinning(driver, "small_spinner"):
         time.sleep(1)
         
 def set_region(driver, region):
+    """
+    Filters by given region
+    """
     driver.find_element_by_class_name("sys-event-hook.sys-fi-mark.yui-ac-input").clear()
     #wait_for_timer(driver)
     
@@ -200,6 +233,10 @@ class ScrappingMetaHistory:
         self.last_done_page = page_num
 
 def scrap_meta_table(region, db_path, start_date, end_date, history):
+    """
+    Uploads metadata from table to given database
+    Filters from start_date and end_date
+    """
     if end_date < start_date:
         print('Skipping, invalid date range')
         return
@@ -214,11 +251,17 @@ def scrap_meta_table(region, db_path, start_date, end_date, history):
         total_records_in_db = cur.fetchone()[0]
         con.commit()
         
+        # read total_records from left bottom corner
+        total_records_before_filter = driver.find_element_by_class_name("sys-datatable-info-left").text
+        total_records_before_filter = int(re.sub(r'[^0-9]*', "", total_records_before_filter))
+
+        # filter by date 
         print("Scrapping date from ", start_date, "to ", end_date)
         driver.find_elements_by_class_name("sys-event-hook.sys-fi-mark.hasDatepicker")[2].send_keys(start_date.strftime('%Y-%m-%d'))
         driver.find_elements_by_class_name("sys-event-hook.sys-fi-mark.hasDatepicker")[3].send_keys(end_date.strftime('%Y-%m-%d'))
         wait_for_timer(driver)
 
+        # read total_records from left bottom corner
         total_records = driver.find_element_by_class_name("sys-datatable-info-left").text
         total_records = int(re.sub(r'[^0-9]*', "", total_records))
         if total_records == 0:
@@ -227,9 +270,13 @@ def scrap_meta_table(region, db_path, start_date, end_date, history):
         elif total_records <= total_records_in_db:
             print('Skipping range %s : %s because total_records[%s] <= total_records_in_db[%s]' % (start_date, end_date, total_records, total_records_in_db))
             return
-
+        elif total_records == total_records_before_filter:
+            # handle unresponsive gisaid
+            print('Number of records didn\'t changed after filtering by date')
+            return 
         expected_pages = math.ceil(total_records / 50)
 
+        # go to last readed page 
         if history.last_done_page != 0:
             driver.execute_script('document.getElementsByClassName("yui-pg-page")[1].setAttribute("page", %s)' % (history.last_done_page + 1,))
             time.sleep(3)
@@ -264,6 +311,7 @@ def scrap_meta_table(region, db_path, start_date, end_date, history):
             # go to next page
             driver.find_element_by_class_name("yui-pg-next").click()
 
+            # sleep until gisaid changes next-page attribute and go to next page
             page_loading_counter = 0
             while last_readed_page == page_num:
                 time.sleep(0.5)
@@ -284,7 +332,7 @@ def scrap_meta_table(region, db_path, start_date, end_date, history):
     driver.close()
         
     meta_df = pd.concat(history.pages_list)
-        # drop column of checkboxes and symbol
+    # drop column of checkboxes and symbol
     meta_df = meta_df.drop(['Unnamed: 0', 'Unnamed: 6'], axis=1)
     
     df_clean = meta_df.drop_duplicates()
@@ -292,6 +340,7 @@ def scrap_meta_table(region, db_path, start_date, end_date, history):
     cur.execute("SELECT accession_id FROM metadata WHERE submission_date <= ? AND submission_date >= ?", (end_date, start_date))
     duplicated = [x[0] for x in cur.fetchall()]
     
+    # upload to database
     for index, row in df_clean.iterrows():
         if row['Accession ID'] not in duplicated:
             country = extract_country(row['Location'])
@@ -322,6 +371,9 @@ def scrap_meta_table(region, db_path, start_date, end_date, history):
     return
 
 def scrap_table_repeater(region, db_path, start_date, end_date):
+    """
+    Loop scrapping table
+    """
     history = ScrappingMetaHistory()
     repeats = 15
     for i in range(repeats):
@@ -338,7 +390,9 @@ def scrap_table_repeater(region, db_path, start_date, end_date):
             print('%s try failed' % (i,))
 
 def manage_table_scrapping(db_path, minimum_start_date, max_date_range, region):
-
+    """
+    Handles date ranges for table scrapping
+    """
     con = sqlite3.connect(db_path)
     cur = con.cursor()
     cur.execute("SELECT MAX(submission_date) FROM metadata")
@@ -360,6 +414,9 @@ def manage_table_scrapping(db_path, minimum_start_date, max_date_range, region):
     scrap_table_repeater(region, db_path, start_date, end_date)
 
 def init_db(db_path):
+    """
+    Creates table metadata in database if not exists
+    """
     con = sqlite3.connect(db_path)
     cur = con.cursor()
     cur.execute("""CREATE TABLE IF NOT EXISTS metadata (
