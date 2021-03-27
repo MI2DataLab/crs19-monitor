@@ -4,7 +4,7 @@ Monitor of SARS-CoV-2 variants in Poland ▶️ https://monitor.crs19.pl/
 
 ## Contributors
 
-Lead: [Przemysław Biecek](https://biecek.pl) with the support from [Faculty of Mathematics and Information Science, Warsaw University of Technology](https://ww2.mini.pw.edu.pl)
+Lead: [Przemysław Biecek](https://biecek.pl) @ [Faculty of Mathematics and Information Science, Warsaw University of Technology](https://ww2.mini.pw.edu.pl)
 
 * [Hubert Baniecki](https://github.com/hbaniecki)
 * [Stanisław Giziński](https://github.com/Gizzio)
