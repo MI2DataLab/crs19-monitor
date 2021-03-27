@@ -1,11 +1,14 @@
-# crs19-monitor
+# Monitor of SARS-CoV-2 variants and mutations in Europe
 
-Monitor of SARS-CoV-2 variants in Poland ▶️ https://monitor.crs19.pl/
+▶️ https://monitor.crs19.pl/
+
+Part of the [MI2 against COVID](http://covid.mi2.ai/) initiative
 
 ## Contributors
 
-Lead: [Przemysław Biecek](https://biecek.pl) @ [Faculty of Mathematics and Information Science, Warsaw University of Technology](https://ww2.mini.pw.edu.pl)
+From [MI2DataLab](http://mi2.mini.pw.edu.pl/), [Faculty of Mathematics and Information Science](https://ww2.mini.pw.edu.pl), [Warsaw University of Technology](https://www.pw.edu.pl/)
 
+* [Przemysław Biecek](https://biecek.pl) (lead) 
 * [Hubert Baniecki](https://github.com/hbaniecki)
 * [Stanisław Giziński](https://github.com/Gizzio)
 * [Maciej Łukasik](https://github.com/maciej-lukasik-va)
