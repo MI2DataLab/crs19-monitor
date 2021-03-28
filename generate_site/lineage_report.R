@@ -643,20 +643,24 @@ metadata_ext$week_start <- ymd(metadata_ext$collection_date) - days(wday(ymd(met
 t_dat_loc_cla <- table(metadata_ext$week_start, metadata_ext$LocationClean,
                        ifelse(grepl(metadata_ext$clade_small, pattern = ALARM_PATTERN), ALARM_MUTATION, "-"))
 
-#t_dat_loc_cla[,,1] <- t_dat_loc_cla[,,1] + t_dat_loc_cla[,,2]
-#t_dat_loc_cla <- apply(t_dat_loc_cla, 2:3, cumsum)
 t_dat_loc_cla <- data.frame(as.table(t_dat_loc_cla))
 
 t_dat_loc_cla$Var2 <- reorder(t_dat_loc_cla$Var2, -t_dat_loc_cla$Freq, sum)
 # concatenate regions that are rare, keep only MAX_REGIONS
 selected_regions <- head(levels(t_dat_loc_cla$Var2), MAX_REGIONS)
+n_unique_regions <- max(length(unique(selected_regions)), 1)
 try({
-  t_dat_loc_cla$Var2 <- fct_other(t_dat_loc_cla$Var2,
-                                  keep = selected_regions,
-                                  other_level = "Others")
+  metadata_ext$LocationClean <- fct_other(metadata_ext$LocationClean,
+                                          keep = selected_regions,
+                                          other_level = "Others")
 }, silent = TRUE)
+# calculate this table again with combined levels
+t_dat_loc_cla <- table(metadata_ext$week_start, metadata_ext$LocationClean,
+                       ifelse(grepl(metadata_ext$clade_small, pattern = ALARM_PATTERN), ALARM_MUTATION, "-"))
+t_dat_loc_cla <- data.frame(as.table(t_dat_loc_cla))
 levels1 <- levels(t_dat_loc_cla$Var2)
-n_unique_regions <- max(length(unique(t_dat_loc_cla$Var2)), 1)
+# regions are now concatenated
+
 
 for (lang in langs) {
 	plots_output[[lang]][['pl_loc_1']] <-
@@ -675,13 +679,6 @@ for (lang in langs) {
 #
 t_dat_map <- t_dat_loc_cla %>% rename(date = Var1, name = Var2, type = Var3, count = Freq)
 #
-
-# concatenate all rare regions into the 'Others' category
-try({
-  metadata_ext$LocationClean <- fct_other(metadata_ext$LocationClean,
-                                  keep = selected_regions,
-                                  other_level = "Others")
-}, silent = TRUE)
 
 t_dat_loc_cla <- table(metadata_ext$week_start, metadata_ext$LocationClean,
                        ifelse(grepl(metadata_ext$clade_small, pattern = ALARM_PATTERN), ALARM_MUTATION, "-"))
