@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="author" content="MI2DataLab">
-    <title>Monitor of SARS-CoV-2 variants and mutations in Poland</title>
+    <title>Monitor of SARS-CoV-2 variants and mutations in Europe</title>
 
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="-1">
@@ -34,10 +34,7 @@
       <nav class="navbar navbar-inverse" role="navigation" style="padding-bottom:0px; border-color:#4a423d!important; background-color:#4a423d!important;">
         <div class="container" style="padding-bottom:5px; padding-top:5px; ">
           <div class="navbar-header">
-            <a class="navbar-brand" href="#Monitor">{{ i18n('site_title') }}</a>
-            <div class="navbar-brand">
-              <a class="navbar-link" href="javascript:void(0)" v-for="l in langs" :key="l" @click="setLang(l)" style="margin: 0 5px">{{ l.toUpperCase() }}</a>
-            </div>
+            <a class="navbar-brand" href="#Monitor">Monitor of SARS-CoV-2 variants and mutations in Europe</a>
           </div>
         </div><!-- /.container -->
       </nav>
@@ -55,72 +52,3 @@
     <script  src="../js/bootstrap.js"></script>
   </body>
 </html>
-<script>
-  const path = window.location.pathname
-  const parts = path.split('/').reverse().filter(p => p.length > 0)
-  const selected_date = parts[1]
-  const selected_country = parts[0]
-
-  const obj = {
-    el: '#app',
-    data: {
-      placeholders: {},
-      dateOptions: [],
-      countryOptions: [],
-      rawI18n: {},
-      lang: 'pl',
-      editTime: 0,
-      selectedDate: selected_date,
-      selectedCountry: selected_country
-    },
-    created () {
-      this.$http.get('../dates.json').then(response => {
-        this.dateOptions = response.body.map(r => ({ name: r, value: r }))
-      })
-      this.$http.get('regions.json').then(response => {
-        this.countryOptions = response.body.map(r => ({ name: r.name, value: r.dir }))
-      })
-      window.onpopstate = (event) => {
-          this.lang = event.state.lang || 'pl'
-      }
-      let lang = new URLSearchParams(window.location.search).get('lang')
-      if (lang) {
-        this.lang = lang
-      }
-    },
-    watch: {
-      lang: 'updateEditTime',
-      langs: 'updateEditTime',
-      rawI18n: 'updateEditTime'
-    },
-    computed: {
-      i18n () {
-        return (tag) => {
-          return (this.rawI18n[this.lang] || {})[tag] || tag
-        }
-      },
-      langs () {
-        return Object.keys(this.rawI18n)
-      }
-    },
-    methods: {
-      setLang (l) {
-        this.lang = l
-        history.pushState({ lang: this.lang }, "lang=" + this.lang, '?lang=' + this.lang)
-      },
-      updateEditTime () {
-        this.editTime = Date.now()
-      },
-      updateDate (e) {
-        window.location.pathname = window.location.pathname.replace(selected_date, e.target.value)
-      },
-      updateCountry (e) {
-        window.location.pathname = window.location.pathname.replace(selected_country, e.target.value)
-      }
-    }
-  }
-  let vm = null
-  document.addEventListener('DOMContentLoaded', () => {
-    vm = new Vue(obj)
-  })
-</script>
