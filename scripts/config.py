@@ -2,6 +2,7 @@ conda_sh_path = "/home/crs19monitor/miniconda3/etc/profile.d/conda.sh"
 repo_path = "/crs19/production/repo"
 data_dir = "/crs19/production/data"
 site_dist = "/crs19/production/site_dist"
+backup_dir = "/crs19/production/backups"
 
 gisaid_fasta_dir = data_dir + '/gisaid_fasta'
 clades_output_dir = data_dir + '/clades'
