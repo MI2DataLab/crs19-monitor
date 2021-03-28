@@ -75,6 +75,10 @@ ALARM_CLADE <- c("20I/501Y.V1","20H/501Y.V2", "20J/501Y.V3")
 MAX_REGIONS <- 23
 NO_MONTHS_PLOTS <- 4
 NO_MONTHS_PLOTS_LONG <- 8
+pal <- structure(c("#E9C622", "#51A4B8", "#E5BC13", "#67AFBF", "#E1B103",
+                   "#82B8B6", "#E58600", "#ACC07E", "#3B9AB2", "#7F00FF", "#EB5000", "#F21A00"
+), .Names = c("20A.EU2", "19A", "20D", "19B", "20C", "20E (EU1)",
+              "20G", "20A", "20B", "20J/501Y.V3", "20H/501Y.V2", "20I/501Y.V1"))
 
 
 ############
@@ -803,12 +807,8 @@ df4 <- as.data.frame(as.table(t_cou_cla))
 colnames(df4) <- c("date", "variant", "n")
 
 df4$variant <- reorder(df4$variant, df4$n, tail, 1)
-df4$variant <- fct_relevel(df4$variant, c("20H/501Y.V2"), "20I/501Y.V1", after = Inf)
+df4$variant <- fct_relevel(df4$variant, ALARM_CLADE, after = Inf)
 
-pal <- structure(c("#E9C622", "#51A4B8", "#E5BC13", "#67AFBF", "#E1B103",
-                   "#82B8B6", "#E58600", "#ACC07E", "#3B9AB2", "#EB5000", "#F21A00"
-), .Names = c("20A.EU2", "19A", "20D", "19B", "20C", "20E (EU1)",
-              "20G", "20A", "20B", "20H/501Y.V2", "20I/501Y.V1"))
 df4 <- df4[df4$variant %in% names(pal),]
 df4 <- df4[ymd(df4$date) > ymd(lineage_date_local) - months(NO_MONTHS_PLOTS),]
 
@@ -847,12 +847,8 @@ df4 <- as.data.frame(as.table(t_cou_cla))
 colnames(df4) <- c("date", "variant", "n")
 
 df4$variant <- reorder(df4$variant, df4$n, tail, 1)
-df4$variant <- fct_relevel(df4$variant, c("20H/501Y.V2"), "20I/501Y.V1", after = Inf)
+df4$variant <- fct_relevel(df4$variant, ALARM_CLADE, after = Inf)
 
-pal <- structure(c("#E9C622", "#51A4B8", "#E5BC13", "#67AFBF", "#E1B103",
-                   "#82B8B6", "#E58600", "#ACC07E", "#3B9AB2", "#EB5000", "#F21A00"
-), .Names = c("20A.EU2", "19A", "20D", "19B", "20C", "20E (EU1)",
-              "20G", "20A", "20B", "20H/501Y.V2", "20I/501Y.V1"))
 df4 <- df4[df4$variant %in% names(pal),]
 df4 <- df4[ymd(df4$date) > ymd(lineage_date_local) - months(NO_MONTHS_PLOTS),]
 
@@ -877,12 +873,8 @@ df5 <- as.data.frame(as.table(t_cou_cla))
 colnames(df5) <- c("date", "variant", "n")
 
 df5$variant <- reorder(df5$variant, df5$n, tail, 1)
-df5$variant <- fct_relevel(df5$variant, c("20H/501Y.V2"), "20I/501Y.V1", after = Inf)
+df5$variant <- fct_relevel(df5$variant, ALARM_CLADE, after = Inf)
 
-pal <- structure(c("#E9C622", "#51A4B8", "#E5BC13", "#67AFBF", "#E1B103",
-                   "#82B8B6", "#E58600", "#ACC07E", "#3B9AB2", "#EB5000", "#F21A00"
-), .Names = c("20A.EU2", "19A", "20D", "19B", "20C", "20E (EU1)",
-              "20G", "20A", "20B", "20H/501Y.V2", "20I/501Y.V1"))
 df5 <- df5[df5$variant %in% names(pal),]
 df5 <- df5[ymd(df5$date) > ymd(lineage_date_local) - months(NO_MONTHS_PLOTS),]
 
