@@ -73,6 +73,8 @@ ALARM_PATTERN <- "501Y"
 ALARM_PANGO <- c("B.1.1.7", "B.1.351", "P.1")
 ALARM_CLADE <- c("20I/501Y.V1","20H/501Y.V2", "20J/501Y.V3")
 MAX_REGIONS <- 23
+NO_MONTHS_PLOTS <- 4
+NO_MONTHS_PLOTS_LONG <- 8
 
 
 ############
@@ -134,7 +136,7 @@ counts <- data.frame(variant = factor(names(t_cou_lin[nrow(t_cou_lin),]),
                                       labels = names(t_cou_lin[nrow(t_cou_lin),]),
                                       levels = names(t_cou_lin[nrow(t_cou_lin),])),
                      label = t_cou_lin[nrow(t_cou_lin),],
-                     date = as.character(ymd(lineage_date) - months(3)),
+                     date = as.character(ymd(lineage_date) - months(NO_MONTHS_PLOTS)),
                      n = max(t_cou_lin[nrow(t_cou_lin),]))
 
 for (lang in langs) {
@@ -144,7 +146,7 @@ for (lang in langs) {
 	  geom_text(data = counts, aes(x = ymd(date), y = n, label = label, hjust = 0, vjust = 1), size=2.7) +
 	  scale_fill_manual(values = c("blue4", "red4")) +
 	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
-	               limits = c(ymd(lineage_date) - months(3), ymd(lineage_date))) +
+	               limits = c(ymd(lineage_date) - months(NO_MONTHS_PLOTS), ymd(lineage_date))) +
 	  #  scale_x_date("", date_breaks = "2 months", date_labels = "%m") +
 	  facet_wrap(~variant, ncol = 5) +
 	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0)) +
@@ -165,7 +167,7 @@ counts4 <- data.frame(variant = factor(names(t_cou_cla[nrow(t_cou_cla),]),
                                       labels = names(t_cou_cla[nrow(t_cou_cla),]),
                                       levels = names(t_cou_cla[nrow(t_cou_cla),])),
                      label = t_cou_cla[nrow(t_cou_cla),],
-                     date = as.character(ymd(lineage_date) - months(3)),
+                     date = as.character(ymd(lineage_date) - months(NO_MONTHS_PLOTS)),
                      n = max(t_cou_cla[nrow(t_cou_cla),]))
 
 for (lang in langs) {
@@ -175,7 +177,7 @@ for (lang in langs) {
 	  geom_text(data = counts4, aes(x = ymd(date), y = n, label = label, hjust = 0, vjust = 1), size=2.7) +
 	  scale_fill_manual(values = c("blue4", "red4")) +
 	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
-	               limits = c(ymd(lineage_date) - months(3), ymd(lineage_date))) +
+	               limits = c(ymd(lineage_date) - months(NO_MONTHS_PLOTS), ymd(lineage_date))) +
 	  #  scale_x_date("", date_breaks = "2 months", date_labels = "%m") +
 	  facet_wrap(~variant, ncol = 6) +
 	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0)) +
@@ -207,7 +209,7 @@ for (lang in langs) {
 	  geom_text_repel(data = counts[counts$variant %in% ALARM_PANGO,], aes(x = ymd(lineage_date), y = label, label = variant, hjust = 0, vjust = 0.6), size=2.9, direction = "y") +
 	  scale_color_manual(values = c("grey", "red3")) +
 	  scale_x_date("", date_breaks = "2 weeks", date_labels = "%m/%d",
-	               limits = c(ymd(lineage_date) - months(6), ymd(lineage_date))) +
+	               limits = c(ymd(lineage_date) - months(NO_MONTHS_PLOTS_LONG), ymd(lineage_date))) +
 	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0)) +
 	  ggtitle(descriptions[[lang]]["pl_war_3_tit", "names"]) +
 	  theme(legend.position = "none")
@@ -236,7 +238,7 @@ for (lang in langs) {
 	  geom_text_repel(data = counts5[counts5$variant %in% ALARM_CLADE,], aes(x = ymd(lineage_date), y = label, label = variant, hjust = 0, vjust = 0.6), size=2.9, direction = "y") +
 	  scale_color_manual(values = c("grey", "red3")) +
 	  scale_x_date("", date_breaks = "2 weeks", date_labels = "%m/%d",
-	               limits = c(ymd(lineage_date) - months(6), ymd(lineage_date))) +
+	               limits = c(ymd(lineage_date) - months(NO_MONTHS_PLOTS_LONG), ymd(lineage_date))) +
 	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0)) +
 	  ggtitle(descriptions[[lang]]["pl_war_4_tit", "names"]) +
 	  theme(legend.position = "none")
@@ -259,9 +261,9 @@ for (lang in langs) {
 	  theme_bw(base_family = 'Arial') + coord_fixed() +
 	  scale_color_manual("", values = c("blue4", "red2")) +
 	  scale_x_date(descriptions[[lang]]["pl_war_5_scx", "names"], date_breaks = "2 weeks", date_labels = "%m/%d",
-	               limits = c(ymd(lineage_date) - months(3), ymd(lineage_date)))  +
+	               limits = c(ymd(lineage_date) - months(NO_MONTHS_PLOTS), ymd(lineage_date)))  +
 	  scale_y_date(descriptions[[lang]]["pl_war_5_scy", "names"], date_breaks = "2 weeks", date_labels = "%m/%d",
-	               limits = c(ymd(lineage_date) - months(2), ymd(lineage_date)))+
+	               limits = c(ymd(lineage_date) - months(NO_MONTHS_PLOTS-1), ymd(lineage_date)))+
 	  theme(legend.position = "none")
 }
 
@@ -640,70 +642,74 @@ print(as.data.frame(misspelled_locations))
 ### PLOTS
 
 metadata_ext$week_start <- ymd(metadata_ext$collection_date) - days(wday(ymd(metadata_ext$collection_date)))
-t_dat_loc_cla <- table(metadata_ext$week_start, metadata_ext$LocationClean,
-                       ifelse(grepl(metadata_ext$clade_small, pattern = ALARM_PATTERN), ALARM_MUTATION, "-"))
 
-t_dat_loc_cla <- data.frame(as.table(t_dat_loc_cla))
+## Do we have information about location
+if (sum(!is.na(metadata_ext$LocationClean)) > 0) {
+  t_dat_loc_cla <- table(metadata_ext$week_start, metadata_ext$LocationClean,
+                         ifelse(grepl(metadata_ext$clade_small, pattern = ALARM_PATTERN), ALARM_MUTATION, "-"))
 
-t_dat_loc_cla$Var2 <- reorder(t_dat_loc_cla$Var2, -t_dat_loc_cla$Freq, sum)
-# concatenate regions that are rare, keep only MAX_REGIONS
-selected_regions <- head(levels(t_dat_loc_cla$Var2), MAX_REGIONS)
-n_unique_regions <- max(length(unique(selected_regions)), 1)
-try({
-  metadata_ext$LocationClean <- fct_other(metadata_ext$LocationClean,
-                                          keep = selected_regions,
-                                          other_level = "Others")
-}, silent = TRUE)
-# calculate this table again with combined levels
-t_dat_loc_cla <- table(metadata_ext$week_start, metadata_ext$LocationClean,
-                       ifelse(grepl(metadata_ext$clade_small, pattern = ALARM_PATTERN), ALARM_MUTATION, "-"))
-t_dat_loc_cla <- data.frame(as.table(t_dat_loc_cla))
-levels1 <- levels(t_dat_loc_cla$Var2)
-# regions are now concatenated
+  t_dat_loc_cla <- data.frame(as.table(t_dat_loc_cla))
+
+  t_dat_loc_cla$Var2 <- reorder(t_dat_loc_cla$Var2, -t_dat_loc_cla$Freq, sum)
+  # concatenate regions that are rare, keep only MAX_REGIONS
+  selected_regions <- head(levels(t_dat_loc_cla$Var2), MAX_REGIONS)
+  n_unique_regions <- max(length(unique(selected_regions)), 1)
+  try({
+    metadata_ext$LocationClean <- fct_other(metadata_ext$LocationClean,
+                                            keep = selected_regions,
+                                            other_level = "Others")
+  }, silent = TRUE)
+  # calculate this table again with combined levels
+  t_dat_loc_cla <- table(metadata_ext$week_start, metadata_ext$LocationClean,
+                         ifelse(grepl(metadata_ext$clade_small, pattern = ALARM_PATTERN), ALARM_MUTATION, "-"))
+  t_dat_loc_cla <- data.frame(as.table(t_dat_loc_cla))
+  levels1 <- levels(t_dat_loc_cla$Var2)
+  # regions are now concatenated
 
 
-for (lang in langs) {
-	plots_output[[lang]][['pl_loc_1']] <-
-	  ggplot(t_dat_loc_cla, aes(ymd(Var1), y=Freq, fill = Var3)) +
-	  geom_col() +
-	  #geom_text(data = counts4, aes(x = ymd(date), y = n, label = label, hjust = 0, vjust = 1), size=2.7) +
-	  scale_fill_manual(values = c("grey", "red3")) +
-	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
-	               limits = c(ymd(lineage_date) - months(3), ymd(lineage_date))) +
-	  facet_wrap(~Var2, ncol = 5) +
-	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0)) +
-	  ggtitle(descriptions[[lang]]["pl_loc_1_tit", "names"]) +
-	  theme(legend.position = "none")
+  for (lang in langs) {
+  	plots_output[[lang]][['pl_loc_1']] <-
+  	  ggplot(t_dat_loc_cla, aes(ymd(Var1), y=Freq, fill = Var3)) +
+  	  geom_col() +
+  	  #geom_text(data = counts4, aes(x = ymd(date), y = n, label = label, hjust = 0, vjust = 1), size=2.7) +
+  	  scale_fill_manual(values = c("grey", "red3")) +
+  	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
+  	               limits = c(ymd(lineage_date) - months(NO_MONTHS_PLOTS), ymd(lineage_date))) +
+  	  facet_wrap(~Var2, ncol = 5) +
+  	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0)) +
+  	  ggtitle(descriptions[[lang]]["pl_loc_1_tit", "names"]) +
+  	  theme(legend.position = "none")
+  }
+
+  #
+  t_dat_map <- t_dat_loc_cla %>% rename(date = Var1, name = Var2, type = Var3, count = Freq)
+  #
+
+  t_dat_loc_cla <- table(metadata_ext$week_start, metadata_ext$LocationClean,
+                         ifelse(grepl(metadata_ext$clade_small, pattern = ALARM_PATTERN), ALARM_MUTATION, "-"))
+  normalizer <-  t_dat_loc_cla[,,1] + t_dat_loc_cla[,,2]
+  t_dat_loc_cla[,,1] <- t_dat_loc_cla[,,1] / normalizer
+  t_dat_loc_cla[,,2] <- t_dat_loc_cla[,,2] /normalizer
+  t_dat_loc_cla <- data.frame(as.table(t_dat_loc_cla))
+
+  t_dat_loc_cla$Var2 <- factor(t_dat_loc_cla$Var2, levels = levels1)
+
+  for (lang in langs) {
+  	plots_output[[lang]][['pl_loc_2']] <-
+   	  ggplot(t_dat_loc_cla, aes(ymd(Var1), y=Freq, fill = Var3)) +
+   	  geom_col() +
+   	  #  geom_text(data = counts4, aes(x = ymd(date), y = n, label = label, hjust = 0, vjust = 1), size=2.7) +
+   	  scale_fill_manual(values = c("#77777777", "red3")) +
+   	  scale_y_continuous("", labels = scales::percent, expand = c(0,0)) +
+   	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
+   	               limits = c(ymd(lineage_date) - months(NO_MONTHS_PLOTS), ymd(lineage_date))) +
+   	  facet_wrap(~Var2, ncol = 5) +
+   	  theme_minimal(base_family = 'Arial') +
+   	  ggtitle(descriptions[[lang]]["pl_loc_2_tit", "names"]) +
+   	  theme(legend.position = "none")
+  }
+
 }
-
-#
-t_dat_map <- t_dat_loc_cla %>% rename(date = Var1, name = Var2, type = Var3, count = Freq)
-#
-
-t_dat_loc_cla <- table(metadata_ext$week_start, metadata_ext$LocationClean,
-                       ifelse(grepl(metadata_ext$clade_small, pattern = ALARM_PATTERN), ALARM_MUTATION, "-"))
-normalizer <-  t_dat_loc_cla[,,1] + t_dat_loc_cla[,,2]
-t_dat_loc_cla[,,1] <- t_dat_loc_cla[,,1] / normalizer
-t_dat_loc_cla[,,2] <- t_dat_loc_cla[,,2] /normalizer
-t_dat_loc_cla <- data.frame(as.table(t_dat_loc_cla))
-
-t_dat_loc_cla$Var2 <- factor(t_dat_loc_cla$Var2, levels = levels1)
-
-for (lang in langs) {
-	plots_output[[lang]][['pl_loc_2']] <-
- 	  ggplot(t_dat_loc_cla, aes(ymd(Var1), y=Freq, fill = Var3)) +
- 	  geom_col() +
- 	  #  geom_text(data = counts4, aes(x = ymd(date), y = n, label = label, hjust = 0, vjust = 1), size=2.7) +
- 	  scale_fill_manual(values = c("#77777777", "red3")) +
- 	  scale_y_continuous("", labels = scales::percent, expand = c(0,0)) +
- 	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
- 	               limits = c(ymd(lineage_date) - months(3), ymd(lineage_date))) +
- 	  facet_wrap(~Var2, ncol = 5) +
- 	  theme_minimal(base_family = 'Arial') +
- 	  ggtitle(descriptions[[lang]]["pl_loc_2_tit", "names"]) +
- 	  theme(legend.position = "none")
-}
-
 
 # --------------------------------- #
 # --------------MAP---------------- #
@@ -802,15 +808,15 @@ pal <- structure(c("#E9C622", "#51A4B8", "#E5BC13", "#67AFBF", "#E1B103",
 ), .Names = c("20A.EU2", "19A", "20D", "19B", "20C", "20E (EU1)",
               "20G", "20A", "20B", "20H/501Y.V2", "20I/501Y.V1"))
 df4 <- df4[df4$variant %in% names(pal),]
-df4 <- df4[ymd(df4$date) > ymd(lineage_date_local) - months(3),]
+df4 <- df4[ymd(df4$date) > ymd(lineage_date_local) - months(NO_MONTHS_PLOTS),]
 
 for (lang in langs) {
 	plots_output[[lang]][['pl_var_all_2']] <-
 	  ggplot(df4, aes(ymd(date) + days(3), y=n, fill = variant)) +
 	  geom_col( position = "fill", color = "white") +
-	  coord_cartesian(xlim = c(ymd(lineage_date_local) - months(3), ymd(lineage_date_local)), ylim= c(0,1)) +
+	  coord_cartesian(xlim = c(ymd(lineage_date_local) - months(NO_MONTHS_PLOTS), ymd(lineage_date_local)), ylim= c(0,1)) +
 	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
-	               limits = c(ymd(lineage_date_local) - months(3), ymd(lineage_date_local)))+
+	               limits = c(ymd(lineage_date_local) - months(NO_MONTHS_PLOTS), ymd(lineage_date_local)))+
 	  scale_fill_manual("", values = pal) +
 	  ggtitle(descriptions[[lang]]["pl_var_all_2_tit", "names"]) +
 	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0), labels = scales::percent)
@@ -820,9 +826,9 @@ for (lang in langs) {
 	plots_output[[lang]][['pl_var_all_3']] <-
 	  ggplot(df4, aes(ymd(date) + days(3), y=n, fill = variant)) +
 	  geom_col( position = "stack", color = "white") +
-	  coord_cartesian(xlim = c(ymd(lineage_date_local) - months(3), ymd(lineage_date_local))) +
+	  coord_cartesian(xlim = c(ymd(lineage_date_local) - months(NO_MONTHS_PLOTS), ymd(lineage_date_local))) +
 	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
-	               limits = c(ymd(lineage_date_local) - months(3), ymd(lineage_date_local)))+
+	               limits = c(ymd(lineage_date_local) - months(NO_MONTHS_PLOTS), ymd(lineage_date_local)))+
 	  scale_fill_manual("", values = pal) +
 	  ggtitle(descriptions[[lang]]["pl_var_all_3_tit", "names"]) +
 	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0))
@@ -846,15 +852,15 @@ pal <- structure(c("#E9C622", "#51A4B8", "#E5BC13", "#67AFBF", "#E1B103",
 ), .Names = c("20A.EU2", "19A", "20D", "19B", "20C", "20E (EU1)",
               "20G", "20A", "20B", "20H/501Y.V2", "20I/501Y.V1"))
 df4 <- df4[df4$variant %in% names(pal),]
-df4 <- df4[ymd(df4$date) > ymd(lineage_date_local) - months(3),]
+df4 <- df4[ymd(df4$date) > ymd(lineage_date_local) - months(NO_MONTHS_PLOTS),]
 
 for (lang in langs) {
 	plots_output[[lang]][['pl_var_all_1']] <-
 	  ggplot(df4, aes(ymd(date), y=n, fill = variant)) +
 	  geom_area( position = "fill", color = "white") +
-	  coord_cartesian(xlim = c(ymd(lineage_date_local) - months(3), ymd(lineage_date_local)), ylim= c(0,1)) +
+	  coord_cartesian(xlim = c(ymd(lineage_date_local) - months(NO_MONTHS_PLOTS), ymd(lineage_date_local)), ylim= c(0,1)) +
 	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
-	               limits = c(ymd(lineage_date_local) - months(3), ymd(lineage_date_local)))+
+	               limits = c(ymd(lineage_date_local) - months(NO_MONTHS_PLOTS), ymd(lineage_date_local)))+
 	  scale_fill_manual("", values = pal) +
 	  ggtitle(descriptions[[lang]]["pl_var_all_1_tit", "names"]) +
 	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0), labels = scales::percent)
@@ -876,14 +882,14 @@ pal <- structure(c("#E9C622", "#51A4B8", "#E5BC13", "#67AFBF", "#E1B103",
 ), .Names = c("20A.EU2", "19A", "20D", "19B", "20C", "20E (EU1)",
               "20G", "20A", "20B", "20H/501Y.V2", "20I/501Y.V1"))
 df5 <- df5[df5$variant %in% names(pal),]
-df5 <- df5[ymd(df5$date) > ymd(lineage_date_local) - months(3),]
+df5 <- df5[ymd(df5$date) > ymd(lineage_date_local) - months(NO_MONTHS_PLOTS),]
 
 for (lang in langs) {
 	plots_output[[lang]][['pl_var_all_4']] <-
 	  ggplot(na.omit(df5[df5$n > 0 & df5$n < 1,]), aes(ymd(date), y=n, color = variant)) +
 	  geom_point( ) +
 	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
-	               limits = c(ymd(lineage_date_local) - months(3), ymd(lineage_date_local)))+
+	               limits = c(ymd(lineage_date_local) - months(NO_MONTHS_PLOTS), ymd(lineage_date_local)))+
 	  theme_minimal(base_family = 'Arial') +
 	  geom_smooth(data = df5[(df5$variant %in% c("20I/501Y.V1", "20A", "20B")) &
 	                           (ymd(df5$date) > ymd(lineage_date_local) - months(2)),],
@@ -893,7 +899,7 @@ for (lang in langs) {
 	  scale_color_manual("", values = pal) +
 	  ggtitle(descriptions[[lang]]["pl_var_all_4_tit", "names"]) +
 	  theme_minimal(base_family = 'Arial') +
-	  coord_cartesian(xlim = c(ymd(lineage_date_local) - months(3), ymd(lineage_date_local)))
+	  coord_cartesian(xlim = c(ymd(lineage_date_local) - months(NO_MONTHS_PLOTS), ymd(lineage_date_local)))
 }
 
 
@@ -947,7 +953,7 @@ for (lang in langs) {
 	ggsave(plot = plots[['pl_war_2']], file=paste0(dir_prefix, "liczba_warianty_2.svg"), width=8, height=3)
 	ggsave(plot = plots[['pl_war_3']], file=paste0(dir_prefix, "liczba_warianty_3.svg"), width=8, height=3)
 	ggsave(plot = plots[['pl_war_4']], file=paste0(dir_prefix, "liczba_warianty_4.svg"), width=8, height=3)
-	ggsave(plot = plots[['pl_war_5']], file=paste0(dir_prefix, "liczba_warianty_5.svg"), width=8, height=5)
+	ggsave(plot = plots[['pl_war_5']], file=paste0(dir_prefix, "liczba_warianty_5.png"), width=8, height=5)
 
 	ggsave(plot = plots[['pl_var_all_1']], file=paste0(dir_prefix, "udzial_warianty_1.svg"), width=5.5, height=3.5)
 	ggsave(plot = plots[['pl_var_all_2']], file=paste0(dir_prefix, "udzial_warianty_2.svg"), width=5.5, height=3.5)
