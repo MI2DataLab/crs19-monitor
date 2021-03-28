@@ -14,3 +14,4 @@ fasta_to_pango/logs/minimap2_sam.log
 fasta_to_clades/input.fasta
 fasta_to_clades/output.tsv
 fasta_to_mutation/tmp.blast.xml
+gg_objects.rda
