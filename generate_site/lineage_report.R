@@ -188,7 +188,9 @@ for (lang in langs) {
 # ----------
 
 lineage$lineage_small <- fct_infreq(lineage$Lineage)
-#lineage$lineage_small <- fct_lump(lineage$lineage_small, n = 30, other_level = "Inne")
+# concatenate rare variants
+lineage$lineage_small <- fct_other(lineage$lineage_small,
+                                   keep = unique(c(head(levels(lineage$lineage_small), 20), ALARM_PANGO)), other_level = "Inne")
 t_cou_lin <- table(lineage$date, lineage$lineage_small)
 t_cou_lin <- apply(t_cou_lin, 2, cumsum)
 df3 <- as.data.frame(as.table(t_cou_lin))
