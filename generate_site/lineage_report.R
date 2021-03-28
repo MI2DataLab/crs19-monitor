@@ -656,6 +656,7 @@ try({
                                   other_level = "Others")
 }, silent = TRUE)
 levels1 <- levels(t_dat_loc_cla$Var2)
+n_unique_regions <- max(length(unique(t_dat_loc_cla$Var2)), 1)
 
 for (lang in langs) {
 	plots_output[[lang]][['pl_loc_1']] <-
@@ -675,6 +676,13 @@ for (lang in langs) {
 t_dat_map <- t_dat_loc_cla %>% rename(date = Var1, name = Var2, type = Var3, count = Freq)
 #
 
+# concatenate all rare regions into the 'Others' category
+try({
+  metadata_ext$LocationClean <- fct_other(metadata_ext$LocationClean,
+                                  keep = selected_regions,
+                                  other_level = "Others")
+}, silent = TRUE)
+
 t_dat_loc_cla <- table(metadata_ext$week_start, metadata_ext$LocationClean,
                        ifelse(grepl(metadata_ext$clade_small, pattern = ALARM_PATTERN), ALARM_MUTATION, "-"))
 normalizer <-  t_dat_loc_cla[,,1] + t_dat_loc_cla[,,2]
@@ -682,11 +690,6 @@ t_dat_loc_cla[,,1] <- t_dat_loc_cla[,,1] / normalizer
 t_dat_loc_cla[,,2] <- t_dat_loc_cla[,,2] /normalizer
 t_dat_loc_cla <- data.frame(as.table(t_dat_loc_cla))
 
-try({
-  t_dat_loc_cla$Var2 <- fct_other(t_dat_loc_cla$Var2,
-                                  keep = selected_regions,
-                                  other_level = "Others")
-}, silent = TRUE)
 t_dat_loc_cla$Var2 <- factor(t_dat_loc_cla$Var2, levels = levels1)
 
 for (lang in langs) {
@@ -939,8 +942,8 @@ for (lang in langs) {
 	ggsave(plot = plots[['pl_seq_2']], file=paste0(dir_prefix, "liczba_seq_2.svg"), width=4, height=2.5)
 
 	if (sum(!is.na(metadata_ext$LocationClean)) > 0) {
-		ggsave(plot = plots[['pl_loc_1']], file=paste0(dir_prefix, "liczba_loc_1.svg"), width=8, height=ceiling(length(unique(metadata_ext$LocationClean)) / 5) * 5 / 4, limitsize=FALSE)
-		ggsave(plot = plots[['pl_loc_2']], file=paste0(dir_prefix, "liczba_loc_2.svg"), width=8, height=ceiling(length(unique(metadata_ext$LocationClean)) / 5) * 5 / 4, limitsize=FALSE)
+		ggsave(plot = plots[['pl_loc_1']], file=paste0(dir_prefix, "liczba_loc_1.svg"), width=8, height=ceiling(n_unique_regions / 5) * 5 / 4, limitsize=FALSE)
+		ggsave(plot = plots[['pl_loc_2']], file=paste0(dir_prefix, "liczba_loc_2.svg"), width=8, height=ceiling(n_unique_regions / 5) * 5 / 4, limitsize=FALSE)
 	}
 
 	ggsave(plot = plots[['pl_war_1']], file=paste0(dir_prefix, "liczba_warianty_1.svg"), width=8, height=3)
