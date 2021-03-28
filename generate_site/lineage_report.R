@@ -72,6 +72,7 @@ ALARM_MUTATION <- "N501Y"
 ALARM_PATTERN <- "501Y"
 ALARM_PANGO <- c("B.1.1.7", "B.1.351", "P.1")
 ALARM_CLADE <- c("20I/501Y.V1","20H/501Y.V2", "20J/501Y.V3")
+MAX_REGIONS <- 23
 
 
 ############
@@ -647,6 +648,11 @@ t_dat_loc_cla <- table(metadata_ext$week_start, metadata_ext$LocationClean,
 t_dat_loc_cla <- data.frame(as.table(t_dat_loc_cla))
 
 t_dat_loc_cla$Var2 <- reorder(t_dat_loc_cla$Var2, -t_dat_loc_cla$Freq, sum)
+# concatenate regions that are rare, keep only MAX_REGIONS
+selected_regions <- head(levels(t_dat_loc_cla$Var2), MAX_REGIONS)
+t_dat_loc_cla$Var2 <- fct_other(t_dat_loc_cla$Var2,
+                               keep = selected_regions,
+                               other_level = "Others")
 levels1 <- levels(t_dat_loc_cla$Var2)
 
 for (lang in langs) {
@@ -674,6 +680,9 @@ t_dat_loc_cla[,,1] <- t_dat_loc_cla[,,1] / normalizer
 t_dat_loc_cla[,,2] <- t_dat_loc_cla[,,2] /normalizer
 t_dat_loc_cla <- data.frame(as.table(t_dat_loc_cla))
 
+t_dat_loc_cla$Var2 <- fct_other(t_dat_loc_cla$Var2,
+                                keep = selected_regions,
+                                other_level = "Others")
 t_dat_loc_cla$Var2 <- factor(t_dat_loc_cla$Var2, levels = levels1)
 
 for (lang in langs) {
