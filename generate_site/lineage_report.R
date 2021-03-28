@@ -63,6 +63,17 @@ for (lang in langs) {
 	plots_output[[lang]] <- list()
 }
 
+
+# -------
+# global variables
+
+DATE_LAST_SAMPLE <- max(ymd(metadata$collection_date), na.rm = T)
+ALARM_MUTATION <- "N501Y"
+ALARM_PATTERN <- "501Y"
+ALARM_PANGO <- c("B.1.1.7", "B.1.351", "P.1")
+ALARM_CLADE <- c("20I/501Y.V1","20H/501Y.V2", "20J/501Y.V3")
+
+
 ############
 ## preprocess data
 lineage$date <- sapply(strsplit(lineage$Sequence.name, split = "|", fixed = TRUE),
@@ -72,7 +83,7 @@ lineage$sample <- gsub(sapply(strsplit(lineage$Sequence.name, split = "\\|"), `[
 
 lineage$lineage_small <- fct_infreq(lineage$Lineage)
 lineage$lineage_small <- fct_other(lineage$lineage_small,
-                                   keep = unique(c(head(levels(lineage$lineage_small), 7), "B.1.1.7", "B.1.351")), other_level = "Inne")
+                                   keep = unique(c(head(levels(lineage$lineage_small), 7), ALARM_PANGO)), other_level = "Inne")
 #lineage$lineage_small <- fct_lump(lineage$lineage_small, n = 8, other_level = "Inne")
 
 
@@ -81,13 +92,6 @@ nextclade$date <- sapply(strsplit(nextclade$seqName, split = "|", fixed = TRUE),
 nextclade$sample <- gsub(sapply(strsplit(nextclade$seqName, split = "\\|"), `[`, 2), pattern = " ", replacement = "")
 nextclade$clade_small <- fct_infreq(nextclade$clade)
 nextclade$clade_small <- fct_lump(nextclade$clade_small, n = 12, other_level = "Inne")
-
-# -------
-# global variables
-
-DATE_LAST_SAMPLE <- max(ymd(metadata$collection_date), na.rm = T)
-ALARM_MUTATION <- "N501Y"
-ALARM_PATTERN <- "501Y"
 
 # -------
 # Liczba na tydzień
@@ -134,7 +138,7 @@ counts <- data.frame(variant = factor(names(t_cou_lin[nrow(t_cou_lin),]),
 
 for (lang in langs) {
 	plots_output[[lang]][['pl_war_1']] <-
-	  ggplot(df3, aes(ymd(date), ymax=n, ymin=0, fill = variant %in% c("B.1.1.7", "B.1.351"))) +
+	  ggplot(df3, aes(ymd(date), ymax=n, ymin=0, fill = variant %in% ALARM_PANGO)) +
 	  pammtools::geom_stepribbon() +
 	  geom_text(data = counts, aes(x = ymd(date), y = n, label = label, hjust = 0, vjust = 1), size=2.7) +
 	  scale_fill_manual(values = c("blue4", "red4")) +
@@ -196,10 +200,10 @@ counts <- data.frame(variant = factor(names(t_cou_lin[nrow(t_cou_lin),]),
 
 for (lang in langs) {
 	plots_output[[lang]][['pl_war_2']] <-
-	  ggplot(df3, aes(ymd(date), y=n, color = variant %in% c("B.1.1.7","B.1.351"), group = variant)) +
+	  ggplot(df3, aes(ymd(date), y=n, color = variant %in% ALARM_PANGO, group = variant)) +
 	  geom_step() +
-	  geom_step(data = df3[df3$variant %in% c("B.1.1.7","B.1.351"),], size=1.1) +
-	  geom_text_repel(data = counts[counts$variant %in% c("B.1.1.7","B.1.351"),], aes(x = ymd(lineage_date), y = label, label = variant, hjust = 0, vjust = 0.6), size=2.9, direction = "y") +
+	  geom_step(data = df3[df3$variant %in% ALARM_PANGO,], size=1.1) +
+	  geom_text_repel(data = counts[counts$variant %in% ALARM_PANGO,], aes(x = ymd(lineage_date), y = label, label = variant, hjust = 0, vjust = 0.6), size=2.9, direction = "y") +
 	  scale_color_manual(values = c("grey", "red3")) +
 	  scale_x_date("", date_breaks = "2 weeks", date_labels = "%m/%d",
 	               limits = c(ymd(lineage_date) - months(6), ymd(lineage_date))) +
@@ -225,10 +229,10 @@ counts5 <- data.frame(variant = factor(names(t_cou_cla[nrow(t_cou_cla),]),
 
 for (lang in langs) {
 	plots_output[[lang]][['pl_war_4']] <-
-	  ggplot(df5, aes(ymd(date), y=n, color = variant %in% c("20I/501Y.V1","20H/501Y.V2"), group = variant)) +
+	  ggplot(df5, aes(ymd(date), y=n, color = variant %in% ALARM_CLADE, group = variant)) +
 	  geom_step() +
-	  geom_step(data = df5[df5$variant %in% c("20I/501Y.V1","20H/501Y.V2"),], size=1.1) +
-	  geom_text_repel(data = counts5[counts5$variant %in% c("20I/501Y.V1","20H/501Y.V2"),], aes(x = ymd(lineage_date), y = label, label = variant, hjust = 0, vjust = 0.6), size=2.9, direction = "y") +
+	  geom_step(data = df5[df5$variant %in% ALARM_CLADE,], size=1.1) +
+	  geom_text_repel(data = counts5[counts5$variant %in% ALARM_CLADE,], aes(x = ymd(lineage_date), y = label, label = variant, hjust = 0, vjust = 0.6), size=2.9, direction = "y") +
 	  scale_color_manual(values = c("grey", "red3")) +
 	  scale_x_date("", date_breaks = "2 weeks", date_labels = "%m/%d",
 	               limits = c(ymd(lineage_date) - months(6), ymd(lineage_date))) +
@@ -742,7 +746,7 @@ if (region == "Poland") {
 	    theme(legend.position = "none") +
 	    ggtitle(paste(descriptions[[lang]]["pl_map_sub1", "names"], DATE_LAST_SAMPLE)) +
 	    theme(plot.title = element_text(size=12, hjust = 0.5))
-	
+
 	  pl_map_2 <- ggplot(map_cord_df) +
 	    geom_polygon(aes(X, Y, group = id), color = "black", fill = "white") +
 	    geom_scatterpie(data = map_metadata  %>% left_join(t_map_metadata_month, by = "name") %>% drop_na(),
@@ -754,7 +758,7 @@ if (region == "Poland") {
 	    theme(legend.position = "none") +
 	    ggtitle(paste(descriptions[[lang]]["pl_map_sub2", "names"], DATE_LAST_SAMPLE)) +
 	    theme(plot.title = element_text(size=12, hjust = 0.5))
-	
+
 	  plots_output[[lang]][['pl_map']] <- (pl_map_1 + pl_map_2) +
 	    plot_annotation(
 	      title=paste(descriptions[[lang]]["pl_map_pt1", "names"], ALARM_MUTATION, descriptions[[lang]]["pl_map_pt2", "names"]),
@@ -920,18 +924,18 @@ for (lang in langs) {
 
 	ggsave(plot = plots[['pl_seq_1']], file=paste0(dir_prefix, "liczba_seq_1.svg"), width=4, height=2.5)
 	ggsave(plot = plots[['pl_seq_2']], file=paste0(dir_prefix, "liczba_seq_2.svg"), width=4, height=2.5)
-	
+
 	if (sum(!is.na(metadata_ext$LocationClean)) > 0) {
 		ggsave(plot = plots[['pl_loc_1']], file=paste0(dir_prefix, "liczba_loc_1.svg"), width=8, height=ceiling(length(unique(metadata_ext$LocationClean)) / 5) * 5 / 4, limitsize=FALSE)
 		ggsave(plot = plots[['pl_loc_2']], file=paste0(dir_prefix, "liczba_loc_2.svg"), width=8, height=ceiling(length(unique(metadata_ext$LocationClean)) / 5) * 5 / 4, limitsize=FALSE)
 	}
-	
+
 	ggsave(plot = plots[['pl_war_1']], file=paste0(dir_prefix, "liczba_warianty_1.svg"), width=8, height=3)
 	ggsave(plot = plots[['pl_war_2']], file=paste0(dir_prefix, "liczba_warianty_2.svg"), width=8, height=3)
 	ggsave(plot = plots[['pl_war_3']], file=paste0(dir_prefix, "liczba_warianty_3.svg"), width=8, height=3)
 	ggsave(plot = plots[['pl_war_4']], file=paste0(dir_prefix, "liczba_warianty_4.svg"), width=8, height=3)
 	ggsave(plot = plots[['pl_war_5']], file=paste0(dir_prefix, "liczba_warianty_5.svg"), width=8, height=5)
-	
+
 	ggsave(plot = plots[['pl_var_all_1']], file=paste0(dir_prefix, "udzial_warianty_1.svg"), width=5.5, height=3.5)
 	ggsave(plot = plots[['pl_var_all_2']], file=paste0(dir_prefix, "udzial_warianty_2.svg"), width=5.5, height=3.5)
 	ggsave(plot = plots[['pl_var_all_3']], file=paste0(dir_prefix, "udzial_warianty_3.svg"), width=5.5, height=3.5)
