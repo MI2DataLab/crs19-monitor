@@ -650,9 +650,11 @@ t_dat_loc_cla <- data.frame(as.table(t_dat_loc_cla))
 t_dat_loc_cla$Var2 <- reorder(t_dat_loc_cla$Var2, -t_dat_loc_cla$Freq, sum)
 # concatenate regions that are rare, keep only MAX_REGIONS
 selected_regions <- head(levels(t_dat_loc_cla$Var2), MAX_REGIONS)
-t_dat_loc_cla$Var2 <- fct_other(t_dat_loc_cla$Var2,
-                               keep = selected_regions,
-                               other_level = "Others")
+try({
+  t_dat_loc_cla$Var2 <- fct_other(t_dat_loc_cla$Var2,
+                                  keep = selected_regions,
+                                  other_level = "Others")
+}, silent = TRUE)
 levels1 <- levels(t_dat_loc_cla$Var2)
 
 for (lang in langs) {
@@ -680,9 +682,11 @@ t_dat_loc_cla[,,1] <- t_dat_loc_cla[,,1] / normalizer
 t_dat_loc_cla[,,2] <- t_dat_loc_cla[,,2] /normalizer
 t_dat_loc_cla <- data.frame(as.table(t_dat_loc_cla))
 
-t_dat_loc_cla$Var2 <- fct_other(t_dat_loc_cla$Var2,
-                                keep = selected_regions,
-                                other_level = "Others")
+try({
+  t_dat_loc_cla$Var2 <- fct_other(t_dat_loc_cla$Var2,
+                                  keep = selected_regions,
+                                  other_level = "Others")
+}, silent = TRUE)
 t_dat_loc_cla$Var2 <- factor(t_dat_loc_cla$Var2, levels = levels1)
 
 for (lang in langs) {
