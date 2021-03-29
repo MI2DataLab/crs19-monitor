@@ -906,7 +906,7 @@ warianty2 <- head(colnames(t_cou_cla),5)
 warianty2_list <- paste0(paste0('<a href="https://www.cdc.gov/coronavirus/2019-ncov/more/science-and-research/scientific-brief-emerging-variants.html">',warianty2,'</a>'), collapse = ",\n")
 
 placeholders <- list(
-	DATE = lineage_date,
+	DATE = gsub("/", "-", lineage_date),
 	NUMBER = nrow(lineage),
 	DATELAST = max(lineage$date),
 	VARIANTSLIST = warianty_list,
