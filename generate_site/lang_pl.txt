@@ -18,7 +18,7 @@ pl_map_sub1:Suma z tygodnia poprzedzającego
 pl_map_sub2:Suma z miesiąca poprzedzającego
 pl_map_pt1:Proporcja sekwencji z mutacją
 pl_map_pt2:w województwach
-site_title:Monitor wariantów SARS-CoV-2 w Polsce
+site_title:Monitor wariantów SARS-CoV-2 w Europie
 site_and:i
 site_date:Data
 site_country:Państwo
@@ -38,5 +38,5 @@ site_pango_variants_4:(zaznaczone na czerwono) to warianty alarmowe o zwiększon
 site_description_3:Czas od pobrania materiału do zgłoszenia do bazy GISAID to najczęściej od 2 do 5 tygodni.
 site_description_4:Liczba wariantów z mutacją N501Y w województwach.
 site_description_5:Procent wariantów z mutacją N501Y w województwach.
-site_foot_1:Monitor wariantów SARS-CoV-2 w Polsce. Stworzony przez
+site_foot_1:Monitor wariantów SARS-CoV-2 w Europie. Stworzony przez
 site_foot_2:W oparciu o dane z
