@@ -272,8 +272,7 @@ def scrap_meta_table(region, db_path, start_date, end_date, history):
             return
         elif total_records == total_records_before_filter:
             # handle unresponsive gisaid
-            print('Number of records didn\'t changed after filtering by date')
-            return 
+            raise Exception('Number of records didn\'t changed after filtering by date')
         expected_pages = math.ceil(total_records / 50)
 
         # go to last readed page 
