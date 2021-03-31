@@ -26,8 +26,8 @@ site_seq_count_1:As of
 site_seq_count_2:, there are
 site_seq_count_3:SARS-CoV-2 sequences from the selected country in the GISAID database.
 site_max_gisaid_date:Last date of collection for samples from the GISAID database
-site_description_1:Count (left chart) and proportion (right chart) of the virus' variants taken from the GISAID database. Data presented in a weekly aggregation. Results for the past 3 months.
-site_description_2:The proportion of the virus' variants taken from the GISAID database. Data presented were smoothed with a 7-day window. Results for the past 3 months.
+site_description_1:Count (left chart) and proportion (right chart) of the virus variants taken from the GISAID database. Data presented in a weekly aggregation. Results for the past 3 months.
+site_description_2:The proportion of the virus variants taken from the GISAID database. Data presented were smoothed with a 7-day window. Results for the past 3 months.
 site_gisaid_variants_1:In the database, there are
 site_gisaid_variants_2:variants of the virus tagged by the GISAID database. The most common are
 site_gisaid_variants_3:The variants with the N501Y mutation (highlighted in red) are alert variants with increased infectivity.

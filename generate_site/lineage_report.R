@@ -22,7 +22,7 @@ library(tmaptools)
 # nextclade_report = "../../data/clades.tsv"
 # metadata_report = "../../data/gisaid_metadata.csv"
 # lineage_date <- "2021/03/19"
-# region <- "Europe / Poland"
+# region <- "Poland"
 # db_path <- "../../data/sequences.sqlite"
 # output_dir <- "./output/"
 
