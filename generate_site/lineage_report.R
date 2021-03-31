@@ -724,26 +724,26 @@ if (sum(!is.na(metadata_ext$LocationClean)) > 0) {
 if (region == "Poland") {
 
   ((t_dat_map %>%
-      filter(ymd(date) + weeks(1) >= DATE_LAST_SAMPLE) %>%
-      mutate(name = tolower(name)) -> t_map_metadata_week) %>%
+      filter(ymd(date) %m+% months(3) >= DATE_LAST_SAMPLE) %>%
+      mutate(name = tolower(name)) -> t_map_metadata_left) %>%
      group_by(name, type) %>%
      summarise(count = sum(count))  %>%
      pivot_wider(id_cols = name, names_from = type, values_from = count) %>%
-     inner_join(t_map_metadata_week %>%
+     inner_join(t_map_metadata_left %>%
                   group_by(name) %>%
-                  summarise(ratio = sum(count) / sum(t_map_metadata_week$count))) -> t_map_metadata_week) %>%
-    mutate(ratio = 2 * (10e12 * ratio / max(t_map_metadata_week$ratio)) ** (1/3)) -> t_map_metadata_week
+                  summarise(ratio = sum(count) / sum(t_map_metadata_left$count))) -> t_map_metadata_left) %>%
+    mutate(ratio = 2 * (10e12 * ratio / max(t_map_metadata_left$ratio)) ** (1/3)) -> t_map_metadata_left
 
   ((t_dat_map %>%
-      filter(ymd(date) + months(1) >= DATE_LAST_SAMPLE) %>%
-      mutate(name = tolower(name)) -> t_map_metadata_month) %>%
+      filter(ymd(date) %m+% months(1) >= DATE_LAST_SAMPLE) %>%
+      mutate(name = tolower(name)) -> t_map_metadata_right) %>%
       group_by(name, type) %>%
       summarise(count = sum(count))  %>%
       pivot_wider(id_cols = name, names_from = type, values_from = count) %>%
-      inner_join(t_map_metadata_month %>%
+      inner_join(t_map_metadata_right %>%
                    group_by(name) %>%
-                   summarise(ratio = sum(count) / sum(t_map_metadata_month$count))) -> t_map_metadata_month) %>%
-    mutate(ratio = 2 * (10e12 * ratio / max(t_map_metadata_month$ratio)) ** (1/3)) -> t_map_metadata_month
+                   summarise(ratio = sum(count) / sum(t_map_metadata_right$count))) -> t_map_metadata_right) %>%
+    mutate(ratio = 2 * (10e12 * ratio / max(t_map_metadata_right$ratio)) ** (1/3)) -> t_map_metadata_right
 
   map_cord <- st_read("./map/pl-voi.shp")
   map_cord <- simplify_shape(map_cord, fact = 0.15) # 0.1 oversimplifies and returns error?
@@ -755,14 +755,14 @@ if (region == "Poland") {
     id   = as.data.frame(map_cord)$JPT_KOD_JE,
     name = as.data.frame(map_cord)$JPT_NAZWA_,
     X = centroid_cord$X,
-    Y  = centroid_cord$Y
+    Y = centroid_cord$Y
   )
 
 
   for (lang in langs) {
 	  pl_map_1 <- ggplot(map_cord_df) +
 	    geom_polygon(aes(X, Y, group = id), color = "black", fill = "white") +
-	    geom_scatterpie(data = map_metadata  %>% left_join(t_map_metadata_week, by = "name") %>% drop_na(),
+	    geom_scatterpie(data = map_metadata  %>% left_join(t_map_metadata_left, by = "name") %>% drop_na(),
 	                    cols = c(ALARM_MUTATION, "-"),
 	                    aes(x = X, y = Y, r = ratio, group = id)) +
 	    coord_equal() +
@@ -774,7 +774,7 @@ if (region == "Poland") {
 
 	  pl_map_2 <- ggplot(map_cord_df) +
 	    geom_polygon(aes(X, Y, group = id), color = "black", fill = "white") +
-	    geom_scatterpie(data = map_metadata  %>% left_join(t_map_metadata_month, by = "name") %>% drop_na(),
+	    geom_scatterpie(data = map_metadata  %>% left_join(t_map_metadata_right, by = "name") %>% drop_na(),
 	                    cols = c(ALARM_MUTATION, "-"),
 	                    aes(x = X, y = Y, r = ratio, group = id)) +
 	    coord_equal() +

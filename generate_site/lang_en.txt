@@ -14,7 +14,7 @@ pl_var_all_1_tit:Proportion of sequences with virus variant
 pl_var_all_2_tit:Weekly proportion of sequences with virus variant
 pl_var_all_3_tit:Weekly count of sequences with virus variant
 pl_var_all_4_tit:Share of sequences with virus variant
-pl_map_sub1:Sum for the week preceding 
+pl_map_sub1:Sum for the 3 months preceding
 pl_map_sub2:Sum for the month preceding
 pl_map_pt1:Proportion of sequences with the mutation
 pl_map_pt2:in the regions
