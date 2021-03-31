@@ -49,9 +49,9 @@ write(toJSON(date_dirs, auto_unbox=FALSE), paste0(output_path, '/dates.json'))
 
 
 # Add summary
-file.copy('./index_source_summary.html', paste0(output_dir, '/index.html'), overwrite=TRUE)
+file.copy('./index_source_summary.html', paste0(output_path, '/', path_date, '/index.html'), overwrite=TRUE)
 
-langs <- c('PL', 'EN')
+langs <- c('pl', 'en')
 i18n <- lapply(langs, function(lang) {
 	i18n_table <- read.table(paste0("lang_", lang, ".txt"), sep=":", header = TRUE, fileEncoding = "UTF-8", quote=NULL)
 	# Transform table to dictionary
@@ -60,4 +60,4 @@ i18n <- lapply(langs, function(lang) {
 	obj
 })
 names(i18n) <- langs
-write(toJSON(i18n, auto_unbox=TRUE), paste0(output_dir, '/i18n.json'))
+write(toJSON(i18n, auto_unbox=TRUE), paste0(output_path, '/', path_date, '/i18n.json'))
