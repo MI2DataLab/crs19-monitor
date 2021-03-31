@@ -127,10 +127,10 @@ def scrap_fasta(db_path, fasta_files_dir):
         time.sleep(3)
         buttons = driver.find_elements_by_class_name("sys-form-button")
 
-        if len(buttons) == 3:
+        if len(buttons) == 4:
             #message dialog
             driver.find_element_by_xpath(("//button[contains(., 'OK')]")).click()
-            time.sleep(1)
+            time.sleep(10)
             driver.switch_to_default_content()
 
         print("Downloading fasta file")
