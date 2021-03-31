@@ -140,7 +140,7 @@ counts <- data.frame(variant = factor(names(t_cou_lin[nrow(t_cou_lin),]),
                                       labels = names(t_cou_lin[nrow(t_cou_lin),]),
                                       levels = names(t_cou_lin[nrow(t_cou_lin),])),
                      label = t_cou_lin[nrow(t_cou_lin),],
-                     date = as.character(ymd(lineage_date) - months(NO_MONTHS_PLOTS)),
+                     date = as.character(ymd(lineage_date) %m-% months(NO_MONTHS_PLOTS)),
                      n = max(t_cou_lin[nrow(t_cou_lin),]))
 
 for (lang in langs) {
@@ -150,7 +150,7 @@ for (lang in langs) {
 	  geom_text(data = counts, aes(x = ymd(date), y = n, label = label, hjust = 0, vjust = 1), size=2.7) +
 	  scale_fill_manual(values = c("blue4", "red4")) +
 	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
-	               limits = c(ymd(lineage_date) - months(NO_MONTHS_PLOTS), ymd(lineage_date))) +
+	               limits = c(ymd(lineage_date) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date))) +
 	  #  scale_x_date("", date_breaks = "2 months", date_labels = "%m") +
 	  facet_wrap(~variant, ncol = 5) +
 	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0)) +
@@ -171,7 +171,7 @@ counts4 <- data.frame(variant = factor(names(t_cou_cla[nrow(t_cou_cla),]),
                                       labels = names(t_cou_cla[nrow(t_cou_cla),]),
                                       levels = names(t_cou_cla[nrow(t_cou_cla),])),
                      label = t_cou_cla[nrow(t_cou_cla),],
-                     date = as.character(ymd(lineage_date) - months(NO_MONTHS_PLOTS)),
+                     date = as.character(ymd(lineage_date) %m-% months(NO_MONTHS_PLOTS)),
                      n = max(t_cou_cla[nrow(t_cou_cla),]))
 
 for (lang in langs) {
@@ -181,7 +181,7 @@ for (lang in langs) {
 	  geom_text(data = counts4, aes(x = ymd(date), y = n, label = label, hjust = 0, vjust = 1), size=2.7) +
 	  scale_fill_manual(values = c("blue4", "red4")) +
 	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
-	               limits = c(ymd(lineage_date) - months(NO_MONTHS_PLOTS), ymd(lineage_date))) +
+	               limits = c(ymd(lineage_date) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date))) +
 	  #  scale_x_date("", date_breaks = "2 months", date_labels = "%m") +
 	  facet_wrap(~variant, ncol = 6) +
 	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0)) +
@@ -215,7 +215,7 @@ for (lang in langs) {
 	  geom_text_repel(data = counts[counts$variant %in% ALARM_PANGO,], aes(x = ymd(lineage_date), y = label, label = variant, hjust = 0, vjust = 0.6), size=2.9, direction = "y") +
 	  scale_color_manual(values = c("grey", "red3")) +
 	  scale_x_date("", date_breaks = "2 weeks", date_labels = "%m/%d",
-	               limits = c(ymd(lineage_date) - months(NO_MONTHS_PLOTS_LONG), ymd(lineage_date))) +
+	               limits = c(ymd(lineage_date) %m-% months(NO_MONTHS_PLOTS_LONG), ymd(lineage_date))) +
 	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0)) +
 	  ggtitle(descriptions[[lang]]["pl_war_3_tit", "names"]) +
 	  theme(legend.position = "none")
@@ -244,7 +244,7 @@ for (lang in langs) {
 	  geom_text_repel(data = counts5[counts5$variant %in% ALARM_CLADE,], aes(x = ymd(lineage_date), y = label, label = variant, hjust = 0, vjust = 0.6), size=2.9, direction = "y") +
 	  scale_color_manual(values = c("grey", "red3")) +
 	  scale_x_date("", date_breaks = "2 weeks", date_labels = "%m/%d",
-	               limits = c(ymd(lineage_date) - months(NO_MONTHS_PLOTS_LONG), ymd(lineage_date))) +
+	               limits = c(ymd(lineage_date) %m-% months(NO_MONTHS_PLOTS_LONG), ymd(lineage_date))) +
 	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0)) +
 	  ggtitle(descriptions[[lang]]["pl_war_4_tit", "names"]) +
 	  theme(legend.position = "none")
@@ -267,9 +267,9 @@ for (lang in langs) {
 	  theme_bw(base_family = 'Arial') + coord_fixed() +
 	  scale_color_manual("", values = c("blue4", "red2")) +
 	  scale_x_date(descriptions[[lang]]["pl_war_5_scx", "names"], date_breaks = "2 weeks", date_labels = "%m/%d",
-	               limits = c(ymd(lineage_date) - months(NO_MONTHS_PLOTS), ymd(lineage_date)))  +
+	               limits = c(ymd(lineage_date) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date)))  +
 	  scale_y_date(descriptions[[lang]]["pl_war_5_scy", "names"], date_breaks = "2 weeks", date_labels = "%m/%d",
-	               limits = c(ymd(lineage_date) - months(NO_MONTHS_PLOTS-1), ymd(lineage_date)))+
+	               limits = c(ymd(lineage_date) %m-% months(NO_MONTHS_PLOTS-1), ymd(lineage_date)))+
 	  theme(legend.position = "none")
 }
 
@@ -680,7 +680,7 @@ if (sum(!is.na(metadata_ext$LocationClean)) > 0) {
   	  #geom_text(data = counts4, aes(x = ymd(date), y = n, label = label, hjust = 0, vjust = 1), size=2.7) +
   	  scale_fill_manual(values = c("grey", "red3")) +
   	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
-  	               limits = c(ymd(lineage_date) - months(NO_MONTHS_PLOTS), ymd(lineage_date))) +
+  	               limits = c(ymd(lineage_date) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date))) +
   	  facet_wrap(~Var2, ncol = 5) +
   	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0)) +
   	  ggtitle(descriptions[[lang]]["pl_loc_1_tit", "names"]) +
@@ -708,7 +708,7 @@ if (sum(!is.na(metadata_ext$LocationClean)) > 0) {
    	  scale_fill_manual(values = c("#77777777", "red3")) +
    	  scale_y_continuous("", labels = scales::percent, expand = c(0,0)) +
    	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
-   	               limits = c(ymd(lineage_date) - months(NO_MONTHS_PLOTS), ymd(lineage_date))) +
+   	               limits = c(ymd(lineage_date) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date))) +
    	  facet_wrap(~Var2, ncol = 5) +
    	  theme_minimal(base_family = 'Arial') +
    	  ggtitle(descriptions[[lang]]["pl_loc_2_tit", "names"]) +
@@ -810,15 +810,15 @@ df4$variant <- reorder(df4$variant, df4$n, tail, 1)
 df4$variant <- fct_relevel(df4$variant, ALARM_CLADE, after = Inf)
 
 df4 <- df4[df4$variant %in% names(pal),]
-df4 <- df4[ymd(df4$date) > ymd(lineage_date_local) - months(NO_MONTHS_PLOTS),]
+df4 <- df4[ymd(df4$date) > ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS),]
 
 for (lang in langs) {
 	plots_output[[lang]][['pl_var_all_2']] <-
 	  ggplot(df4, aes(ymd(date) + days(3), y=n, fill = variant)) +
 	  geom_col( position = "fill", color = "white") +
-	  coord_cartesian(xlim = c(ymd(lineage_date_local) - months(NO_MONTHS_PLOTS), ymd(lineage_date_local)), ylim= c(0,1)) +
+	  coord_cartesian(xlim = c(ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date_local)), ylim= c(0,1)) +
 	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
-	               limits = c(ymd(lineage_date_local) - months(NO_MONTHS_PLOTS), ymd(lineage_date_local)))+
+	               limits = c(ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date_local)))+
 	  scale_fill_manual("", values = pal) +
 	  ggtitle(descriptions[[lang]]["pl_var_all_2_tit", "names"]) +
 	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0), labels = scales::percent)
@@ -828,9 +828,9 @@ for (lang in langs) {
 	plots_output[[lang]][['pl_var_all_3']] <-
 	  ggplot(df4, aes(ymd(date) + days(3), y=n, fill = variant)) +
 	  geom_col( position = "stack", color = "white") +
-	  coord_cartesian(xlim = c(ymd(lineage_date_local) - months(NO_MONTHS_PLOTS), ymd(lineage_date_local))) +
+	  coord_cartesian(xlim = c(ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date_local))) +
 	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
-	               limits = c(ymd(lineage_date_local) - months(NO_MONTHS_PLOTS), ymd(lineage_date_local)))+
+	               limits = c(ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date_local)))+
 	  scale_fill_manual("", values = pal) +
 	  ggtitle(descriptions[[lang]]["pl_var_all_3_tit", "names"]) +
 	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0))
@@ -850,15 +850,15 @@ df4$variant <- reorder(df4$variant, df4$n, tail, 1)
 df4$variant <- fct_relevel(df4$variant, ALARM_CLADE, after = Inf)
 
 df4 <- df4[df4$variant %in% names(pal),]
-df4 <- df4[ymd(df4$date) > ymd(lineage_date_local) - months(NO_MONTHS_PLOTS),]
+df4 <- df4[ymd(df4$date) > ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS),]
 
 for (lang in langs) {
 	plots_output[[lang]][['pl_var_all_1']] <-
 	  ggplot(df4, aes(ymd(date), y=n, fill = variant)) +
 	  geom_area( position = "fill", color = "white") +
-	  coord_cartesian(xlim = c(ymd(lineage_date_local) - months(NO_MONTHS_PLOTS), ymd(lineage_date_local)), ylim= c(0,1)) +
+	  coord_cartesian(xlim = c(ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date_local)), ylim= c(0,1)) +
 	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
-	               limits = c(ymd(lineage_date_local) - months(NO_MONTHS_PLOTS), ymd(lineage_date_local)))+
+	               limits = c(ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date_local)))+
 	  scale_fill_manual("", values = pal) +
 	  ggtitle(descriptions[[lang]]["pl_var_all_1_tit", "names"]) +
 	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0), labels = scales::percent)
@@ -876,24 +876,24 @@ df5$variant <- reorder(df5$variant, df5$n, tail, 1)
 df5$variant <- fct_relevel(df5$variant, ALARM_CLADE, after = Inf)
 
 df5 <- df5[df5$variant %in% names(pal),]
-df5 <- df5[ymd(df5$date) > ymd(lineage_date_local) - months(NO_MONTHS_PLOTS),]
+df5 <- df5[ymd(df5$date) > ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS),]
 
 for (lang in langs) {
 	plots_output[[lang]][['pl_var_all_4']] <-
 	  ggplot(na.omit(df5[df5$n > 0 & df5$n < 1,]), aes(ymd(date), y=n, color = variant)) +
 	  geom_point( ) +
 	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
-	               limits = c(ymd(lineage_date_local) - months(NO_MONTHS_PLOTS), ymd(lineage_date_local)))+
+	               limits = c(ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date_local)))+
 	  theme_minimal(base_family = 'Arial') +
 	  geom_smooth(data = df5[(df5$variant %in% c("20I/501Y.V1", "20A", "20B")) &
-	                           (ymd(df5$date) > ymd(lineage_date_local) - months(2)),],
+	                           (ymd(df5$date) > ymd(lineage_date_local) %m-% months(2)),],
 	              se = FALSE, span = 1) +
 	  scale_y_continuous("",expand = c(0,0),
 	                     breaks = c(0.01,0.1,0.25,0.5,0.75,0.9, 0.99), limits = c(0,1)) +
 	  scale_color_manual("", values = pal) +
 	  ggtitle(descriptions[[lang]]["pl_var_all_4_tit", "names"]) +
 	  theme_minimal(base_family = 'Arial') +
-	  coord_cartesian(xlim = c(ymd(lineage_date_local) - months(NO_MONTHS_PLOTS), ymd(lineage_date_local)))
+	  coord_cartesian(xlim = c(ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date_local)))
 }
 
 
