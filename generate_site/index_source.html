@@ -251,7 +251,7 @@
         this.dateOptions = response.body.map(r => ({ name: r, value: r }))
       })
       this.$http.get('../regions.json').then(response => {
-        this.countryOptions = response.body.map(r => ({ name: r.name, value: r.dir }))
+        this.countryOptions = [{ name: 'Summary', value: '.' }].concat(response.body.map(r => ({ name: r.name, value: r.dir })))
       })
       window.onpopstate = (event) => {
           this.lang = event.state.lang || 'pl'

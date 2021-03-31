@@ -46,3 +46,18 @@ write(toJSON(regions, auto_unbox=TRUE), paste0(output_path, '/', path_date, '/re
 subdirs <- list.dirs(path=output_path, full.names=FALSE, recursive=FALSE)
 date_dirs <- stringi::stri_subset_regex(subdirs, '^\\d{4}-\\d{2}-\\d{2}$')
 write(toJSON(date_dirs, auto_unbox=FALSE), paste0(output_path, '/dates.json'))
+
+
+# Add summary
+file.copy('./index_source_summary.html', paste0(output_dir, '/index.html'), overwrite=TRUE)
+
+langs <- c('PL', 'EN')
+i18n <- lapply(langs, function(lang) {
+	i18n_table <- read.table(paste0("lang_", lang, ".txt"), sep=":", header = TRUE, fileEncoding = "UTF-8", quote=NULL)
+	# Transform table to dictionary
+	obj = as.list(i18n_table[,"names"])
+	names(obj) <- i18n_table[,"tag"]
+	obj
+})
+names(i18n) <- langs
+write(toJSON(i18n, auto_unbox=TRUE), paste0(output_dir, '/i18n.json'))

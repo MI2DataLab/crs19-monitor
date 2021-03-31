@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="MI2DataLab">
+    <title>Monitor of SARS-CoV-2 variants and mutations in Europe</title>
+
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="-1">
+    <meta http-equiv="CACHE-CONTROL" content="NO-CACHE">
+
+    <link href='../fonts/font-droid.css' rel='stylesheet' type='text/css'>
+    <!-- Add custom CSS here -->
+    <link href="../css/lavish-bootstrap-sp.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.12/dist/vue.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-resource@1.5.2"></script>
+    <style>
+       p {font-size:large}
+    </style>
+
+    <script>
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+      ga('create', 'UA-5650686-2', 'auto');
+      ga('send', 'pageview');
+    </script>
+  </head>
+  <body>
+    <div id="app">
+      <nav class="navbar navbar-inverse" role="navigation" style="padding-bottom:0px; border-color:#4a423d!important; background-color:#4a423d!important;">
+        <div class="container" style="padding-bottom:5px; padding-top:5px; ">
+          <div class="navbar-header">
+            <a class="navbar-brand" href="#Monitor">{{ i18n('site_title') }}</a>
+            <div class="navbar-brand">
+              <a class="navbar-link" href="javascript:void(0)" v-for="l in langs" :key="l" @click="setLang(l)" style="margin: 0 5px">{{ l.toUpperCase() }}</a>
+            </div>
+          </div>
+        </div><!-- /.container -->
+      </nav>
+      <div class="section" id="Mapa">
+        <div class="container">
+
+          <div class="row">
+            <div class="col-lg-12 col-md-12 col-sm-12">
+              {{ i18n('site_date') }}:
+              <select id="select-date" style="margin-right: 2em;margin-left: 0.5em;" @change="updateDate">
+                <option v-for="o in dateOptions" :key="o.value" :value="o.value" :selected="o.value == selectedDate">{{ o.name }}</option>
+              </select>
+            </div>
+          </div>
+
+          <hr>
+
+          <div class="row" v-for="c in countryOptions">
+            <div class="col-lg-4 col-md-4 col-sm-4">
+              <p><a :href="c.value + '/'">{{ c.name }}</a></p>
+            </div>
+            <div class="col-lg-4 col-md-4 col-sm-4">
+              <img align="right" :src="imagesPrefix(c.value) + 'udzial_warianty_3.svg'" width="100%" onerror="this.parentElement.parentElement.style.display='none'" :key="editTime" >
+            </div>
+            <div class="col-lg-4 col-md-4 col-sm-4">
+              <img align="right" :src="imagesPrefix(c.value) + 'udzial_warianty_2.svg'" width="100%" onerror="this.parentElement.parentElement.style.display='none'" :key="editTime" >
+            </div>
+            <hr>
+          </div>
+
+
+        </div><!-- /.container -->
+      </div><!-- /.section -->
+
+      <div class="section-colored" id="Footer">
+        <div class="container">
+          <div class="row">
+            <div class="col-lg-12 col-md-12 col-sm-12">
+              <center>
+                <p>
+                  <br/>
+                  {{ i18n('site_foot_1') }}
+                  <a href="https://github.com/MI2DataLab/crs19-monitor">MI2 DataLab</a>.
+                  {{ i18n('site_foot_2') }}
+                  <a href="https://www.gisaid.org/">GISAID {{ placeholders.DATE }}</a>.
+                </p>
+              </center>
+            </div>
+          </div><!-- /.row -->
+        </div><!-- /.container -->
+      </div><!-- /.section -->
+    </div>
+
+     <!-- JavaScript -->
+    <script  src="../../js/jquery-1.10.2.js"></script>
+    <script  src="../../js/bootstrap.js"></script>
+  </body>
+</html>
+<script>
+  const path = window.location.pathname
+  const parts = path.split('/').reverse().filter(p => p.length > 0)
+  const selected_date = parts[0]
+
+  const obj = {
+    el: '#app',
+    data: {
+      placeholders: {},
+      dateOptions: [],
+      countryOptions: [],
+      rawI18n: {},
+      lang: 'pl',
+      editTime: 0,
+      selectedDate: selected_date
+    },
+    created () {
+      this.$http.get('i18n.json').then(response => {
+        this.rawI18n = response.body
+      })
+      this.$http.get('../dates.json').then(response => {
+        this.dateOptions = response.body.map(r => ({ name: r, value: r }))
+      })
+      this.$http.get('./regions.json').then(response => {
+        this.countryOptions = response.body.map(r => ({ name: r.name, value: r.dir }))
+      })
+      window.onpopstate = (event) => {
+          this.lang = event.state.lang || 'pl'
+      }
+      let lang = new URLSearchParams(window.location.search).get('lang')
+      if (lang) {
+        this.lang = lang
+      }
+    },
+    watch: {
+      lang: 'updateEditTime',
+      langs: 'updateEditTime',
+      rawI18n: 'updateEditTime'
+    },
+    computed: {
+      imagesPrefix () {
+        return (country) => country + '/images/' + this.lang + '/'
+      },
+      i18n () {
+        return (tag) => {
+          return (this.rawI18n[this.lang] || {})[tag] || tag
+        }
+      },
+      langs () {
+        return Object.keys(this.rawI18n)
+      }
+    },
+    methods: {
+      setLang (l) {
+        this.lang = l
+        history.pushState({ lang: this.lang }, "lang=" + this.lang, '?lang=' + this.lang)
+      },
+      updateEditTime () {
+        this.editTime = Date.now()
+      },
+      updateDate (e) {
+        window.location.pathname = window.location.pathname.replace(selected_date, e.target.value)
+      }
+    }
+  }
+  let vm = null
+  document.addEventListener('DOMContentLoaded', () => {
+    vm = new Vue(obj)
+  })
+</script>
