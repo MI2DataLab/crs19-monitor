@@ -194,12 +194,25 @@ def get_elem_or_None(driver,class_name):
         elem = None
     return elem
 
+def get_elements_or_empty(driver,class_name):
+    """
+    Returns elements by class_name or [] if there is none
+    """
+    try:
+        elems = driver.find_elements_by_class_name(class_name)
+    except:
+        elems = []
+    return elems
+
 def is_spinning(driver, class_name):
     """
     Returns bool if element with class_name is visible
     """
-    elem = get_elem_or_None(driver, class_name)
-    return elem is not None and list(elem.rect.values()) != [0,0,0,0]
+    elems = get_elements_or_empty(driver, class_name)
+    for elem in elems:
+        if elem is not None and list(elem.rect.values()) != [0,0,0,0]:
+            return True
+    return False
 
 def wait_for_timer(driver):
     """
