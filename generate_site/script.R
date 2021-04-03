@@ -5,6 +5,7 @@ library(jsonlite)
 con <- dbConnect(RSQLite::SQLite(), Sys.getenv('DB_PATH'))
 res <- dbSendQuery(con, "SELECT country FROM metadata GROUP BY country HAVING COUNT(*) > 200")
 regions <- dbFetch(res)$country
+# regions <- c('Poland', 'Czech Republic', 'Germany')
 dbClearResult(res)
 dbDisconnect(con)
 

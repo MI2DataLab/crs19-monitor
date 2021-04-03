@@ -3,17 +3,18 @@
 library(ggplot2)
 library(Cairo)
 library(grid)
-library(dplyr)
+suppressMessages(library(dplyr))
 options(dplyr.summarise.inform = FALSE)
 library(ggrepel)
-library(lubridate)
+suppressMessages(library(lubridate))
 library(forcats)
 library(RSQLite)
 
 library(tidyr)
-library(rgdal)
-library(scatterpie)
-library(sf)
+options(rgdal_show_exportToProj4_warnings = "none")
+suppressMessages(library(rgdal))
+suppressMessages(library(scatterpie))
+suppressMessages(library(sf))
 library(patchwork)
 library(jsonlite)
 library(tmaptools)
@@ -120,7 +121,7 @@ for (lang in langs) {
 }
 
 # -------
-# Ewolucja wariantów
+# Variants
 
 t_cou_lin <- table(lineage$date, lineage$lineage_small)
 t_cou_lin <- apply(t_cou_lin, 2, cumsum)
@@ -696,7 +697,7 @@ if (sum(!is.na(metadata_ext$LocationClean)) > 0) {
 
   for (lang in langs) {
   	plots_output[[lang]][['pl_loc_1']] <-
-  	  ggplot(t_dat_loc_cla, aes(ymd(Var1), y=Freq, fill = Var3)) +
+  	  ggplot(t_dat_loc_cla, aes(ymd(Var1), y = Freq, fill = Var3)) +
   	  geom_col() +
   	  #geom_text(data = counts4, aes(x = ymd(date), y = n, label = label, hjust = 0, vjust = 1), size=2.7) +
   	  scale_fill_manual(values = c("grey", "red3")) +
@@ -723,7 +724,7 @@ if (sum(!is.na(metadata_ext$LocationClean)) > 0) {
 
   for (lang in langs) {
   	plots_output[[lang]][['pl_loc_2']] <-
-   	  ggplot(t_dat_loc_cla, aes(ymd(Var1), y=Freq, fill = Var3)) +
+   	  ggplot(t_dat_loc_cla, aes(ymd(Var1), y = Freq, fill = Var3)) +
    	  geom_col() +
    	  #  geom_text(data = counts4, aes(x = ymd(date), y = n, label = label, hjust = 0, vjust = 1), size=2.7) +
    	  scale_fill_manual(values = c("#77777777", "red3")) +
@@ -791,7 +792,7 @@ if (region == "Poland") {
 	    theme_void() +
 	    theme(legend.position = "none") +
 	    ggtitle(paste(descriptions[[lang]]["pl_map_sub1", "names"], DATE_LAST_SAMPLE)) +
-	    theme(plot.title = element_text(size=12, hjust = 0.5))
+	    theme(plot.title = element_text(size = 12, hjust = 0.5))
 
 	  pl_map_2 <- ggplot(map_cord_df) +
 	    geom_polygon(aes(X, Y, group = id), color = "black", fill = "white") +
@@ -803,12 +804,12 @@ if (region == "Poland") {
 	    theme_void() +
 	    theme(legend.position = "none") +
 	    ggtitle(paste(descriptions[[lang]]["pl_map_sub2", "names"], DATE_LAST_SAMPLE)) +
-	    theme(plot.title = element_text(size=12, hjust = 0.5))
+	    theme(plot.title = element_text(size = 12, hjust = 0.5))
 
 	  plots_output[[lang]][['pl_map']] <- (pl_map_1 + pl_map_2) +
 	    plot_annotation(
 	      title=paste(descriptions[[lang]]["pl_map_pt1", "names"], ALARM_MUTATION, descriptions[[lang]]["pl_map_pt2", "names"]),
-	      theme = theme(plot.title = element_text(size=15, hjust = 0.5))
+	      theme = theme(plot.title = element_text(size = 15, hjust = 0.5))
 	    )
   }
 }
@@ -837,9 +838,9 @@ for (lang in langs) {
 	plots_output[[lang]][['pl_var_all_2']] <-
 	  ggplot(df4, aes(ymd(date) + days(3), y=n, fill = variant)) +
 	  geom_col( position = "fill", color = "white") +
-	  coord_cartesian(xlim = c(ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date_local)), ylim= c(0,1)) +
+	  coord_cartesian(xlim = c(ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date_local)), ylim = c(0,1)) +
 	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
-	               limits = c(ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date_local)))+
+	               limits = c(ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date_local))) +
 	  scale_fill_manual("", values = pal) +
 	  ggtitle(descriptions[[lang]]["pl_var_all_2_tit", "names"]) +
 	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0), labels = scales::percent)
@@ -851,7 +852,7 @@ for (lang in langs) {
 	  geom_col( position = "stack", color = "white") +
 	  coord_cartesian(xlim = c(ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date_local))) +
 	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
-	               limits = c(ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date_local)))+
+	               limits = c(ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date_local))) +
 	  scale_fill_manual("", values = pal) +
 	  ggtitle(descriptions[[lang]]["pl_var_all_3_tit", "names"]) +
 	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0))
@@ -877,9 +878,9 @@ for (lang in langs) {
 	plots_output[[lang]][['pl_var_all_1']] <-
 	  ggplot(df4, aes(ymd(date), y=n, fill = variant)) +
 	  geom_area( position = "fill", color = "white") +
-	  coord_cartesian(xlim = c(ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date_local)), ylim= c(0,1)) +
+	  coord_cartesian(xlim = c(ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date_local)), ylim = c(0,1)) +
 	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
-	               limits = c(ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date_local)))+
+	               limits = c(ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date_local))) +
 	  scale_fill_manual("", values = pal) +
 	  ggtitle(descriptions[[lang]]["pl_var_all_1_tit", "names"]) +
 	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0), labels = scales::percent)
@@ -904,7 +905,7 @@ for (lang in langs) {
 	  ggplot(na.omit(df5[df5$n > 0 & df5$n < 1,]), aes(ymd(date), y=n, color = variant)) +
 	  geom_point( ) +
 	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
-	               limits = c(ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date_local)))+
+	               limits = c(ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date_local))) +
 	  theme_minimal(base_family = 'Arial') +
 	  geom_smooth(data = df5[(df5$variant %in% c("20I/501Y.V1", "20A", "20B")) &
 	                           (ymd(df5$date) > ymd(lineage_date_local) %m-% months(2)),],
@@ -921,18 +922,18 @@ for (lang in langs) {
 ############
 ## update HTML file
 t_cou_lin <- table(lineage$date, lineage$lineage_small)
-warianty <- head(colnames(t_cou_lin)[-ncol(t_cou_lin)], 7)
-warianty_list <- paste0(paste0('<a href="https://cov-lineages.org/lineages/lineage_', warianty, '.html">',warianty,'</a>'), collapse = ",\n")
-warianty2 <- head(colnames(t_cou_cla),5)
-warianty2_list <- paste0(paste0('<a href="https://www.cdc.gov/coronavirus/2019-ncov/more/science-and-research/scientific-brief-emerging-variants.html">',warianty2,'</a>'), collapse = ",\n")
+variants <- head(colnames(t_cou_lin)[-ncol(t_cou_lin)], 7)
+variants_list <- paste0(paste0('<a href="https://cov-lineages.org/lineages/lineage_', variants, '.html">', variants, '</a>'), collapse = ",\n")
+variants2 <- head(colnames(t_cou_cla), 5)
+variants2_list <- paste0(paste0('<a href="https://www.cdc.gov/coronavirus/2019-ncov/more/science-and-research/scientific-brief-emerging-variants.html">', variants2, '</a>'), collapse = ",\n")
 
 placeholders <- list(
 	DATE = gsub("/", "-", lineage_date),
 	NUMBER = nrow(lineage),
 	DATELAST = max(lineage$date),
-	VARIANTSLIST = warianty_list,
+	VARIANTSLIST = variants_list,
 	VARIANTS = length(unique(lineage$Lineage)),
-	VARIANTSLIST2 = warianty2_list,
+	VARIANTSLIST2 = variants2_list,
 	VARIANTS2 = length(colnames(t_cou_cla))
 )
 write(toJSON(placeholders, auto_unbox = TRUE), paste0(output_dir, '/placeholders.json'))
