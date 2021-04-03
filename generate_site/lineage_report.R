@@ -641,7 +641,9 @@ location_dict_to_from <- list(
     , " Zlín Region ", " zlín region "
     )
 )
-
+temp <- toJSON(location_dict_to_from)
+write(temp, "./source/location_dict.json")
+location_dict_to_from <- fromJSON("./source/location_dict.json")
 reverse_dict <- function(dict) {
   # https://stackoverflow.com/a/35827024
   split(rep(names(dict), lengths(dict)), unlist(dict))
