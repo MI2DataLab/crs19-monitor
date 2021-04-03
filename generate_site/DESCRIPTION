@@ -1,6 +1,6 @@
 Package: crs19
 Title: Install the dependencies for crs19-monitor project
-Version: 0.2
+Version: 0.2.0
 Authors@R: person("First", "Last", email = "first.last@example.com",
                   role = c("aut", "cre"))
 Description: Install the dependencies for crs19-monitor project
