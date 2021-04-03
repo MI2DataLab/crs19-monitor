@@ -299,7 +299,6 @@ load_location_dict <- function() {
         , "Pilsen", "pilsen"
         , " Pilsen", " pilsen"
         , " Pilsen ", " pilsen "
-        
         )
     , "South Bohemian Region" =
         c(
