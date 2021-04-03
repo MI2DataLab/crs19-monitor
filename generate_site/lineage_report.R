@@ -59,7 +59,7 @@ langs <- c('pl', 'en')
 descriptions <- list()
 plots_output <- list()
 for (lang in langs) {
-	descriptions[[lang]] <- read.table(paste0("lang_", lang, ".txt"), sep=":", header = TRUE, row.names = 1, fileEncoding = "UTF-8", quote=NULL)
+	descriptions[[lang]] <- read.table(paste0("./source/lang_", lang, ".txt"), sep=":", header = TRUE, row.names = 1, fileEncoding = "UTF-8", quote=NULL)
 	plots_output[[lang]] <- list()
 }
 
@@ -901,7 +901,7 @@ for (lang in langs) {
 ## update HTML file
 t_cou_lin <- table(lineage$date, lineage$lineage_small)
 warianty <- head(colnames(t_cou_lin)[-ncol(t_cou_lin)],7)
-warianty_list <- paste0(paste0('<a href="https://cov-lineages.org/lineages/lineage_',warianty,'.html">',warianty,'</a>'), collapse = ",\n")
+warianty_list <- paste0(paste0('<a href="https://cov-lineages.org/lineages/lineage_', warianty, '.html">',warianty,'</a>'), collapse = ",\n")
 warianty2 <- head(colnames(t_cou_cla),5)
 warianty2_list <- paste0(paste0('<a href="https://www.cdc.gov/coronavirus/2019-ncov/more/science-and-research/scientific-brief-emerging-variants.html">',warianty2,'</a>'), collapse = ",\n")
 
@@ -915,10 +915,10 @@ placeholders <- list(
 	VARIANTS2 = length(colnames(t_cou_cla))
 )
 write(toJSON(placeholders, auto_unbox=TRUE), paste0(output_dir, '/placeholders.json'))
-file.copy('./index_source.html', paste0(output_dir, '/index.html'), overwrite=TRUE)
+file.copy('./source/index_source.html', paste0(output_dir, '/index.html'), overwrite=TRUE)
 
 i18n <- lapply(langs, function(lang) {
-	i18n_table <- read.table(paste0("lang_", lang, ".txt"), sep=":", header = TRUE, fileEncoding = "UTF-8", quote=NULL)
+	i18n_table <- read.table(paste0("./source/lang_", lang, ".txt"), sep=":", header = TRUE, fileEncoding = "UTF-8", quote=NULL)
 	# Transform table to dictionary
 	obj = as.list(i18n_table[,"names"])
 	names(obj) <- i18n_table[,"tag"]

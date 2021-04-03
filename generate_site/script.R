@@ -49,7 +49,7 @@ write(toJSON(date_dirs, auto_unbox=FALSE), paste0(output_path, '/dates.json'))
 
 
 # Add summary
-file.copy('./index_source_summary.html', paste0(output_path, '/', path_date, '/index.html'), overwrite=TRUE)
+file.copy('./source/index_source_summary.html', paste0(output_path, '/', path_date, '/index.html'), overwrite=TRUE)
 
 langs <- c('pl', 'en')
 i18n <- lapply(langs, function(lang) {
