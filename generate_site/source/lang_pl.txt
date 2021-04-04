@@ -40,3 +40,4 @@ site_description_4:Liczba wariantów z mutacją N501Y w województwach.
 site_description_5:Procent wariantów z mutacją N501Y w województwach.
 site_foot_1:Monitor wariantów SARS-CoV-2 w Europie. Stworzony przez
 site_foot_2:W oparciu o dane z
+other_level:Inne

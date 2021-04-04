@@ -40,3 +40,4 @@ site_description_4:Number of variants with the N501Y mutation in the regions.
 site_description_5:Percentage of variants with the N501Y mutation in the regions.
 site_foot_1:Monitor of SARS-CoV-2 variants in Europe. Created by
 site_foot_2:Based on the data from
+other_level:Other

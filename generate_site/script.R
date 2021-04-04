@@ -5,6 +5,7 @@ library(jsonlite)
 con <- dbConnect(RSQLite::SQLite(), Sys.getenv('DB_PATH'))
 res <- dbSendQuery(con, "SELECT country FROM metadata GROUP BY country HAVING COUNT(*) > 200")
 regions <- dbFetch(res)$country
+# regions <- c('Poland', 'Czech Republic', 'Germany')
 dbClearResult(res)
 dbDisconnect(con)
 
@@ -49,11 +50,11 @@ write(toJSON(date_dirs, auto_unbox=FALSE), paste0(output_path, '/dates.json'))
 
 
 # Add summary
-file.copy('./index_source_summary.html', paste0(output_path, '/', path_date, '/index.html'), overwrite=TRUE)
+file.copy('./source/index_source_summary.html', paste0(output_path, '/', path_date, '/index.html'), overwrite=TRUE)
 
 langs <- c('pl', 'en')
 i18n <- lapply(langs, function(lang) {
-	i18n_table <- read.table(paste0("lang_", lang, ".txt"), sep=":", header = TRUE, fileEncoding = "UTF-8", quote=NULL)
+	i18n_table <- read.table(paste0("./source/lang_", lang, ".txt"), sep=":", header = TRUE, fileEncoding = "UTF-8", quote=NULL)
 	# Transform table to dictionary
 	obj = as.list(i18n_table[,"names"])
 	names(obj) <- i18n_table[,"tag"]

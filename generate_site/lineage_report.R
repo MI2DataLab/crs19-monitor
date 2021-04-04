@@ -3,32 +3,25 @@
 library(ggplot2)
 library(Cairo)
 library(grid)
-library(dplyr)
+suppressMessages(library(dplyr))
+options(dplyr.summarise.inform = FALSE)
 library(ggrepel)
-library(lubridate)
+suppressMessages(library(lubridate))
 library(forcats)
 library(RSQLite)
 
 library(tidyr)
-library(rgdal)
-library(scatterpie)
-library(sf)
+options(rgdal_show_exportToProj4_warnings = "none")
+suppressMessages(library(rgdal))
+suppressMessages(library(scatterpie))
+suppressMessages(library(sf))
 library(patchwork)
 library(jsonlite)
 library(tmaptools)
 ############
 ## read data
-# lineage_report =  "../../data/pango.csv"
-# nextclade_report = "../../data/clades.tsv"
-# metadata_report = "../../data/gisaid_metadata.csv"
-# lineage_date <- "2021/03/19"
-# region <- "Poland"
-# db_path <- "../../data/sequences.sqlite"
-# output_dir <- "./output/"
 
 lineage_date <- Sys.getenv("LINEAGE_DATE")
-#lineage_report <- Sys.getenv("LINEAGE_REPORT_PATH")
-#nextclade_report <- Sys.getenv("NEXTCLADE_REPORT_PATH")
 output_dir <- Sys.getenv("OUTPUT_PATH")
 db_path <- Sys.getenv('DB_PATH')
 region <- Sys.getenv('REGION')
@@ -44,7 +37,7 @@ dbDisconnect(con)
 print(paste('Found', nrow(metadata), 'rows in database'))
 
 # Create output dirs
-dir.create(paste0(output_dir, '/', 'images'), recursive=TRUE, showWarnings=FALSE)
+dir.create(paste0(output_dir, '/', 'images'), recursive = TRUE, showWarnings = FALSE)
 
 # Filter by region
 lineage <-subset(lineage_full, accession_id %in% metadata$accession_id)
@@ -59,7 +52,7 @@ langs <- c('pl', 'en')
 descriptions <- list()
 plots_output <- list()
 for (lang in langs) {
-	descriptions[[lang]] <- read.table(paste0("lang_", lang, ".txt"), sep=":", header = TRUE, row.names = 1, fileEncoding = "UTF-8", quote=NULL)
+	descriptions[[lang]] <- read.table(paste0("./source/lang_", lang, ".txt"), sep = ":", header = TRUE, row.names = 1, fileEncoding = "UTF-8", quote = NULL)
 	plots_output[[lang]] <- list()
 }
 
@@ -67,7 +60,7 @@ for (lang in langs) {
 # -------
 # global variables
 
-DATE_LAST_SAMPLE <- max(ymd(metadata$collection_date), na.rm = T)
+DATE_LAST_SAMPLE <- max(ymd(metadata$collection_date), na.rm = TRUE)
 ALARM_MUTATION <- "N501Y"
 ALARM_PATTERN <- "501Y"
 ALARM_PANGO <- c("B.1.1.7", "B.1.351", "P.1")
@@ -90,15 +83,15 @@ lineage$sample <- gsub(sapply(strsplit(lineage$Sequence.name, split = "\\|"), `[
 
 lineage$lineage_small <- fct_infreq(lineage$Lineage)
 lineage$lineage_small <- fct_other(lineage$lineage_small,
-                                   keep = unique(c(head(levels(lineage$lineage_small), 7), ALARM_PANGO)), other_level = "Inne")
-#lineage$lineage_small <- fct_lump(lineage$lineage_small, n = 8, other_level = "Inne")
+                                   keep = unique(c(head(levels(lineage$lineage_small), 7), ALARM_PANGO)), other_level = descriptions[[lang]]["other_level", "names"])
+#lineage$lineage_small <- fct_lump(lineage$lineage_small, n = 8, other_level = descriptions[[lang]]["other_level", "names"])
 
 
 nextclade$date <- sapply(strsplit(nextclade$seqName, split = "|", fixed = TRUE),
                        function(x) substr(paste0(tail(x, 1), "-01"), 1, 10))
 nextclade$sample <- gsub(sapply(strsplit(nextclade$seqName, split = "\\|"), `[`, 2), pattern = " ", replacement = "")
 nextclade$clade_small <- fct_infreq(nextclade$clade)
-nextclade$clade_small <- fct_lump(nextclade$clade_small, n = 12, other_level = "Inne")
+nextclade$clade_small <- fct_lump(nextclade$clade_small, n = 12, other_level = descriptions[[lang]]["other_level", "names"])
 
 # -------
 # Liczba na tydzień
@@ -128,7 +121,7 @@ for (lang in langs) {
 }
 
 # -------
-# Ewolucja wariantów
+# Variants
 
 t_cou_lin <- table(lineage$date, lineage$lineage_small)
 t_cou_lin <- apply(t_cou_lin, 2, cumsum)
@@ -194,7 +187,7 @@ for (lang in langs) {
 lineage$lineage_small <- fct_infreq(lineage$Lineage)
 # concatenate rare variants
 lineage$lineage_small <- fct_other(lineage$lineage_small,
-                                   keep = unique(c(head(levels(lineage$lineage_small), 20), ALARM_PANGO)), other_level = "Inne")
+                                   keep = unique(c(head(levels(lineage$lineage_small), 20), ALARM_PANGO)), other_level = descriptions[[lang]]["other_level", "names"])
 t_cou_lin <- table(lineage$date, lineage$lineage_small)
 t_cou_lin <- apply(t_cou_lin, 2, cumsum)
 df3 <- as.data.frame(as.table(t_cou_lin))
@@ -278,358 +271,18 @@ for (lang in langs) {
 # ------------LOCATION------------- #
 # --------------------------------- #
 
-### reversed dict
-## NOTE: gsub(" ", "", x) is not possible due to other countries than PL
-# TODO: consider only lowercase keys
-
-location_dict_to_from <- list(
-  # https://pl.wikipedia.org/wiki/Województwo
-  ######## PL
-
-  "Dolnośląskie" =
-    c(
-      "Dolnoslaskie" , "dolnoslaskie"
-    , " Dolnoslaskie" , " dolnoslaskie"
-    , " Dolnoslaskie " , " dolnoslaskie "
-    , "Dolnośląskie", "dolnośląskie"
-    , " Dolnośląskie", " dolnośląskie"
-    , " Dolnośląskie ", " dolnośląskie "
-    , "Dolnoslakie", "dolnoslakie"
-    , " Dolnoslakie", " dolnoslakie"
-    , " Dolnoslakie ", " dolnoslakie "
-    , "DolnoSlaskie" , "dolnoSlaskie"
-    , " DolnoSlaskie" , " dolnoSlaskie"
-    , " DolnoSlaskie " , " dolnoSlaskie "
-    )
-, "Kujawsko-Pomorskie" =
-    c(
-      "Kujawsko-Pomorskie" , "kujawsko-pomorskie", "Kujawsko-pomorskie"
-    , " Kujawsko-Pomorskie" , " kujawsko-pomorskie", " Kujawsko-pomorskie"
-    , " Kujawsko-Pomorskie " , " kujawsko-pomorskie ", " Kujawsko-pomorskie "
-    )
-, "Lubelskie" =
-    c(
-      "Lubelskie" , "lubelskie"
-    , " Lubelskie", " lubelskie"
-    , " Lubelskie ", " lubelskie "
-    )
-, "Lubuskie" =
-    c(
-      "Lubuskie" , "lubuskie"
-    , " Lubuskie" , " lubuskie"
-    , " Lubuskie " , " lubuskie "
-    )
-, "Łódzkie" =
-    c(
-      "Lodzkie", "lodzkie"
-    , " Lodzkie", " lodzkie"
-    , " Lodzkie ", " lodzkie "
-    , "Łódzkie", "łódzkie"
-    , " Łódzkie", " łódzkie"
-    , " Łódzkie ", " łódzkie "
-    , "Iodzkie", "lodzkie"
-    , " Iodzkie", " lodzkie"
-    , " Iodzkie ", " lodzkie "
-    )
-, "Małopolskie" =
-    c(
-      "Malopolskie" , "malopolskie"
-    , " Malopolskie" , " malopolskie"
-    , " Malopolskie " , " malopolskie "
-    , "Małopolskie", "małopolskie"
-    , " Małopolskie", " małopolskie"
-    , " Małopolskie ", " małopolskie "
-    , "Malopolska", "malopolska"
-    , " Malopolska", " malopolska"
-    , " Malopolska ", " malopolska "
-    , "Małopolska", "małopolska"
-    , " Małopolska", " małopolska"
-    , " Małopolska ", " małopolska "
-    , "MalOpolskie", "malOpolskie"
-    , " MalOpolskie", " malOpolskie"
-    , " MalOpolskie ", " malOpolskie "
-    )
-, "Mazowieckie" =
-    c(
-      "Mazowieckie", "mazowieckie"
-    , " Mazowieckie", " mazowieckie"
-    , " Mazowieckie ", " mazowieckie "
-    , "Masovia", "masovia"
-    , " Masovia", " masovia"
-    , " Masovia ", " masovia "
-    )
-, "Opolskie" =
-    c(
-      "Opolskie", "opolskie"
-    , " Opolskie", " opolskie"
-    , " Opolskie ", " opolskie "
-    )
-, "Podkarpackie" =
-    c(
-      "Podkarpackie", "podkarpackie"
-    , " Podkarpackie", " podkarpackie"
-    , " Podkarpackie ", " podkarpackie "
-    )
-, "Podlaskie" =
-    c(
-      "Podlaskie", "podlaskie"
-    , " Podlaskie", " podlaskie"
-    , " Podlaskie ", " podlaskie "
-    , "Bielsk Podlaski", "bielsk podlaski"
-    , " Bielsk Podlaski", " bielsk podlaski"
-    , " Bielsk Podlaski ", " bielsk podlaski "
-    )
-, "Pomorskie" =
-    c(
-      "Pomorskie", "pomorskie"
-    , " Pomorskie", " pomorskie"
-    , " Pomorskie ", " pomorskie "
-    , "Pomerania", "pomerania"
-    , " Pomerania", " pomerania"
-    , " Pomerania ", " pomerania "
-    , "Pomorze", "pomorze"
-    , " Pomorze", " pomorze"
-    , " Pomorze ", " pomorze "
-    )
-, "Śląskie" =
-    c(
-      "Slaskie", "slaskie"
-    , " Slaskie", " slaskie"
-    , " Slaskie ", " slaskie "
-    , "Śląskie", "śląskie"
-    , " Śląskie", " śląskie"
-    , " Śląskie ", " śląskie "
-    , "Slask", "slask"
-    , " Slask", " slask"
-    , " Slask ", " slask "
-    )
-, "Świętokrzyskie" =
-    c(
-      "Swietokrzyskie", "swietokrzyskie"
-    , " Swietokrzyskie", " swietokrzyskie"
-    , " Swietokrzyskie ", " swietokrzyskie "
-    , "Świętokrzyskie", "świętokrzyskie"
-    , " Świętokrzyskie", " świętokrzyskie"
-    , " Świętokrzyskie ", " świętokrzyskie "
-    )
-, "Warmińsko-Mazurskie" =
-    c(
-      "Warminsko-Mazurskie", "warminsko-mazurskie", "Warminsko-mazurskie"
-    , " Warminsko-Mazurskie", " warminsko-mazurskie", " Warminsko-mazurskie"
-    , " Warminsko-Mazurskie ", " warminsko-mazurskie ", " Warminsko-mazurskie "
-    , "Warmińsko-Mazurskie", "warmińsko-mazurskie", "Warmińsko-mazurskie"
-    , " Warmińsko-Mazurskie", " warmińsko-mazurskie", " Warmińsko-mazurskie"
-    , " Warmińsko-Mazurskie ", " warmińsko-mazurskie ", " Warmińsko-mazurskie "
-    )
-, "Wielkopolskie" =
-    c(
-      "Wielkopolskie", "wielkopolskie"
-    , " Wielkopolskie", " wielkopolskie"
-    , " Wielkopolskie ", " wielkopolskie "
-    , "Wielkopolska", "wielkopolska"
-    , " Wielkopolska", " wielkopolska"
-    , " Wielkopolska ", " wielkopolska "
-    , "WielkOpolskie", "wielkOpolskie"
-    , " WielkOpolskie", " wielkOpolskie"
-    , " WielkOpolskie ", " wielkOpolskie "
-    )
-, "Zachodniopomorskie" =
-    c(
-      "Zachodniopomorskie", "zachodniopomorskie"
-    , " Zachodniopomorskie", " zachodniopomorskie"
-    , " Zachodniopomorskie ", " zachodniopomorskie "
-    , "ZachodnioPomorskie", "zachodnioPomorskie"
-    , " ZachodnioPomorskie", " zachodnioPomorskie"
-    , " ZachodnioPomorskie ", " zachodnioPomorskie "
-    )
-
-  ########
-, "Central Bohemian Region" =
-    c(
-      "Central Bohemian Region", "central bohemian region"
-    , " Central Bohemian Region", " central bohemian region"
-    , " Central Bohemian Region ", " central bohemian region "
-    , "Central Bohemia Region", "central bohemia region"
-    , " Central Bohemia Region", " central bohemia region"
-    , " Central Bohemia Region ", " central bohemia region "
-    , "Melnik", "melnik"
-    , " Melnik", " melnik"
-    , " Melnik ", " melnik "
-    , "Slaný", "slaný"
-    , " Slaný", " slaný"
-    , " Slaný ", " slaný "
-    )
-, "Hradec Králové Region" =
-    c(
-      "Hradec Králové Region", "hradec králové region"
-    , " Hradec Králové Region", " hradec králové region"
-    , " Hradec Králové Region ", " hradec králové region "
-    , "Hradec Kralove Region", "hradec kralove region"
-    , " Hradec Kralove Region", " hradec kralove region"
-    , " Hradec Kralove Region ", " hradec kralove region "
-    )
-, "Liberec Region" =
-    c(
-      "Liberec Region", "liberec region"
-    , " Liberec Region", " liberec region"
-    , " Liberec Region ", " liberec region "
-    )
-, "Moravian-Silesian Region" =
-    c(
-      "Moravian-Silesian Region", "moravian-silesian region"
-    , " Moravian-Silesian Region", " moravian-silesian region"
-    , " Moravian-Silesian Region ", " moravian-silesian region "
-    )
-, "Northern Bohemian Region" =
-    c(
-      "Northern Bohemian Region", "northern bohemian region"
-    , " Northern Bohemian Region", " northern bohemian region"
-    , " Northern Bohemian Region ", " northern bohemian region "
-    , "Northern Bohemia Region", "northern bohemia region"
-    , " Northern Bohemia Region", " northern bohemia region"
-    , " Northern Bohemia Region ", " northern bohemia region "
-    , "North Bohemian Region", "north bohemian region"
-    , " North Bohemian Region", " north bohemian region"
-    , " North Bohemian Region ", " north bohemian region "
-    , "North Bohemia Region", "north bohemia region"
-    , " North Bohemia Region", " north bohemia region"
-    , " North Bohemia Region ", " north bohemia region "
-    )
-, "Olomouc Region" =
-    c(
-      "Olomouc", "olomouc"
-    , " Olomouc", " olomouc"
-    , " Olomouc ", " olomouc "
-    , "Olomouc Region", "olomouc region"
-    , " Olomouc Region", " olomouc region"
-    , " Olomouc Region ", " olomouc region "
-    , "Litovel", "litovel"
-    , " Litovel", " litovel"
-    , " Litovel ", " litovel "
-    , "Hranice na Moravě", "hranice na moravě"
-    , " Hranice na Moravě", " hranice na moravě"
-    , " Hranice na Moravě ", " hranice na moravě "
-    , "Hranice", "hranice"
-    , " Hranice", " hranice"
-    , " Hranice ", " hranice "
-    )
-, "Pardubice Region" =
-    c(
-      "Pardubice Region", "pardubice region"
-    , " Pardubice Region", " pardubice region"
-    , " Pardubice Region ", " pardubice region "
-    )
-, "Plzeň Region" =
-    c(
-      "Plzen", "plzen"
-    , " Plzen", " plzen"
-    , " Plzen ", " plzen "
-    , "Plzeň", "plzeň"
-    , " Plzeň", " plzeň"
-    , " Plzeň ", " plzeň "
-    , "Plzen Region", "plzen region"
-    , " Plzen Region", " plzen region"
-    , " Plzen Region ", " plzen region "
-    , "Plzeň Region", "plzeň region"
-    , " Plzeň Region", " plzeň region"
-    , " Plzeň Region ", " plzeň region "
-    , "Klatovy", "klatovy"
-    , " Klatovy", " klatovy"
-    , " Klatovy ", " klatovy "
-    , "Domažlice", "domažlice"
-    , " Domažlice", " domažlice"
-    , " Domažlice ", " domažlice "
-    , "Pilsen", "pilsen"
-    , " Pilsen", " pilsen"
-    , " Pilsen ", " pilsen "
-    )
-, "Prague" =
-    c(
-      "Prague", "prague"
-    , " Prague", " prague"
-    , " Prague ", " prague "
-    , "Prague-Miskovice", "prague-miskovice"
-    , " Prague-Miskovice", " prague-miskovice"
-    , " Prague-Miskovice ", " prague-miskovice "
-    )
-, "South Bohemian Region" =
-    c(
-      "South Bohemian Region", "south bohemian region"
-    , " South Bohemian Region", " south bohemian region"
-    , " South Bohemian Region ", " south bohemian region "
-    , "South Bohemia Region", "south bohemia region"
-    , " South Bohemia Region", " south bohemia region"
-    , " South Bohemia Region ", " south bohemia region "
-    , "Southern Bohemian Region", "southern bohemian region"
-    , " Southern Bohemian Region", " southern bohemian region"
-    , " Southern Bohemian Region ", " southern bohemian region "
-    , "Southern Bohemia Region", "southern bohemia region"
-    , " Southern Bohemia Region", " southern bohemia region"
-    , " Southern Bohemia Region ", " southern bohemia region "
-    )
-, "South Moravian Region" =
-    c(
-      "South Moravian Region", "south moravian region"
-    , " South Moravian Region", " south moravian region"
-    , " South Moravian Region ", " south moravian region "
-    , "Brno", "brno"
-    , " Brno", " brno"
-    , " Brno ", " brno "
-    , "Breclav", "breclav"
-    , " Breclav", " breclav"
-    , " Breclav ", " breclav "
-    )
-, "Ústí nad Labem Region" =
-    c(
-      "Ústí nad Labem", "ústí nad labem"
-    , " Ústí nad Labem", " ústí nad labem"
-    , " Ústí nad Labem ", " ústí nad labem "
-    , "Ústí nad Labem Region", "ústí nad labem region"
-    , " Ústí nad Labem Region", " ústí nad labem region"
-    , " Ústí nad Labem Region ", " ústí nad labem region "
-    , "Usti nad Labem", "usti nad labem"
-    , " Usti nad Labem", " usti nad labem"
-    , " Usti nad Labem ", " usti nad labem "
-    )
-, "Vysocina Region" =
-    c(
-      "Vysocina Region", "vysocina region"
-    , " Vysocina Region", " vysocina region"
-    , " Vysocina Region ", " vysocina region "
-    , "Vysocina", "vysocina"
-    , " Vysocina", " vysocina"
-    , " Vysocina ", " vysocina "
-    , "Jihlava", "jihlava"
-    , " Jihlava", " jihlava"
-    , " Jihlava ", " jihlava "
-    )
-, "Zlín Region" =
-    c(
-      "Zlin", "zlin"
-    , " Zlin", " zlin"
-    , " Zlin ", " zlin "
-    , "Zlin Region", "zlin region"
-    , " Zlin Region", " zlin region"
-    , " Zlin Region ", " zlin region "
-    , "Zlín", "zlín"
-    , " Zlín", " zlín"
-    , " Zlín ", " zlín "
-    , "Zlín Region", "zlín region"
-    , " Zlín Region", " zlín region"
-    , " Zlín Region ", " zlín region "
-    )
-)
-
 reverse_dict <- function(dict) {
   # https://stackoverflow.com/a/35827024
   split(rep(names(dict), lengths(dict)), unlist(dict))
 }
 
+source("./source/location_dict.R")
+location_dict_to_from <- load_location_dict()
 ### proper dict
 location_dict_from_to <- reverse_dict(location_dict_to_from)
 
 ### clean location
-location_from <- sapply(strsplit(metadata_ext$location, split = "/"), `[`, 3, simplify = T, USE.NAMES = F)
+location_from <- sapply(strsplit(metadata_ext$location, split = "/"), `[`, 3, simplify = TRUE, USE.NAMES = FALSE)
 metadata_ext$LocationRaw <- location_from
 location_to <- location_dict_from_to[location_from]
 location_to[is.na(names(location_to))] <- NA
@@ -663,7 +316,7 @@ if (sum(!is.na(metadata_ext$LocationClean)) > 0) {
   try({
     metadata_ext$LocationClean <- fct_other(metadata_ext$LocationClean,
                                             keep = selected_regions,
-                                            other_level = "Others")
+                                            other_level = descriptions[[lang]]["other_level", "names"])
   }, silent = TRUE)
   # calculate this table again with combined levels
   t_dat_loc_cla <- table(metadata_ext$week_start, metadata_ext$LocationClean,
@@ -675,7 +328,7 @@ if (sum(!is.na(metadata_ext$LocationClean)) > 0) {
 
   for (lang in langs) {
   	plots_output[[lang]][['pl_loc_1']] <-
-  	  ggplot(t_dat_loc_cla, aes(ymd(Var1), y=Freq, fill = Var3)) +
+  	  ggplot(t_dat_loc_cla, aes(ymd(Var1), y = Freq, fill = Var3)) +
   	  geom_col() +
   	  #geom_text(data = counts4, aes(x = ymd(date), y = n, label = label, hjust = 0, vjust = 1), size=2.7) +
   	  scale_fill_manual(values = c("grey", "red3")) +
@@ -702,7 +355,7 @@ if (sum(!is.na(metadata_ext$LocationClean)) > 0) {
 
   for (lang in langs) {
   	plots_output[[lang]][['pl_loc_2']] <-
-   	  ggplot(t_dat_loc_cla, aes(ymd(Var1), y=Freq, fill = Var3)) +
+   	  ggplot(t_dat_loc_cla, aes(ymd(Var1), y = Freq, fill = Var3)) +
    	  geom_col() +
    	  #  geom_text(data = counts4, aes(x = ymd(date), y = n, label = label, hjust = 0, vjust = 1), size=2.7) +
    	  scale_fill_manual(values = c("#77777777", "red3")) +
@@ -770,7 +423,7 @@ if (region == "Poland") {
 	    theme_void() +
 	    theme(legend.position = "none") +
 	    ggtitle(paste(descriptions[[lang]]["pl_map_sub1", "names"], DATE_LAST_SAMPLE)) +
-	    theme(plot.title = element_text(size=12, hjust = 0.5))
+	    theme(plot.title = element_text(size = 12, hjust = 0.5))
 
 	  pl_map_2 <- ggplot(map_cord_df) +
 	    geom_polygon(aes(X, Y, group = id), color = "black", fill = "white") +
@@ -782,12 +435,12 @@ if (region == "Poland") {
 	    theme_void() +
 	    theme(legend.position = "none") +
 	    ggtitle(paste(descriptions[[lang]]["pl_map_sub2", "names"], DATE_LAST_SAMPLE)) +
-	    theme(plot.title = element_text(size=12, hjust = 0.5))
+	    theme(plot.title = element_text(size = 12, hjust = 0.5))
 
 	  plots_output[[lang]][['pl_map']] <- (pl_map_1 + pl_map_2) +
 	    plot_annotation(
 	      title=paste(descriptions[[lang]]["pl_map_pt1", "names"], ALARM_MUTATION, descriptions[[lang]]["pl_map_pt2", "names"]),
-	      theme = theme(plot.title = element_text(size=15, hjust = 0.5))
+	      theme = theme(plot.title = element_text(size = 15, hjust = 0.5))
 	    )
   }
 }
@@ -816,9 +469,9 @@ for (lang in langs) {
 	plots_output[[lang]][['pl_var_all_2']] <-
 	  ggplot(df4, aes(ymd(date) + days(3), y=n, fill = variant)) +
 	  geom_col( position = "fill", color = "white") +
-	  coord_cartesian(xlim = c(ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date_local)), ylim= c(0,1)) +
+	  coord_cartesian(xlim = c(ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date_local)), ylim = c(0,1)) +
 	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
-	               limits = c(ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date_local)))+
+	               limits = c(ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date_local))) +
 	  scale_fill_manual("", values = pal) +
 	  ggtitle(descriptions[[lang]]["pl_var_all_2_tit", "names"]) +
 	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0), labels = scales::percent)
@@ -830,7 +483,7 @@ for (lang in langs) {
 	  geom_col( position = "stack", color = "white") +
 	  coord_cartesian(xlim = c(ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date_local))) +
 	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
-	               limits = c(ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date_local)))+
+	               limits = c(ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date_local))) +
 	  scale_fill_manual("", values = pal) +
 	  ggtitle(descriptions[[lang]]["pl_var_all_3_tit", "names"]) +
 	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0))
@@ -856,9 +509,9 @@ for (lang in langs) {
 	plots_output[[lang]][['pl_var_all_1']] <-
 	  ggplot(df4, aes(ymd(date), y=n, fill = variant)) +
 	  geom_area( position = "fill", color = "white") +
-	  coord_cartesian(xlim = c(ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date_local)), ylim= c(0,1)) +
+	  coord_cartesian(xlim = c(ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date_local)), ylim = c(0,1)) +
 	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
-	               limits = c(ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date_local)))+
+	               limits = c(ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date_local))) +
 	  scale_fill_manual("", values = pal) +
 	  ggtitle(descriptions[[lang]]["pl_var_all_1_tit", "names"]) +
 	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0), labels = scales::percent)
@@ -883,11 +536,11 @@ for (lang in langs) {
 	  ggplot(na.omit(df5[df5$n > 0 & df5$n < 1,]), aes(ymd(date), y=n, color = variant)) +
 	  geom_point( ) +
 	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
-	               limits = c(ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date_local)))+
+	               limits = c(ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date_local))) +
 	  theme_minimal(base_family = 'Arial') +
 	  geom_smooth(data = df5[(df5$variant %in% c("20I/501Y.V1", "20A", "20B")) &
 	                           (ymd(df5$date) > ymd(lineage_date_local) %m-% months(2)),],
-	              se = FALSE, span = 1) +
+	              se = FALSE, span = 1, method = 'loess', formula = y ~ x) +
 	  scale_y_continuous("",expand = c(0,0),
 	                     breaks = c(0.01,0.1,0.25,0.5,0.75,0.9, 0.99), limits = c(0,1)) +
 	  scale_color_manual("", values = pal) +
@@ -900,32 +553,32 @@ for (lang in langs) {
 ############
 ## update HTML file
 t_cou_lin <- table(lineage$date, lineage$lineage_small)
-warianty <- head(colnames(t_cou_lin)[-ncol(t_cou_lin)],7)
-warianty_list <- paste0(paste0('<a href="https://cov-lineages.org/lineages/lineage_',warianty,'.html">',warianty,'</a>'), collapse = ",\n")
-warianty2 <- head(colnames(t_cou_cla),5)
-warianty2_list <- paste0(paste0('<a href="https://www.cdc.gov/coronavirus/2019-ncov/more/science-and-research/scientific-brief-emerging-variants.html">',warianty2,'</a>'), collapse = ",\n")
+variants <- head(colnames(t_cou_lin)[-ncol(t_cou_lin)], 7)
+variants_list <- paste0(paste0('<a href="https://cov-lineages.org/lineages/lineage_', variants, '.html">', variants, '</a>'), collapse = ",\n")
+variants2 <- head(colnames(t_cou_cla), 5)
+variants2_list <- paste0(paste0('<a href="https://www.cdc.gov/coronavirus/2019-ncov/more/science-and-research/scientific-brief-emerging-variants.html">', variants2, '</a>'), collapse = ",\n")
 
 placeholders <- list(
 	DATE = gsub("/", "-", lineage_date),
 	NUMBER = nrow(lineage),
 	DATELAST = max(lineage$date),
-	VARIANTSLIST = warianty_list,
+	VARIANTSLIST = variants_list,
 	VARIANTS = length(unique(lineage$Lineage)),
-	VARIANTSLIST2 = warianty2_list,
+	VARIANTSLIST2 = variants2_list,
 	VARIANTS2 = length(colnames(t_cou_cla))
 )
-write(toJSON(placeholders, auto_unbox=TRUE), paste0(output_dir, '/placeholders.json'))
-file.copy('./index_source.html', paste0(output_dir, '/index.html'), overwrite=TRUE)
+write(toJSON(placeholders, auto_unbox = TRUE), paste0(output_dir, '/placeholders.json'))
+file.copy('./source/index_source.html', paste0(output_dir, '/index.html'), overwrite = TRUE)
 
 i18n <- lapply(langs, function(lang) {
-	i18n_table <- read.table(paste0("lang_", lang, ".txt"), sep=":", header = TRUE, fileEncoding = "UTF-8", quote=NULL)
+	i18n_table <- read.table(paste0("./source/lang_", lang, ".txt"), sep = ":", header = TRUE, fileEncoding = "UTF-8", quote = NULL)
 	# Transform table to dictionary
 	obj = as.list(i18n_table[,"names"])
 	names(obj) <- i18n_table[,"tag"]
 	obj
 })
 names(i18n) <- langs
-write(toJSON(i18n, auto_unbox=TRUE), paste0(output_dir, '/i18n.json'))
+write(toJSON(i18n, auto_unbox = TRUE), paste0(output_dir, '/i18n.json'))
 
 ############
 ## save plots
@@ -933,29 +586,29 @@ for (lang in langs) {
 	print(paste0('Saving plots in ', lang))
 	plots <- plots_output[[lang]]
 	dir_prefix <- paste0(output_dir, '/images/', lang, '/')
-	dir.create(dir_prefix, recursive=TRUE, showWarnings=FALSE)
+	dir.create(dir_prefix, recursive = TRUE, showWarnings = FALSE)
 
-	ggsave(plot = plots[['pl_seq_1']], file=paste0(dir_prefix, "liczba_seq_1.svg"), width=4, height=2.5)
-	ggsave(plot = plots[['pl_seq_2']], file=paste0(dir_prefix, "liczba_seq_2.svg"), width=4, height=2.5)
+	ggsave(plot = plots[['pl_seq_1']], file = paste0(dir_prefix, "liczba_seq_1.svg"), width = 4, height = 2.5)
+	ggsave(plot = plots[['pl_seq_2']], file = paste0(dir_prefix, "liczba_seq_2.svg"), width = 4, height = 2.5)
 
 	if (sum(!is.na(metadata_ext$LocationClean)) > 0) {
-		ggsave(plot = plots[['pl_loc_1']], file=paste0(dir_prefix, "liczba_loc_1.svg"), width=8, height=ceiling(n_unique_regions / 5) * 5 / 4, limitsize=FALSE)
-		ggsave(plot = plots[['pl_loc_2']], file=paste0(dir_prefix, "liczba_loc_2.svg"), width=8, height=ceiling(n_unique_regions / 5) * 5 / 4, limitsize=FALSE)
+		ggsave(plot = plots[['pl_loc_1']], file = paste0(dir_prefix, "liczba_loc_1.svg"), width = 8, height = ceiling(n_unique_regions / 5) * 5 / 4, limitsize = FALSE)
+		ggsave(plot = plots[['pl_loc_2']], file = paste0(dir_prefix, "liczba_loc_2.svg"), width = 8, height = ceiling(n_unique_regions / 5) * 5 / 4, limitsize = FALSE)
 	}
 
-	ggsave(plot = plots[['pl_war_1']], file=paste0(dir_prefix, "liczba_warianty_1.svg"), width=8, height=3)
-	ggsave(plot = plots[['pl_war_2']], file=paste0(dir_prefix, "liczba_warianty_2.svg"), width=8, height=3)
-	ggsave(plot = plots[['pl_war_3']], file=paste0(dir_prefix, "liczba_warianty_3.svg"), width=8, height=3)
-	ggsave(plot = plots[['pl_war_4']], file=paste0(dir_prefix, "liczba_warianty_4.svg"), width=8, height=3)
-	ggsave(plot = plots[['pl_war_5']], file=paste0(dir_prefix, "liczba_warianty_5.png"), width=8, height=5)
+	ggsave(plot = plots[['pl_war_1']], file = paste0(dir_prefix, "liczba_warianty_1.svg"), width = 8, height = 3)
+	ggsave(plot = plots[['pl_war_2']], file = paste0(dir_prefix, "liczba_warianty_2.svg"), width = 8, height = 3)
+	ggsave(plot = plots[['pl_war_3']], file = paste0(dir_prefix, "liczba_warianty_3.svg"), width = 8, height = 3)
+	ggsave(plot = plots[['pl_war_4']], file = paste0(dir_prefix, "liczba_warianty_4.svg"), width = 8, height = 3)
+	ggsave(plot = plots[['pl_war_5']], file = paste0(dir_prefix, "liczba_warianty_5.png"), width = 8, height = 5)
 
-	ggsave(plot = plots[['pl_var_all_1']], file=paste0(dir_prefix, "udzial_warianty_1.svg"), width=5.5, height=3.5)
-	ggsave(plot = plots[['pl_var_all_2']], file=paste0(dir_prefix, "udzial_warianty_2.svg"), width=5.5, height=3.5)
-	ggsave(plot = plots[['pl_var_all_3']], file=paste0(dir_prefix, "udzial_warianty_3.svg"), width=5.5, height=3.5)
-	ggsave(plot = plots[['pl_var_all_4']], file=paste0(dir_prefix, "udzial_warianty_4.svg"), width=5.5, height=3.5)
+	ggsave(plot = plots[['pl_var_all_1']], file = paste0(dir_prefix, "udzial_warianty_1.svg"), width = 5.5, height = 3.5)
+	ggsave(plot = plots[['pl_var_all_2']], file = paste0(dir_prefix, "udzial_warianty_2.svg"), width = 5.5, height = 3.5)
+	ggsave(plot = plots[['pl_var_all_3']], file = paste0(dir_prefix, "udzial_warianty_3.svg"), width = 5.5, height = 3.5)
+	ggsave(plot = plots[['pl_var_all_4']], file = paste0(dir_prefix, "udzial_warianty_4.svg"), width = 5.5, height = 3.5)
 
 	if ('pl_map' %in% names(plots)) {
-		ggsave(plot = plots[['pl_map']], file=paste0(dir_prefix, "mapa_mutacje.svg"), width=10, height=5)
+		ggsave(plot = plots[['pl_map']], file = paste0(dir_prefix, "mapa_mutacje.svg"), width = 10, height = 5)
 	}
 
 	save(plots, file = paste0(dir_prefix, 'gg_objects.rda'))
