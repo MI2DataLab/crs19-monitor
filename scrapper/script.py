@@ -92,6 +92,8 @@ def get_driver(region = None, download_dir = None):
         driver.save_screenshot(name + ".png")
         with open(name + '.html', 'w') as f:
             f.write(driver.page_source)
+
+        driver.quit()
         raise e
 
     return driver
@@ -172,6 +174,7 @@ def scrap_fasta(db_path, fasta_files_dir):
         driver.save_screenshot(name + ".png")
         with open(name + '.html', 'w') as f:
             f.write(driver.page_source)
+        driver.quit()
         raise e
     driver.quit()
 
@@ -371,6 +374,7 @@ def scrap_meta_table(region, db_path, start_date, end_date, history):
         driver.save_screenshot(name + ".png")
         with open(name + '.html', 'w') as f:
             f.write(driver.page_source)
+        driver.quit()
         raise e
 
 
