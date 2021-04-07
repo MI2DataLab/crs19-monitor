@@ -26,7 +26,7 @@ def get_number_of_files(dir : str):
     """
     if os.path.exists(dir):
         files = [f for f in os.listdir(dir) if ".part" not in f]
-        n_files = len(os.listdir(dir))
+        n_files = len(files)
     else:
         n_files = 0
     return n_files
@@ -67,24 +67,29 @@ def get_driver(region = None, download_dir = None):
     driver = webdriver.Firefox(
         executable_path="./geckodriver", firefox_profile=profile, options=options
     )
-    driver.get(url)
-    time.sleep(3)
+    try:
+        driver.get(url)
+        time.sleep(3)
 
-    print("Logging in as ", elogin)
-    # login
-    driver.find_element_by_id("elogin").send_keys(elogin)
-    driver.find_element_by_id("epassword").send_keys(epass)
-    driver.find_element_by_class_name("form_button_submit").click()
-    time.sleep(3)
+        print("Logging in as ", elogin)
+        # login
+        driver.find_element_by_id("elogin").send_keys(elogin)
+        driver.find_element_by_id("epassword").send_keys(epass)
+        driver.find_element_by_class_name("form_button_submit").click()
+        time.sleep(3)
 
-    # navigate to search
-    driver.find_elements_by_class_name("sys-actionbar-action")[1].click()
-    time.sleep(3)
+        # navigate to search
+        driver.find_elements_by_class_name("sys-actionbar-action")[1].click()
+        time.sleep(3)
 
-    if region is not None:
-        set_region(driver, region)
+        if region is not None:
+            set_region(driver, region)
 
-    driver.execute_script("document.getElementById('sys_curtain').remove()")
+        driver.execute_script("document.getElementById('sys_curtain').remove()")
+
+    except Exception as e:
+        driver.save_screenshot(str(int(time.time() * 1000)) + ".png")
+        raise e
 
     return driver
 
@@ -161,7 +166,7 @@ def scrap_fasta(db_path, fasta_files_dir):
     except Exception as e:
         driver.save_screenshot(str(int(time.time() * 1000)) + ".png")
         raise e
-    driver.close()
+    driver.quit()
 
     # move file
     time_file = str(int(time.time() * 1000))
@@ -177,11 +182,29 @@ def scrap_fasta(db_path, fasta_files_dir):
 
     return len(part_ids)
 
+def scrap_fasta_repeater(db_path, fasta_files_dir):
+    """
+    Loop scrapping fasta
+    """
+    repeats = 15
+    for i in range(repeats):
+        try:
+            done = scrap_fasta(db_path, fasta_files_dir)
+            return done
+        except Exception as e:
+            exc_info = sys.exc_info()
+            if i == repeats - 1:
+                raise e
+            else:
+                traceback.print_exception(*exc_info)
+            del exc_info
+            print('%s try failed' % (i,))
+
 def manage_fasta_scrapping(db_path, fasta_files_dir):
     """
     Loop fasta scrapping
     """
-    while scrap_fasta(db_path, fasta_files_dir) == 10**4:
+    while scrap_fasta_repeater(db_path, fasta_files_dir) == 10**4:
         pass
 
 def get_elem_or_None(driver,class_name):
@@ -341,7 +364,7 @@ def scrap_meta_table(region, db_path, start_date, end_date, history):
         raise e
 
 
-    driver.close()
+    driver.quit()
         
     meta_df = pd.concat(history.pages_list)
     # drop column of checkboxes and symbol
