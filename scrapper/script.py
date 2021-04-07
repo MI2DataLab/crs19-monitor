@@ -88,7 +88,10 @@ def get_driver(region = None, download_dir = None):
         driver.execute_script("document.getElementById('sys_curtain').remove()")
 
     except Exception as e:
-        driver.save_screenshot(str(int(time.time() * 1000)) + ".png")
+        name = str(int(time.time() * 1000))
+        driver.save_screenshot(name + ".png")
+        with open(name + '.html', 'w') as f:
+            f.write(driver.page_source)
         raise e
 
     return driver
@@ -165,7 +168,10 @@ def scrap_fasta(db_path, fasta_files_dir):
 
         time.sleep(1)
     except Exception as e:
-        driver.save_screenshot(str(int(time.time() * 1000)) + ".png")
+        name = str(int(time.time() * 1000))
+        driver.save_screenshot(name + ".png")
+        with open(name + '.html', 'w') as f:
+            f.write(driver.page_source)
         raise e
     driver.quit()
 
@@ -361,7 +367,10 @@ def scrap_meta_table(region, db_path, start_date, end_date, history):
 
             last_readed_page = page_num
     except Exception as e:
-        driver.save_screenshot(str(int(time.time() * 1000)) + ".png")
+        name = str(int(time.time() * 1000))
+        driver.save_screenshot(name + ".png")
+        with open(name + '.html', 'w') as f:
+            f.write(driver.page_source)
         raise e
 
 
