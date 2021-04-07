@@ -113,6 +113,8 @@ def scrap_fasta(db_path, fasta_files_dir):
 
     # handle empty list
     if len(part_ids) == 0:
+        con.commit()
+        con.close()
         return 0
 
     ids_str = ",".join([ p[0] for p in part_ids])
@@ -312,9 +314,11 @@ def scrap_meta_table(region, db_path, start_date, end_date, history):
         total_records = int(re.sub(r'[^0-9]*', "", total_records))
         if total_records == 0:
             print("No records found")
+            driver.quit()
             return
         elif total_records <= total_records_in_db:
             print('Skipping range %s : %s because total_records[%s] <= total_records_in_db[%s]' % (start_date, end_date, total_records, total_records_in_db))
+            driver.quit()
             return
         elif total_records == total_records_before_filter:
             # handle unresponsive gisaid
