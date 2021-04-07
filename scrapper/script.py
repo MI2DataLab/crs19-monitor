@@ -154,13 +154,14 @@ def scrap_fasta(db_path, fasta_files_dir):
 
         list_of_files = glob.glob(download_dir + "/*") 
         fasta = max(list_of_files, key=os.path.getmtime)
-        if fasta.endswith('.part'):
-            fasta = fasta[:-5]
+    
         last_size = os.path.getsize(fasta)
         time.sleep(20)
-        while last_size < os.path.getsize(fasta):
+        while os.path.exists(fasta) and last_size < os.path.getsize(fasta):
             last_size = os.path.getsize(fasta)
             time.sleep(20)
+        if fasta.endswith('.part'):
+            fasta = fasta[:-5]
 
         time.sleep(1)
     except Exception as e:
