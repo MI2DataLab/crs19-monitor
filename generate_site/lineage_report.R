@@ -14,7 +14,6 @@ output_path <- Sys.getenv("OUTPUT_PATH")
 lineage_date <- Sys.getenv("LINEAGE_DATE")
 db_path <- Sys.getenv('DB_PATH')
 region <- Sys.getenv('REGION')
-region_dir <- Sys.getenv('REGION_DIR')
 
 print(paste('Region:', region))
 
@@ -29,7 +28,9 @@ RSQLite::dbDisconnect(con)
 print(paste('Found', nrow(metadata), 'rows in database'))
 
 lineage_date_clean <- gsub("/", "-", lineage_date)
-region_output_path <- paste0(output_path, '/', lineage_date_clean, '/', region_dir)
+region_output_path <- paste0(output_path, '/',
+                             lineage_date_clean, '/',
+                             gsub(" ", "_", stringr::str_squish(gsub("[^a-z0-9 ]", "", tolower(region)))))
 
 
 # create output folders

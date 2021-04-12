@@ -30,8 +30,7 @@ print(paste('Full nextclade rows:', nrow(nextclade_full)))
 
 
 for (region in regions) {
-  Sys.setenv('REGION') <- region
-  Sys.setenv('REGION_DIR') <- gsub(" ", "_", stringr::str_squish(gsub("[^a-z0-9 ]", "", tolower(region))))
+  Sys.setenv('REGION' = region)
   source('lineage_report.R')
 }
 
