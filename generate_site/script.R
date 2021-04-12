@@ -13,7 +13,7 @@ res <- RSQLite::dbSendQuery(con, query)
 regions <- RSQLite::dbFetch(res)$country
 
 regions <- c('Poland', 'Czech Republic', 'Germany')
-
+print(regions)
 RSQLite::dbClearResult(res)
 RSQLite::dbDisconnect(con)
 
