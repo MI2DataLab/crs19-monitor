@@ -12,8 +12,9 @@ options(dplyr.summarise.inform = FALSE)
 # ----- GLOBAL VARS ----- #
 
 OUTPUT_PATH <- Sys.getenv("OUTPUT_PATH")
-lineage_date <- Sys.getenv("LINEAGE_DATE")
 DB_PATH <- Sys.getenv('DB_PATH')
+LINEAGE_DATE <- Sys.getenv("LINEAGE_DATE")
+LINEAGE_DATE_CLEAN <- gsub("/", "-", LINEAGE_DATE)
 
 ALARM_MUTATION <- "N501Y"
 ALARM_PATTERN <- "501Y"
@@ -31,7 +32,7 @@ PALETTE <- structure(
 
 # ----- REPORT ----- #
 
-create_report <- function(region) {
+lineage_report <- function(region) {
 
   # ----- READ DATA ----- #
 
@@ -42,9 +43,8 @@ create_report <- function(region) {
 
   print(paste('Found', nrow(metadata), 'rows in database'))
 
-  lineage_date_clean <- gsub("/", "-", lineage_date)
   region_output_path <- paste0(OUTPUT_PATH, '/',
-                               lineage_date_clean, '/',
+                               LINEAGE_DATE_CLEAN, '/',
                                gsub(" ", "_", stringr::str_squish(gsub("[^a-z0-9 ]", "", tolower(region)))))
 
 
@@ -99,7 +99,7 @@ create_report <- function(region) {
     plots_output[[lang]][['pl_var_1']] <-
       monitor::plot_variants_cumulative_pango(
         df = lineage_input,
-        lineage_date = lineage_date,
+        lineage_date = LINEAGE_DATE,
         alarm_pango = ALARM_PANGO,
         no_months_plots = NO_MONTHS_PLOTS,
         title = description_input["pl_var_1_tit", "names"]
@@ -124,7 +124,7 @@ create_report <- function(region) {
                                         labels = names(t_cou_lin[nrow(t_cou_lin),]),
                                         levels = names(t_cou_lin[nrow(t_cou_lin),])),
                        label = t_cou_lin[nrow(t_cou_lin),],
-                       date = as.character(ymd(lineage_date) %m-% months(NO_MONTHS_PLOTS)),
+                       date = as.character(ymd(LINEAGE_DATE) %m-% months(NO_MONTHS_PLOTS)),
                        n = max(t_cou_lin[nrow(t_cou_lin),]))
 
   # ---------------
@@ -140,7 +140,7 @@ create_report <- function(region) {
                                         labels = names(t_cou_cla[nrow(t_cou_cla),]),
                                         levels = names(t_cou_cla[nrow(t_cou_cla),])),
                        label = t_cou_cla[nrow(t_cou_cla),],
-                       date = as.character(ymd(lineage_date) %m-% months(NO_MONTHS_PLOTS)),
+                       date = as.character(ymd(LINEAGE_DATE) %m-% months(NO_MONTHS_PLOTS)),
                        n = max(t_cou_cla[nrow(t_cou_cla),]))
 
   for (lang in langs) {
@@ -150,7 +150,7 @@ create_report <- function(region) {
   	  geom_text(data = counts4, aes(x = ymd(date), y = n, label = label, hjust = 0, vjust = 1), size = 2.7) +
   	  scale_fill_manual(values = c("blue4", "red4")) +
   	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
-  	               limits = c(ymd(lineage_date) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date))) +
+  	               limits = c(ymd(LINEAGE_DATE) %m-% months(NO_MONTHS_PLOTS), ymd(LINEAGE_DATE))) +
   	  #  scale_x_date("", date_breaks = "2 months", date_labels = "%m") +
   	  facet_wrap(~variant, ncol = 6) +
   	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0)) +
@@ -182,10 +182,10 @@ create_report <- function(region) {
   	  ggplot(df3, aes(ymd(date), y=n, color = variant %in% ALARM_PANGO, group = variant)) +
   	  geom_step() +
   	  geom_step(data = df3[df3$variant %in% ALARM_PANGO,], size = 1.1) +
-  	  ggrepel::geom_text_repel(data = counts[counts$variant %in% ALARM_PANGO,], aes(x = ymd(lineage_date), y = label, label = variant, hjust = 0, vjust = 0.6), size=2.9, direction = "y") +
+  	  ggrepel::geom_text_repel(data = counts[counts$variant %in% ALARM_PANGO,], aes(x = ymd(LINEAGE_DATE), y = label, label = variant, hjust = 0, vjust = 0.6), size=2.9, direction = "y") +
   	  scale_color_manual(values = c("grey", "red3")) +
   	  scale_x_date("", date_breaks = "2 weeks", date_labels = "%m/%d",
-  	               limits = c(ymd(lineage_date) %m-% months(NO_MONTHS_PLOTS_LONG), ymd(lineage_date))) +
+  	               limits = c(ymd(LINEAGE_DATE) %m-% months(NO_MONTHS_PLOTS_LONG), ymd(LINEAGE_DATE))) +
   	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0)) +
   	  ggtitle(description_input["pl_var_3_tit", "names"]) +
   	  theme(legend.position = "none")
@@ -211,10 +211,10 @@ create_report <- function(region) {
   	  ggplot(df5, aes(ymd(date), y=n, color = variant %in% ALARM_CLADE, group = variant)) +
   	  geom_step() +
   	  geom_step(data = df5[df5$variant %in% ALARM_CLADE,], size=1.1) +
-  	  ggrepel::geom_text_repel(data = counts5[counts5$variant %in% ALARM_CLADE,], aes(x = ymd(lineage_date), y = label, label = variant, hjust = 0, vjust = 0.6), size=2.9, direction = "y") +
+  	  ggrepel::geom_text_repel(data = counts5[counts5$variant %in% ALARM_CLADE,], aes(x = ymd(LINEAGE_DATE), y = label, label = variant, hjust = 0, vjust = 0.6), size=2.9, direction = "y") +
   	  scale_color_manual(values = c("grey", "red3")) +
   	  scale_x_date("", date_breaks = "2 weeks", date_labels = "%m/%d",
-  	               limits = c(ymd(lineage_date) %m-% months(NO_MONTHS_PLOTS_LONG), ymd(lineage_date))) +
+  	               limits = c(ymd(LINEAGE_DATE) %m-% months(NO_MONTHS_PLOTS_LONG), ymd(LINEAGE_DATE))) +
   	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0)) +
   	  ggtitle(description_input["pl_var_4_tit", "names"]) +
   	  theme(legend.position = "none")
@@ -237,9 +237,9 @@ create_report <- function(region) {
   	  theme_bw(base_family = 'Arial') + coord_fixed() +
   	  scale_color_manual("", values = c("blue4", "red2")) +
   	  scale_x_date(description_input["pl_var_5_scx", "names"], date_breaks = "2 weeks", date_labels = "%m/%d",
-  	               limits = c(ymd(lineage_date) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date)))  +
+  	               limits = c(ymd(LINEAGE_DATE) %m-% months(NO_MONTHS_PLOTS), ymd(LINEAGE_DATE)))  +
   	  scale_y_date(description_input["pl_var_5_scy", "names"], date_breaks = "2 weeks", date_labels = "%m/%d",
-  	               limits = c(ymd(lineage_date) %m-% months(NO_MONTHS_PLOTS-1), ymd(lineage_date)))+
+  	               limits = c(ymd(LINEAGE_DATE) %m-% months(NO_MONTHS_PLOTS - 1), ymd(LINEAGE_DATE)))+
   	  theme(legend.position = "none")
   }
 
@@ -309,7 +309,7 @@ create_report <- function(region) {
     	  #geom_text(data = counts4, aes(x = ymd(date), y = n, label = label, hjust = 0, vjust = 1), size=2.7) +
     	  scale_fill_manual(values = c("grey", "red3")) +
     	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
-    	               limits = c(ymd(lineage_date) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date))) +
+    	               limits = c(ymd(LINEAGE_DATE) %m-% months(NO_MONTHS_PLOTS), ymd(LINEAGE_DATE))) +
     	  facet_wrap(~Var2, ncol = 5) +
     	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0)) +
     	  ggtitle(description_input["pl_loc_1_tit", "names"]) +
@@ -337,7 +337,7 @@ create_report <- function(region) {
      	  scale_fill_manual(values = c("#77777777", "red3")) +
      	  scale_y_continuous("", labels = scales::percent, expand = c(0,0)) +
      	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
-     	               limits = c(ymd(lineage_date) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date))) +
+     	               limits = c(ymd(LINEAGE_DATE) %m-% months(NO_MONTHS_PLOTS), ymd(LINEAGE_DATE))) +
      	  facet_wrap(~Var2, ncol = 5) +
      	  theme_minimal(base_family = 'Arial') +
      	  ggtitle(description_input["pl_loc_2_tit", "names"]) +
@@ -429,11 +429,7 @@ create_report <- function(region) {
   # --------------------------------- #
 
   # -------
-  # Ewolucja clades
-
-
-  # round weeks
-  lineage_date_local <- lineage_date # max(as.character(df4$date)) # something is wrong with the input file
+  # Clades
 
   t_cou_cla <- table(ymd(nextclade$date) - days(wday(ymd(nextclade$date))), nextclade$clade_small)
   df4 <- as.data.frame(as.table(t_cou_cla))
@@ -443,15 +439,15 @@ create_report <- function(region) {
   df4$variant <- fct_relevel(df4$variant, ALARM_CLADE, after = Inf)
 
   df4 <- df4[df4$variant %in% names(PALETTE),]
-  df4 <- df4[ymd(df4$date) > ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS),]
+  df4 <- df4[ymd(df4$date) > ymd(LINEAGE_DATE) %m-% months(NO_MONTHS_PLOTS),]
 
   for (lang in langs) {
   	plots_output[[lang]][['pl_var_all_2']] <-
   	  ggplot(df4, aes(ymd(date) + days(3), y=n, fill = variant)) +
   	  geom_col( position = "fill", color = "white") +
-  	  coord_cartesian(xlim = c(ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date_local)), ylim = c(0,1)) +
+  	  coord_cartesian(xlim = c(ymd(LINEAGE_DATE) %m-% months(NO_MONTHS_PLOTS), ymd(LINEAGE_DATE)), ylim = c(0,1)) +
   	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
-  	               limits = c(ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date_local))) +
+  	               limits = c(ymd(LINEAGE_DATE) %m-% months(NO_MONTHS_PLOTS), ymd(LINEAGE_DATE))) +
   	  scale_fill_manual("", values = PALETTE) +
   	  ggtitle(description_input["pl_var_all_2_tit", "names"]) +
   	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0), labels = scales::percent)
@@ -461,9 +457,9 @@ create_report <- function(region) {
   	plots_output[[lang]][['pl_var_all_3']] <-
   	  ggplot(df4, aes(ymd(date) + days(3), y=n, fill = variant)) +
   	  geom_col( position = "stack", color = "white") +
-  	  coord_cartesian(xlim = c(ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date_local))) +
+  	  coord_cartesian(xlim = c(ymd(LINEAGE_DATE) %m-% months(NO_MONTHS_PLOTS), ymd(LINEAGE_DATE))) +
   	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
-  	               limits = c(ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date_local))) +
+  	               limits = c(ymd(LINEAGE_DATE) %m-% months(NO_MONTHS_PLOTS), ymd(LINEAGE_DATE))) +
   	  scale_fill_manual("", values = PALETTE) +
   	  ggtitle(description_input["pl_var_all_3_tit", "names"]) +
   	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0))
@@ -483,15 +479,15 @@ create_report <- function(region) {
   df4$variant <- fct_relevel(df4$variant, ALARM_CLADE, after = Inf)
 
   df4 <- df4[df4$variant %in% names(PALETTE),]
-  df4 <- df4[ymd(df4$date) > ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS),]
+  df4 <- df4[ymd(df4$date) > ymd(LINEAGE_DATE) %m-% months(NO_MONTHS_PLOTS),]
 
   for (lang in langs) {
   	plots_output[[lang]][['pl_var_all_1']] <-
   	  ggplot(df4, aes(ymd(date), y=n, fill = variant)) +
   	  geom_area( position = "fill", color = "white") +
-  	  coord_cartesian(xlim = c(ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date_local)), ylim = c(0,1)) +
+  	  coord_cartesian(xlim = c(ymd(LINEAGE_DATE) %m-% months(NO_MONTHS_PLOTS), ymd(LINEAGE_DATE)), ylim = c(0,1)) +
   	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
-  	               limits = c(ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date_local))) +
+  	               limits = c(ymd(LINEAGE_DATE) %m-% months(NO_MONTHS_PLOTS), ymd(LINEAGE_DATE))) +
   	  scale_fill_manual("", values = PALETTE) +
   	  ggtitle(description_input["pl_var_all_1_tit", "names"]) +
   	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0), labels = scales::percent)
@@ -509,24 +505,24 @@ create_report <- function(region) {
   df5$variant <- fct_relevel(df5$variant, ALARM_CLADE, after = Inf)
 
   df5 <- df5[df5$variant %in% names(PALETTE),]
-  df5 <- df5[ymd(df5$date) > ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS),]
+  df5 <- df5[ymd(df5$date) > ymd(LINEAGE_DATE) %m-% months(NO_MONTHS_PLOTS),]
 
   for (lang in langs) {
   	plots_output[[lang]][['pl_var_all_4']] <-
   	  ggplot(na.omit(df5[df5$n > 0 & df5$n < 1,]), aes(ymd(date), y=n, color = variant)) +
   	  geom_point( ) +
   	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
-  	               limits = c(ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date_local))) +
+  	               limits = c(ymd(LINEAGE_DATE) %m-% months(NO_MONTHS_PLOTS), ymd(LINEAGE_DATE))) +
   	  theme_minimal(base_family = 'Arial') +
   	  geom_smooth(data = df5[(df5$variant %in% c("20I/501Y.V1", "20A", "20B")) &
-  	                           (ymd(df5$date) > ymd(lineage_date_local) %m-% months(2)),],
+  	                           (ymd(df5$date) > ymd(LINEAGE_DATE) %m-% months(2)),],
   	              se = FALSE, span = 1, method = 'loess', formula = y ~ x) +
   	  scale_y_continuous("",expand = c(0,0),
   	                     breaks = c(0.01,0.1,0.25,0.5,0.75,0.9, 0.99), limits = c(0,1)) +
   	  scale_color_manual("", values = PALETTE) +
   	  ggtitle(description_input["pl_var_all_4_tit", "names"]) +
   	  theme_minimal(base_family = 'Arial') +
-  	  coord_cartesian(xlim = c(ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date_local)))
+  	  coord_cartesian(xlim = c(ymd(LINEAGE_DATE) %m-% months(NO_MONTHS_PLOTS), ymd(LINEAGE_DATE)))
   }
 
 
@@ -539,7 +535,7 @@ create_report <- function(region) {
   variants2_list <- paste0(paste0('<a href="https://www.cdc.gov/coronavirus/2019-ncov/more/science-and-research/scientific-brief-emerging-variants.html">', variants2, '</a>'), collapse = ",\n")
 
   placeholders <- list(
-  	DATE = lineage_date_clean,
+  	DATE = LINEAGE_DATE_CLEAN,
   	NUMBER = nrow(lineage),
   	DATELAST = max(lineage$date),
   	VARIANTSLIST = variants_list,
