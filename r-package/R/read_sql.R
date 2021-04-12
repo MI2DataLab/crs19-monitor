@@ -6,4 +6,5 @@ read_sql <- function(path, query, bind = NULL) {
   metadata <- RSQLite::dbFetch(res)
   RSQLite::dbClearResult(res)
   RSQLite::dbDisconnect(con)
+  metadata
 }
