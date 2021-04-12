@@ -9,6 +9,7 @@ lineage_date_clean <- gsub('/', '-', Sys.getenv('LINEAGE_DATE'))
 
 query <- "SELECT country FROM metadata GROUP BY country HAVING COUNT(*) > 200"
 metadata <- monitor::read_sql(db_path, query)
+
 regions <- metadata$country
 regions <- c('Poland', 'Czech Republic', 'Germany')
 
@@ -42,7 +43,7 @@ write(jsonlite::toJSON(date_dirs, auto_unbox = FALSE), paste0(output_path, '/dat
 
 if (file.copy('./source/index_source_summary.html',
               paste0(output_path, '/', lineage_date_clean, '/index.html'),
-              overwrite = TRUE)) print('GENERATE SUMMARY')
+              overwrite = TRUE)) print('CREATE SUMMARY')
 
 langs <- c('pl', 'en')
 i18n <- lapply(langs, function(lang) {
@@ -56,7 +57,7 @@ names(i18n) <- langs
 write(jsonlite::toJSON(i18n, auto_unbox = TRUE), paste0(output_path, '/', lineage_date_clean, '/i18n.json'))
 
 # ----- REPORTS ----- #
-print('GENERATE REPORTS')
+print('CREATE REPORTS')
 
 source('lineage_report.R')
 for (region in regions) {

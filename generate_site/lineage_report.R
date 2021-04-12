@@ -8,25 +8,42 @@ suppressMessages(library(lubridate))      # date
 library(forcats)                          # factor
 options(dplyr.summarise.inform = FALSE)
 
-output_path <- Sys.getenv("OUTPUT_PATH")
+
+# ----- GLOBAL VARS ----- #
+
+OUTPUT_PATH <- Sys.getenv("OUTPUT_PATH")
 lineage_date <- Sys.getenv("LINEAGE_DATE")
-db_path <- Sys.getenv('DB_PATH')
+DB_PATH <- Sys.getenv('DB_PATH')
+
+ALARM_MUTATION <- "N501Y"
+ALARM_PATTERN <- "501Y"
+ALARM_PANGO <- c("B.1.1.7", "B.1.351", "P.1")
+ALARM_CLADE <- c("20I/501Y.V1","20H/501Y.V2", "20J/501Y.V3")
+MAX_REGIONS <- 23
+NO_MONTHS_PLOTS <- 4
+NO_MONTHS_PLOTS_LONG <- 8
+PALETTE <- structure(
+  c("#E9C622", "#51A4B8", "#E5BC13", "#67AFBF", "#E1B103",
+    "#82B8B6", "#E58600", "#ACC07E", "#3B9AB2", "#7F00FF", "#EB5000", "#F21A00"),
+  .Names = c("20A.EU2", "19A", "20D", "19B", "20C", "20E (EU1)",
+             "20G", "20A", "20B", "20J/501Y.V3", "20H/501Y.V2", "20I/501Y.V1"))
 
 
+# ----- REPORT ----- #
 
-
-lineage_report <- function(region) {
+create_report <- function(region) {
 
   # ----- READ DATA ----- #
 
   print(paste('Region:', region))
 
   query <- "SELECT * FROM metadata WHERE country = ? AND substr(collection_date,1,4) >= '2019'"
-  metadata <- monitor::read_sql(db_path, query, bind = list(region))
+  metadata <- monitor::read_sql(DB_PATH, query, bind = list(region))
+
   print(paste('Found', nrow(metadata), 'rows in database'))
 
   lineage_date_clean <- gsub("/", "-", lineage_date)
-  region_output_path <- paste0(output_path, '/',
+  region_output_path <- paste0(OUTPUT_PATH, '/',
                                lineage_date_clean, '/',
                                gsub(" ", "_", stringr::str_squish(gsub("[^a-z0-9 ]", "", tolower(region)))))
 
@@ -35,90 +52,68 @@ lineage_report <- function(region) {
   dir.create(paste0(region_output_path, '/', 'images'), recursive = TRUE, showWarnings = FALSE)
 
   # filter metadata by region
-  lineage <- subset(lineage_full, accession_id %in% metadata$accession_id)
-  nextclade <- subset(nextclade_full, accession_id %in% metadata$accession_id)
+  lineage_subset <- subset(lineage_full, accession_id %in% metadata$accession_id)
+  nextclade_subset <- subset(nextclade_full, accession_id %in% metadata$accession_id)
+
   print(paste('Region pango rows:', nrow(lineage)))
   print(paste('Region nextclade rows:', nrow(nextclade)))
 
-  # read titles
-  langs <- c('pl', 'en')
-  descriptions <- list()
-  plots_output <- list()
-  for (lang in langs) {
-  	descriptions[[lang]] <- read.table(paste0("./source/lang_", lang, ".txt"),
-  	                                   sep = ":", header = TRUE, row.names = 1,
-  	                                   fileEncoding = "UTF-8", quote = NULL)
-  	plots_output[[lang]] <- list()
-  }
-
-
-  # ----- GLOBAL VARS ----- #
-
   DATE_LAST_SAMPLE <- max(ymd(metadata$collection_date), na.rm = TRUE)
-  ALARM_MUTATION <- "N501Y"
-  ALARM_PATTERN <- "501Y"
-  ALARM_PANGO <- c("B.1.1.7", "B.1.351", "P.1")
-  ALARM_CLADE <- c("20I/501Y.V1","20H/501Y.V2", "20J/501Y.V3")
-  MAX_REGIONS <- 23
-  NO_MONTHS_PLOTS <- 4
-  NO_MONTHS_PLOTS_LONG <- 8
-  PALETTE <- structure(
-    c("#E9C622", "#51A4B8", "#E5BC13", "#67AFBF", "#E1B103",
-      "#82B8B6", "#E58600", "#ACC07E", "#3B9AB2", "#7F00FF", "#EB5000", "#F21A00"),
-    .Names = c("20A.EU2", "19A", "20D", "19B", "20C", "20E (EU1)",
-               "20G", "20A", "20B", "20J/501Y.V3", "20H/501Y.V2", "20I/501Y.V1"))
 
 
-  # ----- CLEAN DATA ----- #
+  # ----- ITERATE OVER LANGS ----- #
 
-  lineage$date <- sapply(strsplit(lineage$Sequence.name, split = "|", fixed = TRUE),
-                         function(x) substr(paste0(tail(x, 1), "-01"), 1, 10))
+  langs <- c('pl', 'en')
+  plots_output <- list()
 
-  lineage$sample <- gsub(sapply(strsplit(lineage$Sequence.name, split = "\\|"), `[`, 2), pattern = " ", replacement = "")
-
-  lineage$lineage_small <- fct_infreq(lineage$Lineage)
-  lineage$lineage_small <- fct_other(lineage$lineage_small,
-                                     keep = unique(c(head(levels(lineage$lineage_small), 7), ALARM_PANGO)), other_level = descriptions[[lang]]["other_level", "names"])
-  #lineage$lineage_small <- fct_lump(lineage$lineage_small, n = 8, other_level = descriptions[[lang]]["other_level", "names"])
-
-
-  nextclade$date <- sapply(strsplit(nextclade$seqName, split = "|", fixed = TRUE),
-                         function(x) substr(paste0(tail(x, 1), "-01"), 1, 10))
-  nextclade$sample <- gsub(sapply(strsplit(nextclade$seqName, split = "\\|"), `[`, 2), pattern = " ", replacement = "")
-  nextclade$clade_small <- fct_infreq(nextclade$clade)
-  nextclade$clade_small <- fct_lump(nextclade$clade_small, n = 12, other_level = descriptions[[lang]]["other_level", "names"])
-
-
-  # -------
-  # Liczba na tydzień
   for (lang in langs) {
-  	plots_output[[lang]][['pl_seq_1']] <-
-  	  ggplot(lineage, aes(ymd(date) - wday(ymd(date)))) +
-  	  geom_histogram(binwidth = 7, color = "white") +
-  	  theme_minimal(base_family = 'Arial') +
-  	  scale_x_date("", date_breaks = "2 months", date_labels = "%m") +
-  	  scale_y_continuous("", expand = c(0,0)) +
-  	  ggtitle(descriptions[[lang]]["pl_seq_1_tit", "names"])
+    plots_output[[lang]] <- list()
+
+    description_input <- read.table(paste0("./source/lang_", lang, ".txt"),
+                                    sep = ":", header = TRUE, row.names = 1,
+                                    fileEncoding = "UTF-8", quote = NULL)
+
+    lineage_input <- monitor::clean_lineage(
+      df = lineage_subset,
+      alarm_pango = ALARM_PANGO,
+      other_level = description_input["other_level", "names"]
+    )
+
+    nextclade_input <- monitor::clean_nextclade(
+      df = nextclade_subset,
+      other_level = description_input["other_level", "names"]
+    )
+
+    plots_output[[lang]][['pl_seq_1']] <-
+      monitor::plot_sequence_count(
+        df = lineage_input,
+        title = description_input["pl_seq_1_tit", "names"]
+      )
+
+    plots_output[[lang]][['pl_seq_2']] <-
+      monitor::plot_sequence_cumulative(
+        df = lineage_input,
+        title = description_input["pl_seq_2_tit", "names"]
+      )
+
+    plots_output[[lang]][['pl_var_1']] <-
+      monitor::plot_variants_cumulative_pango(
+        df = lineage_input,
+        lineage_date = lineage_date,
+        alarm_pango = ALARM_PANGO,
+        no_months_plots = NO_MONTHS_PLOTS,
+        title = description_input["pl_var_1_tit", "names"]
+      )
   }
+
+  # TODO 1 : add below code to the loop
+  # TODO 2 : fix languages
+
+  lineage <- lineage_input
+  nextclade <- nextclade_input
 
   # ---------------
-
-  t_cou_lin <- table(lineage$date)
-  df <- as.data.frame(t_cou_lin)
-
-  for (lang in langs) {
-  	plots_output[[lang]][['pl_seq_2']] <-
-  	  ggplot(df, aes(ymd(Var1), ymin = 0, ymax = cumsum(Freq))) +
-  	  pammtools::geom_stepribbon() + geom_hline(yintercept = 0) +
-  	  theme_minimal(base_family = 'Arial') +
-  	  scale_x_date("", date_breaks = "2 months", date_labels = "%m") +
-  	  scale_y_continuous("", expand = c(0,0)) +
-  	  ggtitle(descriptions[[lang]]["pl_seq_2_tit", "names"])
-  }
-
-  # -------
   # Variants
-
   t_cou_lin <- table(lineage$date, lineage$lineage_small)
   t_cou_lin <- apply(t_cou_lin, 2, cumsum)
 
@@ -132,23 +127,8 @@ lineage_report <- function(region) {
                        date = as.character(ymd(lineage_date) %m-% months(NO_MONTHS_PLOTS)),
                        n = max(t_cou_lin[nrow(t_cou_lin),]))
 
-  for (lang in langs) {
-  	plots_output[[lang]][['pl_war_1']] <-
-  	  ggplot(df3, aes(ymd(date), ymax=n, ymin=0, fill = variant %in% ALARM_PANGO)) +
-  	  pammtools::geom_stepribbon() +
-  	  geom_text(data = counts, aes(x = ymd(date), y = n, label = label, hjust = 0, vjust = 1), size=2.7) +
-  	  scale_fill_manual(values = c("blue4", "red4")) +
-  	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
-  	               limits = c(ymd(lineage_date) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date))) +
-  	  #  scale_x_date("", date_breaks = "2 months", date_labels = "%m") +
-  	  facet_wrap(~variant, ncol = 5) +
-  	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0)) +
-  	  ggtitle(descriptions[[lang]]["pl_war_1_tit", "names"]) +
-  	  theme(legend.position = "none")
-  }
-
-  # -------
-  # Ewolucja clades
+  # ---------------
+  # Clades
 
   t_cou_cla <- table(nextclade$date, nextclade$clade_small)
   t_cou_cla <- apply(t_cou_cla, 2, cumsum)
@@ -164,7 +144,7 @@ lineage_report <- function(region) {
                        n = max(t_cou_cla[nrow(t_cou_cla),]))
 
   for (lang in langs) {
-  	plots_output[[lang]][['pl_war_3']] <-
+  	plots_output[[lang]][['pl_var_3']] <-
   	  ggplot(df4, aes(ymd(date), ymax = n, ymin = 0, fill = grepl(variant, pattern = "501Y"))) +
   	  pammtools::geom_stepribbon() +
   	  geom_text(data = counts4, aes(x = ymd(date), y = n, label = label, hjust = 0, vjust = 1), size = 2.7) +
@@ -174,16 +154,17 @@ lineage_report <- function(region) {
   	  #  scale_x_date("", date_breaks = "2 months", date_labels = "%m") +
   	  facet_wrap(~variant, ncol = 6) +
   	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0)) +
-  	  ggtitle(descriptions[[lang]]["pl_war_3_tit", "names"]) +
+  	  ggtitle(description_input["pl_var_3_tit", "names"]) +
   	  theme(legend.position = "none")
   }
+
 
   # ----------
 
   lineage$lineage_small <- fct_infreq(lineage$Lineage)
   # concatenate rare variants
   lineage$lineage_small <- fct_other(lineage$lineage_small,
-                                     keep = unique(c(head(levels(lineage$lineage_small), 20), ALARM_PANGO)), other_level = descriptions[[lang]]["other_level", "names"])
+                                     keep = unique(c(head(levels(lineage$lineage_small), 20), ALARM_PANGO)), other_level = description_input["other_level", "names"])
   t_cou_lin <- table(lineage$date, lineage$lineage_small)
   t_cou_lin <- apply(t_cou_lin, 2, cumsum)
   df3 <- as.data.frame(as.table(t_cou_lin))
@@ -197,7 +178,7 @@ lineage_report <- function(region) {
                        n = max(t_cou_lin[nrow(t_cou_lin),]))
 
   for (lang in langs) {
-  	plots_output[[lang]][['pl_war_2']] <-
+  	plots_output[[lang]][['pl_var_2']] <-
   	  ggplot(df3, aes(ymd(date), y=n, color = variant %in% ALARM_PANGO, group = variant)) +
   	  geom_step() +
   	  geom_step(data = df3[df3$variant %in% ALARM_PANGO,], size = 1.1) +
@@ -206,7 +187,7 @@ lineage_report <- function(region) {
   	  scale_x_date("", date_breaks = "2 weeks", date_labels = "%m/%d",
   	               limits = c(ymd(lineage_date) %m-% months(NO_MONTHS_PLOTS_LONG), ymd(lineage_date))) +
   	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0)) +
-  	  ggtitle(descriptions[[lang]]["pl_war_3_tit", "names"]) +
+  	  ggtitle(description_input["pl_var_3_tit", "names"]) +
   	  theme(legend.position = "none")
   }
 
@@ -226,7 +207,7 @@ lineage_report <- function(region) {
                        n = max(t_cou_cla[nrow(t_cou_cla),]))
 
   for (lang in langs) {
-  	plots_output[[lang]][['pl_war_4']] <-
+  	plots_output[[lang]][['pl_var_4']] <-
   	  ggplot(df5, aes(ymd(date), y=n, color = variant %in% ALARM_CLADE, group = variant)) +
   	  geom_step() +
   	  geom_step(data = df5[df5$variant %in% ALARM_CLADE,], size=1.1) +
@@ -235,7 +216,7 @@ lineage_report <- function(region) {
   	  scale_x_date("", date_breaks = "2 weeks", date_labels = "%m/%d",
   	               limits = c(ymd(lineage_date) %m-% months(NO_MONTHS_PLOTS_LONG), ymd(lineage_date))) +
   	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0)) +
-  	  ggtitle(descriptions[[lang]]["pl_war_4_tit", "names"]) +
+  	  ggtitle(description_input["pl_var_4_tit", "names"]) +
   	  theme(legend.position = "none")
   }
 
@@ -246,18 +227,18 @@ lineage_report <- function(region) {
   metadata_ext <- merge(metadata, nextclade, by.x = "accession_id", by.y = "accession_id")
 
   for (lang in langs) {
-  	plots_output[[lang]][['pl_war_5']] <-
+  	plots_output[[lang]][['pl_var_5']] <-
   	  ggplot(metadata_ext, aes(ymd(collection_date), ymd(submission_date), color = grepl(clade_small, pattern = "501Y"))) +
   	  geom_abline(slope = 1, intercept = 0, color = "grey", lty = 4) +
   	  geom_abline(slope = 1, intercept = 14, color = "grey", lty = 2) +
   	  geom_abline(slope = 1, intercept = 28, color = "grey", lty = 3) +
   	  geom_jitter(size = 0.5) +
-  	  ggtitle("", descriptions[[lang]]["pl_war_5_tit", "names"]) +
+  	  ggtitle("", description_input["pl_var_5_tit", "names"]) +
   	  theme_bw(base_family = 'Arial') + coord_fixed() +
   	  scale_color_manual("", values = c("blue4", "red2")) +
-  	  scale_x_date(descriptions[[lang]]["pl_war_5_scx", "names"], date_breaks = "2 weeks", date_labels = "%m/%d",
+  	  scale_x_date(description_input["pl_var_5_scx", "names"], date_breaks = "2 weeks", date_labels = "%m/%d",
   	               limits = c(ymd(lineage_date) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date)))  +
-  	  scale_y_date(descriptions[[lang]]["pl_war_5_scy", "names"], date_breaks = "2 weeks", date_labels = "%m/%d",
+  	  scale_y_date(description_input["pl_var_5_scy", "names"], date_breaks = "2 weeks", date_labels = "%m/%d",
   	               limits = c(ymd(lineage_date) %m-% months(NO_MONTHS_PLOTS-1), ymd(lineage_date)))+
   	  theme(legend.position = "none")
   }
@@ -307,11 +288,11 @@ lineage_report <- function(region) {
     t_dat_loc_cla$Var2 <- reorder(t_dat_loc_cla$Var2, -t_dat_loc_cla$Freq, sum)
     # concatenate regions that are rare, keep only MAX_REGIONS
     selected_regions <- head(levels(t_dat_loc_cla$Var2), MAX_REGIONS)
-    n_unique_regions <- max(length(unique(selected_regions)), 1)
+    N_UNIQUE_REGIONS <- max(length(unique(selected_regions)), 1)
     try({
       metadata_ext$LocationClean <- fct_other(metadata_ext$LocationClean,
                                               keep = selected_regions,
-                                              other_level = descriptions[[lang]]["other_level", "names"])
+                                              other_level = description_input["other_level", "names"])
     }, silent = TRUE)
     # calculate this table again with combined levels
     t_dat_loc_cla <- table(metadata_ext$week_start, metadata_ext$LocationClean,
@@ -331,7 +312,7 @@ lineage_report <- function(region) {
     	               limits = c(ymd(lineage_date) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date))) +
     	  facet_wrap(~Var2, ncol = 5) +
     	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0)) +
-    	  ggtitle(descriptions[[lang]]["pl_loc_1_tit", "names"]) +
+    	  ggtitle(description_input["pl_loc_1_tit", "names"]) +
     	  theme(legend.position = "none")
     }
 
@@ -359,7 +340,7 @@ lineage_report <- function(region) {
      	               limits = c(ymd(lineage_date) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date))) +
      	  facet_wrap(~Var2, ncol = 5) +
      	  theme_minimal(base_family = 'Arial') +
-     	  ggtitle(descriptions[[lang]]["pl_loc_2_tit", "names"]) +
+     	  ggtitle(description_input["pl_loc_2_tit", "names"]) +
      	  theme(legend.position = "none")
     }
 
@@ -419,7 +400,7 @@ lineage_report <- function(region) {
   	    scale_fill_manual(values = c("red3", "grey")) +
   	    theme_void() +
   	    theme(legend.position = "none") +
-  	    ggtitle(paste(descriptions[[lang]]["pl_map_sub1", "names"], DATE_LAST_SAMPLE)) +
+  	    ggtitle(paste(description_input["pl_map_sub1", "names"], DATE_LAST_SAMPLE)) +
   	    theme(plot.title = element_text(size = 12, hjust = 0.5))
 
   	  pl_map_2 <- ggplot(map_cord_df) +
@@ -433,12 +414,12 @@ lineage_report <- function(region) {
   	    scale_fill_manual(values = c("red3", "grey")) +
   	    theme_void() +
   	    theme(legend.position = "none") +
-  	    ggtitle(paste(descriptions[[lang]]["pl_map_sub2", "names"], DATE_LAST_SAMPLE)) +
+  	    ggtitle(paste(description_input["pl_map_sub2", "names"], DATE_LAST_SAMPLE)) +
   	    theme(plot.title = element_text(size = 12, hjust = 0.5))
 
   	  plots_output[[lang]][['pl_map']] <- (pl_map_1 + pl_map_2) +
   	    plot_annotation(
-  	      title=paste(descriptions[[lang]]["pl_map_pt1", "names"], ALARM_MUTATION, descriptions[[lang]]["pl_map_pt2", "names"]),
+  	      title=paste(description_input["pl_map_pt1", "names"], ALARM_MUTATION, description_input["pl_map_pt2", "names"]),
   	      theme = theme(plot.title = element_text(size = 15, hjust = 0.5))
   	    )
     }
@@ -472,7 +453,7 @@ lineage_report <- function(region) {
   	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
   	               limits = c(ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date_local))) +
   	  scale_fill_manual("", values = PALETTE) +
-  	  ggtitle(descriptions[[lang]]["pl_var_all_2_tit", "names"]) +
+  	  ggtitle(description_input["pl_var_all_2_tit", "names"]) +
   	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0), labels = scales::percent)
   }
 
@@ -484,7 +465,7 @@ lineage_report <- function(region) {
   	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
   	               limits = c(ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date_local))) +
   	  scale_fill_manual("", values = PALETTE) +
-  	  ggtitle(descriptions[[lang]]["pl_var_all_3_tit", "names"]) +
+  	  ggtitle(description_input["pl_var_all_3_tit", "names"]) +
   	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0))
   }
 
@@ -512,7 +493,7 @@ lineage_report <- function(region) {
   	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
   	               limits = c(ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date_local))) +
   	  scale_fill_manual("", values = PALETTE) +
-  	  ggtitle(descriptions[[lang]]["pl_var_all_1_tit", "names"]) +
+  	  ggtitle(description_input["pl_var_all_1_tit", "names"]) +
   	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0), labels = scales::percent)
   }
 
@@ -543,7 +524,7 @@ lineage_report <- function(region) {
   	  scale_y_continuous("",expand = c(0,0),
   	                     breaks = c(0.01,0.1,0.25,0.5,0.75,0.9, 0.99), limits = c(0,1)) +
   	  scale_color_manual("", values = PALETTE) +
-  	  ggtitle(descriptions[[lang]]["pl_var_all_4_tit", "names"]) +
+  	  ggtitle(description_input["pl_var_all_4_tit", "names"]) +
   	  theme_minimal(base_family = 'Arial') +
   	  coord_cartesian(xlim = c(ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date_local)))
   }
@@ -592,15 +573,15 @@ lineage_report <- function(region) {
   	ggsave(plot = plots[['pl_seq_2']], file = paste0(dir_prefix, "liczba_seq_2.svg"), width = 4, height = 2.5)
 
   	if (sum(!is.na(metadata_ext$LocationClean)) > 0) {
-  		ggsave(plot = plots[['pl_loc_1']], file = paste0(dir_prefix, "liczba_loc_1.svg"), width = 8, height = ceiling(n_unique_regions / 5) * 5 / 4, limitsize = FALSE)
-  		ggsave(plot = plots[['pl_loc_2']], file = paste0(dir_prefix, "liczba_loc_2.svg"), width = 8, height = ceiling(n_unique_regions / 5) * 5 / 4, limitsize = FALSE)
+  		ggsave(plot = plots[['pl_loc_1']], file = paste0(dir_prefix, "liczba_loc_1.svg"), width = 8, height = ceiling(N_UNIQUE_REGIONS / 5) * 5 / 4, limitsize = FALSE)
+  		ggsave(plot = plots[['pl_loc_2']], file = paste0(dir_prefix, "liczba_loc_2.svg"), width = 8, height = ceiling(N_UNIQUE_REGIONS / 5) * 5 / 4, limitsize = FALSE)
   	}
 
-  	ggsave(plot = plots[['pl_war_1']], file = paste0(dir_prefix, "liczba_warianty_1.svg"), width = 8, height = 3)
-  	ggsave(plot = plots[['pl_war_2']], file = paste0(dir_prefix, "liczba_warianty_2.svg"), width = 8, height = 3)
-  	ggsave(plot = plots[['pl_war_3']], file = paste0(dir_prefix, "liczba_warianty_3.svg"), width = 8, height = 3)
-  	ggsave(plot = plots[['pl_war_4']], file = paste0(dir_prefix, "liczba_warianty_4.svg"), width = 8, height = 3)
-  	ggsave(plot = plots[['pl_war_5']], file = paste0(dir_prefix, "liczba_warianty_5.png"), width = 8, height = 5)
+  	ggsave(plot = plots[['pl_var_1']], file = paste0(dir_prefix, "liczba_warianty_1.svg"), width = 8, height = 3)
+  	ggsave(plot = plots[['pl_var_2']], file = paste0(dir_prefix, "liczba_warianty_2.svg"), width = 8, height = 3)
+  	ggsave(plot = plots[['pl_var_3']], file = paste0(dir_prefix, "liczba_warianty_3.svg"), width = 8, height = 3)
+  	ggsave(plot = plots[['pl_var_4']], file = paste0(dir_prefix, "liczba_warianty_4.svg"), width = 8, height = 3)
+  	ggsave(plot = plots[['pl_var_5']], file = paste0(dir_prefix, "liczba_warianty_5.png"), width = 8, height = 5)
 
   	ggsave(plot = plots[['pl_var_all_1']], file = paste0(dir_prefix, "udzial_warianty_1.svg"), width = 5.5, height = 3.5)
   	ggsave(plot = plots[['pl_var_all_2']], file = paste0(dir_prefix, "udzial_warianty_2.svg"), width = 5.5, height = 3.5)

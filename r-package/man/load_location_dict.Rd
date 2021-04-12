@@ -7,7 +7,7 @@
 load_location_dict()
 }
 \description{
-This function returns a dictionary used to clean the location
- data in the reports for Poland and Czech. The (key, value) scheme uses:
+Return a dictionary used to clean the location data in the
+ reports for Poland and Czech. The (key, value) scheme uses:
  (clean name, vector of misspelled names).
 }
