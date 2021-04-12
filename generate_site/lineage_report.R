@@ -32,8 +32,8 @@ print(paste('Found', nrow(metadata), 'rows in database'))
 dir.create(paste0(output_path, '/', 'images'), recursive = TRUE, showWarnings = FALSE)
 
 # filter metadata by region
-lineage <-subset(lineage_full, accession_id %in% metadata$accession_id)
-nextclade <-subset(nextclade_full, accession_id %in% metadata$accession_id)
+lineage <- subset(lineage_full, accession_id %in% metadata$accession_id)
+nextclade <- subset(nextclade_full, accession_id %in% metadata$accession_id)
 print(paste('Region pango rows:', nrow(lineage)))
 print(paste('Region nextclade rows:', nrow(nextclade)))
 
