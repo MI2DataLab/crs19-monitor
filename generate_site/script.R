@@ -1,24 +1,23 @@
 # ----- READ DATA ----- #
 
-db_path <- Sys.getenv('DB_PATH')
-output_path <- Sys.getenv('OUTPUT_PATH')
-lineage_path <- Sys.getenv("LINEAGE_REPORT_PATH")
-nextclade_path <- Sys.getenv("NEXTCLADE_REPORT_PATH")
-main_region <- Sys.getenv('MAIN_REGION')
-lineage_date_clean <- gsub('/', '-', Sys.getenv('LINEAGE_DATE'))
+DB_PATH <- Sys.getenv('DB_PATH')
+OUTPUT_PATH <- Sys.getenv('OUTPUT_PATH')
+LINEAGE_PATH <- Sys.getenv("LINEAGE_REPORT_PATH")
+NEXTCLADE_PATH <- Sys.getenv("NEXTCLADE_REPORT_PATH")
+LINEAGE_DATE_CLEAN <- gsub('/', '-', Sys.getenv('LINEAGE_DATE'))
 
 query <- "SELECT country FROM metadata GROUP BY country HAVING COUNT(*) > 200"
-metadata <- monitor::read_sql(db_path, query)
+metadata <- monitor::read_sql(DB_PATH, query)
 
 regions <- metadata$country
 regions <- c('Poland', 'Czech Republic', 'Germany')
 
 # Load data for subscripts
-lineage_full <- read.table(lineage_path, sep = ",", header = TRUE, fileEncoding = "UTF-8")
+lineage_full <- read.table(LINEAGE_PATH, sep = ",", header = TRUE, fileEncoding = "UTF-8")
 colnames(lineage_full)[1:2] <- c('Sequence.name', 'Lineage')
 lineage_full$accession_id <- stringi::stri_extract_first_regex(lineage_full$Sequence.name, 'EPI_ISL_[0-9]+')
 
-nextclade_full <- read.table(nextclade_path, sep = "\t", header = TRUE, fileEncoding = "UTF-8")
+nextclade_full <- read.table(NEXTCLADE_PATH, sep = "\t", header = TRUE, fileEncoding = "UTF-8")
 nextclade_full$accession_id <- stringi::stri_extract_first_regex(nextclade_full$seqName, 'EPI_ISL_[0-9]+')
 
 print(paste('Full pango rows:', nrow(lineage_full)))
@@ -31,18 +30,18 @@ regions_list <- lapply(regions, function(name) {
     dir = gsub(" ", "_", stringr::str_squish(gsub("[^a-z0-9 ]", "", tolower(name))))
   )
 })
-write(jsonlite::toJSON(regions_list, auto_unbox = TRUE), paste0(output_path, '/', lineage_date_clean, '/regions.json'))
+write(jsonlite::toJSON(regions_list, auto_unbox = TRUE), paste0(OUTPUT_PATH, '/', LINEAGE_DATE_CLEAN, '/regions.json'))
 
 # Save dates list
-subdirs <- list.dirs(path = output_path, full.names = FALSE, recursive = FALSE)
+subdirs <- list.dirs(path = OUTPUT_PATH, full.names = FALSE, recursive = FALSE)
 date_dirs <- stringi::stri_subset_regex(subdirs, '^\\d{4}-\\d{2}-\\d{2}$')
-write(jsonlite::toJSON(date_dirs, auto_unbox = FALSE), paste0(output_path, '/dates.json'))
+write(jsonlite::toJSON(date_dirs, auto_unbox = FALSE), paste0(OUTPUT_PATH, '/dates.json'))
 
 
 # ----- SUMMARY ----- #
 
 if (file.copy('./source/index_source_summary.html',
-              paste0(output_path, '/', lineage_date_clean, '/index.html'),
+              paste0(OUTPUT_PATH, '/', LINEAGE_DATE_CLEAN, '/index.html'),
               overwrite = TRUE)) print('CREATE SUMMARY')
 
 langs <- c('pl', 'en')
@@ -54,7 +53,7 @@ i18n <- lapply(langs, function(lang) {
 	obj
 })
 names(i18n) <- langs
-write(jsonlite::toJSON(i18n, auto_unbox = TRUE), paste0(output_path, '/', lineage_date_clean, '/i18n.json'))
+write(jsonlite::toJSON(i18n, auto_unbox = TRUE), paste0(OUTPUT_PATH, '/', LINEAGE_DATE_CLEAN, '/i18n.json'))
 
 # ----- REPORTS ----- #
 print('CREATE REPORTS')

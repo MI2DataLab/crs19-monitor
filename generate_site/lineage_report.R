@@ -52,6 +52,7 @@ lineage_report <- function(region) {
   dir.create(paste0(region_output_path, '/', 'images'), recursive = TRUE, showWarnings = FALSE)
 
   # filter metadata by region
+  print(accession_id)
   lineage_subset <- subset(lineage_full, accession_id %in% metadata$accession_id)
   nextclade_subset <- subset(nextclade_full, accession_id %in% metadata$accession_id)
 

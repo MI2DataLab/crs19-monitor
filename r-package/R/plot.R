@@ -1,3 +1,4 @@
+#' @import ggplot2 dplyr tidyr lubridate forcats
 #' @param df cleaned `lineage` data.frame
 #' @export
 plot_sequence_count <- function(df, title = NULL) {
