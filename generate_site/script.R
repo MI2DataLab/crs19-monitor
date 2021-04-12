@@ -29,13 +29,22 @@ print(paste('Full pango rows:', nrow(lineage_full)))
 print(paste('Full nextclade rows:', nrow(nextclade_full)))
 
 
+# ----- REPORTS ----- #
+
+source('lineage_report.R')
 for (region in regions) {
-  Sys.setenv('REGION' = region)
-  source('lineage_report.R')
+  lineage_report(region)
 }
 
+regions_list <- lapply(regions, function(name) {
+  list(
+    name=name,
+    dir=gsub(" ", "_", str_squish(gsub("[^a-z0-9 ]", "", tolower(name))))
+  )
+})
+
 # Save regions list
-write(jsonlite::toJSON(regions, auto_unbox = TRUE), paste0(output_path, '/', lineage_date_clean, '/regions.json'))
+write(jsonlite::toJSON(regions_list, auto_unbox = TRUE), paste0(output_path, '/', lineage_date_clean, '/regions.json'))
 
 # Save dates list
 subdirs <- list.dirs(path = output_path, full.names = FALSE, recursive = FALSE)
@@ -43,7 +52,8 @@ date_dirs <- stringi::stri_subset_regex(subdirs, '^\\d{4}-\\d{2}-\\d{2}$')
 write(jsonlite::toJSON(date_dirs, auto_unbox = FALSE), paste0(output_path, '/dates.json'))
 
 
-# Add summary
+# ----- SUMMARY ----- #
+
 file.copy('./source/index_source_summary.html', paste0(output_path, '/', lineage_date_clean, '/index.html'), overwrite = TRUE)
 
 langs <- c('pl', 'en')
