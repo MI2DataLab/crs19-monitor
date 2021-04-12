@@ -28,7 +28,7 @@ plot_sequence_cumulative <- function(df, title = NULL) {
 
 #' @param df cleaned `lineage` data.frame
 #' @export
-plot_cumulative_pango <- function(df, lineage_date, alarm_pango, no_months_plots, title = NULL) {
+plot_pango_cumulative <- function(df, lineage_date, alarm_pango, no_months_plots, title = NULL) {
   if (is.null(df)) return(NULL)
 
   tab <- apply(table(df$date, df$lineage_small), 2, cumsum)

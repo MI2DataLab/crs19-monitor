@@ -97,7 +97,7 @@ lineage_report <- function(region) {
       )
 
     plots_output[[lang]][['pl_var_1']] <-
-      monitor::plot_variants_cumulative_pango(
+      monitor::plot_pango_cumulative(
         df = lineage_input,
         lineage_date = LINEAGE_DATE,
         alarm_pango = ALARM_PANGO,

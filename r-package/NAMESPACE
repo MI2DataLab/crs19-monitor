@@ -3,7 +3,7 @@
 export(clean_lineage)
 export(clean_nextclade)
 export(load_location_dict)
-export(plot_cumulative_pango)
+export(plot_pango_cumulative)
 export(plot_sequence_count)
 export(plot_sequence_cumulative)
 export(read_sql)
