@@ -1,64 +1,55 @@
-############
-## load packages
+# ----- LOAD PACKAGES ----- #
+
 library(ggplot2)
-library(Cairo)
-library(grid)
+library(patchwork)
 suppressMessages(library(dplyr))
+library(tidyr)
 options(dplyr.summarise.inform = FALSE)
-library(ggrepel)
 suppressMessages(library(lubridate))
 library(forcats)
-library(RSQLite)
 
-library(tidyr)
-options(rgdal_show_exportToProj4_warnings = "none")
-suppressMessages(library(rgdal))
-suppressMessages(library(scatterpie))
-suppressMessages(library(sf))
-library(patchwork)
-library(jsonlite)
-library(tmaptools)
-############
-## read data
+
+# ----- READ DATA ----- #
 
 lineage_date <- Sys.getenv("LINEAGE_DATE")
-output_dir <- Sys.getenv("OUTPUT_PATH")
+output_path <- Sys.getenv("OUTPUT_PATH")
 db_path <- Sys.getenv('DB_PATH')
 region <- Sys.getenv('REGION')
 
 print(paste('Region:', region))
-con <- dbConnect(RSQLite::SQLite(), db_path)
-res <- dbSendQuery(con, "SELECT * FROM metadata WHERE country = ? AND substr(collection_date,1,4) >= '2019'")
-dbBind(res, list(region))
-metadata <- dbFetch(res)
-dbClearResult(res)
-dbDisconnect(con)
+
+query <- "SELECT * FROM metadata WHERE country = ? AND substr(collection_date,1,4) >= '2019'"
+con <- RSQLite::dbConnect(RSQLite::SQLite(), db_path)
+res <- RSQLite::dbSendQuery(con, query)
+RSQLite::dbBind(res, list(region))
+metadata <- RSQLite::dbFetch(res)
+RSQLite::dbClearResult(res)
+RSQLite::dbDisconnect(con)
 
 print(paste('Found', nrow(metadata), 'rows in database'))
 
-# Create output dirs
-dir.create(paste0(output_dir, '/', 'images'), recursive = TRUE, showWarnings = FALSE)
+# create output folders
+dir.create(paste0(output_path, '/', 'images'), recursive = TRUE, showWarnings = FALSE)
 
-# Filter by region
+# filter metadata by region
 lineage <-subset(lineage_full, accession_id %in% metadata$accession_id)
 nextclade <-subset(nextclade_full, accession_id %in% metadata$accession_id)
-print(paste('Region pango rows:',nrow(lineage)))
-print(paste('Region nextclade rows:',nrow(nextclade)))
+print(paste('Region pango rows:', nrow(lineage)))
+print(paste('Region nextclade rows:', nrow(nextclade)))
 
-############
-## read titles
-
+# read titles
 langs <- c('pl', 'en')
 descriptions <- list()
 plots_output <- list()
 for (lang in langs) {
-	descriptions[[lang]] <- read.table(paste0("./source/lang_", lang, ".txt"), sep = ":", header = TRUE, row.names = 1, fileEncoding = "UTF-8", quote = NULL)
+	descriptions[[lang]] <- read.table(paste0("./source/lang_", lang, ".txt"),
+	                                   sep = ":", header = TRUE, row.names = 1,
+	                                   fileEncoding = "UTF-8", quote = NULL)
 	plots_output[[lang]] <- list()
 }
 
 
-# -------
-# global variables
+# ----- GLOBAL VARS ----- #
 
 DATE_LAST_SAMPLE <- max(ymd(metadata$collection_date), na.rm = TRUE)
 ALARM_MUTATION <- "N501Y"
@@ -68,14 +59,15 @@ ALARM_CLADE <- c("20I/501Y.V1","20H/501Y.V2", "20J/501Y.V3")
 MAX_REGIONS <- 23
 NO_MONTHS_PLOTS <- 4
 NO_MONTHS_PLOTS_LONG <- 8
-pal <- structure(c("#E9C622", "#51A4B8", "#E5BC13", "#67AFBF", "#E1B103",
-                   "#82B8B6", "#E58600", "#ACC07E", "#3B9AB2", "#7F00FF", "#EB5000", "#F21A00"
-), .Names = c("20A.EU2", "19A", "20D", "19B", "20C", "20E (EU1)",
-              "20G", "20A", "20B", "20J/501Y.V3", "20H/501Y.V2", "20I/501Y.V1"))
+PALETTE <- structure(
+  c("#E9C622", "#51A4B8", "#E5BC13", "#67AFBF", "#E1B103",
+    "#82B8B6", "#E58600", "#ACC07E", "#3B9AB2", "#7F00FF", "#EB5000", "#F21A00"),
+  .Names = c("20A.EU2", "19A", "20D", "19B", "20C", "20E (EU1)",
+             "20G", "20A", "20B", "20J/501Y.V3", "20H/501Y.V2", "20I/501Y.V1"))
 
 
-############
-## preprocess data
+# ----- CLEAN DATA ----- #
+
 lineage$date <- sapply(strsplit(lineage$Sequence.name, split = "|", fixed = TRUE),
                        function(x) substr(paste0(tail(x, 1), "-01"), 1, 10))
 
@@ -92,6 +84,7 @@ nextclade$date <- sapply(strsplit(nextclade$seqName, split = "|", fixed = TRUE),
 nextclade$sample <- gsub(sapply(strsplit(nextclade$seqName, split = "\\|"), `[`, 2), pattern = " ", replacement = "")
 nextclade$clade_small <- fct_infreq(nextclade$clade)
 nextclade$clade_small <- fct_lump(nextclade$clade_small, n = 12, other_level = descriptions[[lang]]["other_level", "names"])
+
 
 # -------
 # Liczba na tydzień
@@ -169,9 +162,9 @@ counts4 <- data.frame(variant = factor(names(t_cou_cla[nrow(t_cou_cla),]),
 
 for (lang in langs) {
 	plots_output[[lang]][['pl_war_3']] <-
-	  ggplot(df4, aes(ymd(date), ymax=n, ymin=0, fill = grepl(variant, pattern = "501Y"))) +
+	  ggplot(df4, aes(ymd(date), ymax = n, ymin = 0, fill = grepl(variant, pattern = "501Y"))) +
 	  pammtools::geom_stepribbon() +
-	  geom_text(data = counts4, aes(x = ymd(date), y = n, label = label, hjust = 0, vjust = 1), size=2.7) +
+	  geom_text(data = counts4, aes(x = ymd(date), y = n, label = label, hjust = 0, vjust = 1), size = 2.7) +
 	  scale_fill_manual(values = c("blue4", "red4")) +
 	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
 	               limits = c(ymd(lineage_date) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date))) +
@@ -204,8 +197,8 @@ for (lang in langs) {
 	plots_output[[lang]][['pl_war_2']] <-
 	  ggplot(df3, aes(ymd(date), y=n, color = variant %in% ALARM_PANGO, group = variant)) +
 	  geom_step() +
-	  geom_step(data = df3[df3$variant %in% ALARM_PANGO,], size=1.1) +
-	  geom_text_repel(data = counts[counts$variant %in% ALARM_PANGO,], aes(x = ymd(lineage_date), y = label, label = variant, hjust = 0, vjust = 0.6), size=2.9, direction = "y") +
+	  geom_step(data = df3[df3$variant %in% ALARM_PANGO,], size = 1.1) +
+	  ggrepel::geom_text_repel(data = counts[counts$variant %in% ALARM_PANGO,], aes(x = ymd(lineage_date), y = label, label = variant, hjust = 0, vjust = 0.6), size=2.9, direction = "y") +
 	  scale_color_manual(values = c("grey", "red3")) +
 	  scale_x_date("", date_breaks = "2 weeks", date_labels = "%m/%d",
 	               limits = c(ymd(lineage_date) %m-% months(NO_MONTHS_PLOTS_LONG), ymd(lineage_date))) +
@@ -234,7 +227,7 @@ for (lang in langs) {
 	  ggplot(df5, aes(ymd(date), y=n, color = variant %in% ALARM_CLADE, group = variant)) +
 	  geom_step() +
 	  geom_step(data = df5[df5$variant %in% ALARM_CLADE,], size=1.1) +
-	  geom_text_repel(data = counts5[counts5$variant %in% ALARM_CLADE,], aes(x = ymd(lineage_date), y = label, label = variant, hjust = 0, vjust = 0.6), size=2.9, direction = "y") +
+	  ggrepel::geom_text_repel(data = counts5[counts5$variant %in% ALARM_CLADE,], aes(x = ymd(lineage_date), y = label, label = variant, hjust = 0, vjust = 0.6), size=2.9, direction = "y") +
 	  scale_color_manual(values = c("grey", "red3")) +
 	  scale_x_date("", date_breaks = "2 weeks", date_labels = "%m/%d",
 	               limits = c(ymd(lineage_date) %m-% months(NO_MONTHS_PLOTS_LONG), ymd(lineage_date))) +
@@ -277,7 +270,7 @@ reverse_dict <- function(dict) {
 }
 
 source("./source/location_dict.R")
-location_dict_to_from <- load_location_dict()
+location_dict_to_from <- monitor::load_location_dict()
 ### proper dict
 location_dict_from_to <- reverse_dict(location_dict_to_from)
 
@@ -398,11 +391,11 @@ if (region == "Poland") {
                    summarise(ratio = sum(count) / sum(t_map_metadata_right$count))) -> t_map_metadata_right) %>%
     mutate(ratio = 2 * (10e12 * ratio / max(t_map_metadata_right$ratio)) ** (1/3)) -> t_map_metadata_right
 
-  map_cord <- st_read("./map/pl-voi.shp")
-  map_cord <- simplify_shape(map_cord, fact = 0.15) # 0.1 oversimplifies and returns error?
-  map_cord <- st_transform(map_cord, 2180) # long and lat is no longer used
-  map_cord_df <- as.data.frame(st_coordinates(map_cord)) %>% rename(id = L3)
-  centroid_cord <- as.data.frame(st_coordinates(st_centroid(map_cord)))
+  map_cord <- sf::st_read("./map/pl-voi.shp")
+  map_cord <- tmaptools::simplify_shape(map_cord, fact = 0.15) # 0.1 oversimplifies and returns error?
+  map_cord <- sf::st_transform(map_cord, 2180) # long and lat is no longer used
+  map_cord_df <- as.data.frame(sf::st_coordinates(map_cord)) %>% rename(id = L3)
+  centroid_cord <- as.data.frame(sf::st_coordinates(sf::st_centroid(map_cord)))
 
   map_metadata <- data.frame(
     id   = as.data.frame(map_cord)$JPT_KOD_JE,
@@ -415,7 +408,9 @@ if (region == "Poland") {
   for (lang in langs) {
 	  pl_map_1 <- ggplot(map_cord_df) +
 	    geom_polygon(aes(X, Y, group = id), color = "black", fill = "white") +
-	    geom_scatterpie(data = map_metadata  %>% left_join(t_map_metadata_left, by = "name") %>% drop_na(),
+	    scatterpie::geom_scatterpie(data = map_metadata  %>%
+	                                  left_join(t_map_metadata_left, by = "name") %>%
+	                                  drop_na(),
 	                    cols = c(ALARM_MUTATION, "-"),
 	                    aes(x = X, y = Y, r = ratio, group = id)) +
 	    coord_equal() +
@@ -427,7 +422,9 @@ if (region == "Poland") {
 
 	  pl_map_2 <- ggplot(map_cord_df) +
 	    geom_polygon(aes(X, Y, group = id), color = "black", fill = "white") +
-	    geom_scatterpie(data = map_metadata  %>% left_join(t_map_metadata_right, by = "name") %>% drop_na(),
+	    scatterpie::geom_scatterpie(data = map_metadata  %>%
+	                                  left_join(t_map_metadata_right, by = "name") %>%
+	                                  drop_na(),
 	                    cols = c(ALARM_MUTATION, "-"),
 	                    aes(x = X, y = Y, r = ratio, group = id)) +
 	    coord_equal() +
@@ -462,7 +459,7 @@ colnames(df4) <- c("date", "variant", "n")
 df4$variant <- reorder(df4$variant, df4$n, tail, 1)
 df4$variant <- fct_relevel(df4$variant, ALARM_CLADE, after = Inf)
 
-df4 <- df4[df4$variant %in% names(pal),]
+df4 <- df4[df4$variant %in% names(PALETTE),]
 df4 <- df4[ymd(df4$date) > ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS),]
 
 for (lang in langs) {
@@ -472,7 +469,7 @@ for (lang in langs) {
 	  coord_cartesian(xlim = c(ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date_local)), ylim = c(0,1)) +
 	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
 	               limits = c(ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date_local))) +
-	  scale_fill_manual("", values = pal) +
+	  scale_fill_manual("", values = PALETTE) +
 	  ggtitle(descriptions[[lang]]["pl_var_all_2_tit", "names"]) +
 	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0), labels = scales::percent)
 }
@@ -484,7 +481,7 @@ for (lang in langs) {
 	  coord_cartesian(xlim = c(ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date_local))) +
 	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
 	               limits = c(ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date_local))) +
-	  scale_fill_manual("", values = pal) +
+	  scale_fill_manual("", values = PALETTE) +
 	  ggtitle(descriptions[[lang]]["pl_var_all_3_tit", "names"]) +
 	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0))
 }
@@ -502,7 +499,7 @@ colnames(df4) <- c("date", "variant", "n")
 df4$variant <- reorder(df4$variant, df4$n, tail, 1)
 df4$variant <- fct_relevel(df4$variant, ALARM_CLADE, after = Inf)
 
-df4 <- df4[df4$variant %in% names(pal),]
+df4 <- df4[df4$variant %in% names(PALETTE),]
 df4 <- df4[ymd(df4$date) > ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS),]
 
 for (lang in langs) {
@@ -512,7 +509,7 @@ for (lang in langs) {
 	  coord_cartesian(xlim = c(ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date_local)), ylim = c(0,1)) +
 	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
 	               limits = c(ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date_local))) +
-	  scale_fill_manual("", values = pal) +
+	  scale_fill_manual("", values = PALETTE) +
 	  ggtitle(descriptions[[lang]]["pl_var_all_1_tit", "names"]) +
 	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0), labels = scales::percent)
 }
@@ -528,7 +525,7 @@ colnames(df5) <- c("date", "variant", "n")
 df5$variant <- reorder(df5$variant, df5$n, tail, 1)
 df5$variant <- fct_relevel(df5$variant, ALARM_CLADE, after = Inf)
 
-df5 <- df5[df5$variant %in% names(pal),]
+df5 <- df5[df5$variant %in% names(PALETTE),]
 df5 <- df5[ymd(df5$date) > ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS),]
 
 for (lang in langs) {
@@ -543,7 +540,7 @@ for (lang in langs) {
 	              se = FALSE, span = 1, method = 'loess', formula = y ~ x) +
 	  scale_y_continuous("",expand = c(0,0),
 	                     breaks = c(0.01,0.1,0.25,0.5,0.75,0.9, 0.99), limits = c(0,1)) +
-	  scale_color_manual("", values = pal) +
+	  scale_color_manual("", values = PALETTE) +
 	  ggtitle(descriptions[[lang]]["pl_var_all_4_tit", "names"]) +
 	  theme_minimal(base_family = 'Arial') +
 	  coord_cartesian(xlim = c(ymd(lineage_date_local) %m-% months(NO_MONTHS_PLOTS), ymd(lineage_date_local)))
@@ -567,8 +564,8 @@ placeholders <- list(
 	VARIANTSLIST2 = variants2_list,
 	VARIANTS2 = length(colnames(t_cou_cla))
 )
-write(toJSON(placeholders, auto_unbox = TRUE), paste0(output_dir, '/placeholders.json'))
-file.copy('./source/index_source.html', paste0(output_dir, '/index.html'), overwrite = TRUE)
+write(jsonlite::toJSON(placeholders, auto_unbox = TRUE), paste0(output_path, '/placeholders.json'))
+file.copy('./source/index_source.html', paste0(output_path, '/index.html'), overwrite = TRUE)
 
 i18n <- lapply(langs, function(lang) {
 	i18n_table <- read.table(paste0("./source/lang_", lang, ".txt"), sep = ":", header = TRUE, fileEncoding = "UTF-8", quote = NULL)
@@ -578,14 +575,15 @@ i18n <- lapply(langs, function(lang) {
 	obj
 })
 names(i18n) <- langs
-write(toJSON(i18n, auto_unbox = TRUE), paste0(output_dir, '/i18n.json'))
+write(jsonlite::toJSON(i18n, auto_unbox = TRUE), paste0(output_path, '/i18n.json'))
 
-############
-## save plots
+
+# ----- SAVE PLOTS ----- #
+
 for (lang in langs) {
 	print(paste0('Saving plots in ', lang))
 	plots <- plots_output[[lang]]
-	dir_prefix <- paste0(output_dir, '/images/', lang, '/')
+	dir_prefix <- paste0(output_path, '/images/', lang, '/')
 	dir.create(dir_prefix, recursive = TRUE, showWarnings = FALSE)
 
 	ggsave(plot = plots[['pl_seq_1']], file = paste0(dir_prefix, "liczba_seq_1.svg"), width = 4, height = 2.5)

@@ -1,0 +1,22 @@
+Package: monitor
+Title: Functionalities for the SARS-CoV-2 monitor
+Version: 0.1.0
+Authors@R: person("Hubert", "Baniecki", email = "hbaniecki@gmail.com",
+                  role = c("aut", "cre"))
+Description: Functionalities for the SARS-CoV-2 monitor
+Depends: R (>= 4.0.0)
+Imports: 
+    ggplot2,
+    dplyr,
+    ggrepel,
+    lubridate,
+    forcats,
+    tidyr,
+    RSQLite,
+    sf,
+    scatterpie,
+    tmaptools,
+    patchwork,
+    rgdal
+LazyData: true
+RoxygenNote: 7.1.1

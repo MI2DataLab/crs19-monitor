@@ -1,4 +1,11 @@
-load_location_dict <- function() { 
+#' @title Dictionary of clean location names (PL/CZ)
+#'
+#' @description This function returns a dictionary used to clean the location
+#'  data in the reports for Poland and Czech. The (key, value) scheme uses:
+#'  (clean name, vector of misspelled names).
+#'
+#' @export
+load_location_dict <- function() {
     ### reversed dict
     ## NOTE: gsub(" ", "", x) is not possible due to other countries than PL
     # TODO: consider only lowercase keys
@@ -186,7 +193,7 @@ load_location_dict <- function() {
         , " Prague-Miskovice ", " prague-miskovice "
         , "Central Czechia and Prague", "central czechia and prague"
         , " Central Czechia and Prague", " central czechia and prague"
-        , " Central Czechia and Prague ", " central czechia and prague " 
+        , " Central Czechia and Prague ", " central czechia and prague "
         , "Praha", "praha"
         , " Praha", " praha"
         , " Praha ", " praha "
@@ -212,7 +219,7 @@ load_location_dict <- function() {
         , " Trutnov", " trutnov"
         , " Trutnov ", " trutnov "
         )
-    , "Karlovy Vary Region" = 
+    , "Karlovy Vary Region" =
         c(
         "Karlovy Vary Region", "karlovy vary region"
         , "Carlsbad", "carlsbad"
