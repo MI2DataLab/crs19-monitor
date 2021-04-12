@@ -28,7 +28,7 @@ region <- Sys.getenv('REGION')
 
 print(paste('Region:', region))
 con <- dbConnect(RSQLite::SQLite(), db_path)
-res <- dbSendQuery(con, 'SELECT * FROM metadata WHERE country = ?')
+res <- dbSendQuery(con, "SELECT * FROM metadata WHERE country = ? AND substr(collection_date,1,4) >= '2019'")
 dbBind(res, list(region))
 metadata <- dbFetch(res)
 dbClearResult(res)
