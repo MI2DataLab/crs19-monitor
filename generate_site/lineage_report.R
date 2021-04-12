@@ -7,7 +7,7 @@ library(tidyr)
 options(dplyr.summarise.inform = FALSE)
 suppressMessages(library(lubridate))
 library(forcats)
-
+options(rgdal_show_exportToProj4_warnings = "none")
 
 # ----- READ DATA ----- #
 

@@ -10,12 +10,12 @@ lineage_date_clean <- gsub('/', '-', Sys.getenv('LINEAGE_DATE'))
 query <- "SELECT country FROM metadata GROUP BY country HAVING COUNT(*) > 200"
 con <- RSQLite::dbConnect(RSQLite::SQLite(), db_path)
 res <- RSQLite::dbSendQuery(con, query)
-regions <- RSQLite::dbFetch(res)$country
+metadata <- RSQLite::dbFetch(res)
 RSQLite::dbClearResult(res)
 RSQLite::dbDisconnect(con)
 
+regions <- metadata$country
 regions <- c('Poland', 'Czech Republic', 'Germany')
-print(regions)
 
 regions <- lapply(regions, function(name) {
 	list(
