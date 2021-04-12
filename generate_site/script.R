@@ -1,5 +1,5 @@
 # ----- READ DATA ----- #
-
+print("test")
 db_path <- Sys.getenv('DB_PATH')
 output_path <- Sys.getenv('OUTPUT_PATH')
 lineage_path <- Sys.getenv("LINEAGE_REPORT_PATH")
@@ -11,11 +11,11 @@ query <- "SELECT country FROM metadata GROUP BY country HAVING COUNT(*) > 200"
 con <- RSQLite::dbConnect(RSQLite::SQLite(), db_path)
 res <- RSQLite::dbSendQuery(con, query)
 regions <- RSQLite::dbFetch(res)$country
+RSQLite::dbClearResult(res)
+RSQLite::dbDisconnect(con)
 
 regions <- c('Poland', 'Czech Republic', 'Germany')
 print(regions)
-RSQLite::dbClearResult(res)
-RSQLite::dbDisconnect(con)
 
 regions <- lapply(regions, function(name) {
 	list(
@@ -47,13 +47,13 @@ for (region in regions) {
 write(jsonlite::toJSON(regions, auto_unbox = TRUE), paste0(output_path, '/', lineage_date_clean, '/regions.json'))
 
 # Save dates list
-subdirs <- list.dirs(path=output_path, full.names = FALSE, recursive = FALSE)
+subdirs <- list.dirs(path = output_path, full.names = FALSE, recursive = FALSE)
 date_dirs <- stringi::stri_subset_regex(subdirs, '^\\d{4}-\\d{2}-\\d{2}$')
 write(jsonlite::toJSON(date_dirs, auto_unbox = FALSE), paste0(output_path, '/dates.json'))
 
 
 # Add summary
-file.copy('./source/index_source_summary.html', paste0(output_path, '/', lineage_date_clean, '/index.html'), overwrite=TRUE)
+file.copy('./source/index_source_summary.html', paste0(output_path, '/', lineage_date_clean, '/index.html'), overwrite = TRUE)
 
 langs <- c('pl', 'en')
 i18n <- lapply(langs, function(lang) {
