@@ -2,7 +2,6 @@
 #' @param df cleaned `lineage` data.frame
 #' @export
 plot_sequence_count <- function(df, title = NULL) {
-  if (is.null(df)) return(NULL)
 
   ggplot(df, aes(ymd(date) - wday(ymd(date)))) +
     geom_histogram(binwidth = 7, color = "white") +
@@ -15,7 +14,6 @@ plot_sequence_count <- function(df, title = NULL) {
 #' @param df cleaned `lineage` data.frame
 #' @export
 plot_sequence_cumulative <- function(df, title = NULL) {
-  if (is.null(df)) return(NULL)
 
   df <- as.data.frame(table(df$date))
 
@@ -30,10 +28,9 @@ plot_sequence_cumulative <- function(df, title = NULL) {
 #' @param df cleaned `lineage` data.frame
 #' @export
 plot_pango_cumulative <- function(df, lineage_date, alarm_pango, no_months_plots, title = NULL) {
-  if (is.null(df)) return(NULL)
 
   tab <- apply(table(df$date, df$lineage_small), 2, cumsum)
-  df <- as.data.frame(tab)
+  df <- as.data.frame(as.table(tab))
   colnames(df) <- c("date", "variant", "n")
   variant <- tab[nrow(tab),]
   counts <- data.frame(
