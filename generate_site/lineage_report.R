@@ -55,8 +55,8 @@ lineage_report <- function(region) {
   lineage_subset <- subset(lineage_full, accession_id %in% metadata$accession_id)
   nextclade_subset <- subset(nextclade_full, accession_id %in% metadata$accession_id)
 
-  print(paste('Region pango rows:', nrow(lineage)))
-  print(paste('Region nextclade rows:', nrow(nextclade)))
+  print(paste('Region pango rows:', nrow(lineage_subset)))
+  print(paste('Region nextclade rows:', nrow(nextclade_subset)))
 
   DATE_LAST_SAMPLE <- max(ymd(metadata$collection_date), na.rm = TRUE)
 
@@ -106,7 +106,9 @@ lineage_report <- function(region) {
       )
   }
 
-  # TODO 1 : add below code to the loop
+
+  # ----- BELOW ----- #
+  # TODO 1 : add code to the loop
   # TODO 2 : fix languages
 
   lineage <- lineage_input

@@ -1,3 +1,4 @@
+#' @param df `lineage` data.frame
 #' @export
 clean_lineage <- function(df, alarm_pango, other_level = "Other") {
   df$date <- sapply(
@@ -19,6 +20,7 @@ clean_lineage <- function(df, alarm_pango, other_level = "Other") {
 }
 
 
+#' @param df `nextclade` data.frame
 #' @export
 clean_nextclade <- function(df, other_level = "Other") {
   df$date <- sapply(
