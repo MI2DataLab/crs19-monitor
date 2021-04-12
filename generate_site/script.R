@@ -8,16 +8,11 @@ main_region <- Sys.getenv('MAIN_REGION')
 lineage_date_clean <- gsub('/', '-', Sys.getenv('LINEAGE_DATE'))
 
 query <- "SELECT country FROM metadata GROUP BY country HAVING COUNT(*) > 200"
-con <- RSQLite::dbConnect(RSQLite::SQLite(), db_path)
-res <- RSQLite::dbSendQuery(con, query)
-metadata <- RSQLite::dbFetch(res)
-RSQLite::dbClearResult(res)
-RSQLite::dbDisconnect(con)
-
+metadata <- monitor::read_sql(db_path, query)
 regions <- metadata$country
 regions <- c('Poland', 'Czech Republic', 'Germany')
 
-# Preload data for subscripts
+# Load data for subscripts
 lineage_full <- read.table(lineage_path, sep = ",", header = TRUE, fileEncoding = "UTF-8")
 colnames(lineage_full)[1:2] <- c('Sequence.name', 'Lineage')
 lineage_full$accession_id <- stringi::stri_extract_first_regex(lineage_full$Sequence.name, 'EPI_ISL_[0-9]+')
@@ -45,7 +40,9 @@ write(jsonlite::toJSON(date_dirs, auto_unbox = FALSE), paste0(output_path, '/dat
 
 # ----- SUMMARY ----- #
 
-file.copy('./source/index_source_summary.html', paste0(output_path, '/', lineage_date_clean, '/index.html'), overwrite = TRUE)
+if (file.copy('./source/index_source_summary.html',
+              paste0(output_path, '/', lineage_date_clean, '/index.html'),
+              overwrite = TRUE)) print('GENERATE SUMMARY')
 
 langs <- c('pl', 'en')
 i18n <- lapply(langs, function(lang) {
@@ -58,8 +55,8 @@ i18n <- lapply(langs, function(lang) {
 names(i18n) <- langs
 write(jsonlite::toJSON(i18n, auto_unbox = TRUE), paste0(output_path, '/', lineage_date_clean, '/i18n.json'))
 
-
 # ----- REPORTS ----- #
+print('GENERATE REPORTS')
 
 source('lineage_report.R')
 for (region in regions) {

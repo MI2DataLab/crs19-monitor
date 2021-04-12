@@ -22,13 +22,7 @@ lineage_report <- function(region) {
   print(paste('Region:', region))
 
   query <- "SELECT * FROM metadata WHERE country = ? AND substr(collection_date,1,4) >= '2019'"
-  con <- RSQLite::dbConnect(RSQLite::SQLite(), db_path)
-  res <- RSQLite::dbSendQuery(con, query)
-  RSQLite::dbBind(res, list(region))
-  metadata <- RSQLite::dbFetch(res)
-  RSQLite::dbClearResult(res)
-  RSQLite::dbDisconnect(con)
-
+  metadata <- monitor::read_sql(db_path, query, bind = list(region))
   print(paste('Found', nrow(metadata), 'rows in database'))
 
   lineage_date_clean <- gsub("/", "-", lineage_date)
