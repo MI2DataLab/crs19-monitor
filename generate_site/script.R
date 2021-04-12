@@ -20,7 +20,7 @@ RSQLite::dbDisconnect(con)
 regions <- lapply(regions, function(name) {
 	list(
 		name = name,
-		dir = gsub(" ", "_", str_squish(gsub("[^a-z0-9 ]", "", tolower(name))))
+		dir = gsub(" ", "_", stringr::str_squish(gsub("[^a-z0-9 ]", "", tolower(name))))
 	)
 })
 
