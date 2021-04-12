@@ -1,5 +1,5 @@
 # ----- READ DATA ----- #
-print("test")
+
 db_path <- Sys.getenv('DB_PATH')
 output_path <- Sys.getenv('OUTPUT_PATH')
 lineage_path <- Sys.getenv("LINEAGE_REPORT_PATH")

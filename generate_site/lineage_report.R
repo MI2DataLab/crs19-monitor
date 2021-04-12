@@ -1,5 +1,5 @@
 # ----- LOAD PACKAGES ----- #
-print("test2")
+
 library(ggplot2)
 library(patchwork)
 suppressMessages(library(dplyr))
@@ -269,7 +269,6 @@ reverse_dict <- function(dict) {
   split(rep(names(dict), lengths(dict)), unlist(dict))
 }
 
-source("./source/location_dict.R")
 location_dict_to_from <- monitor::load_location_dict()
 ### proper dict
 location_dict_from_to <- reverse_dict(location_dict_to_from)
