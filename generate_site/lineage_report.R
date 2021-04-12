@@ -1,13 +1,12 @@
 # ----- LOAD PACKAGES ----- #
 
-library(ggplot2)
-library(patchwork)
-suppressMessages(library(dplyr))
-library(tidyr)
+library(ggplot2)                          # plot
+library(patchwork)                        # plot
+suppressMessages(library(dplyr))          # data
+library(tidyr)                            # drop_na
+suppressMessages(library(lubridate))      # date
+library(forcats)                          # factor
 options(dplyr.summarise.inform = FALSE)
-suppressMessages(library(lubridate))
-library(forcats)
-options(rgdal_show_exportToProj4_warnings = "none")
 
 # ----- READ DATA ----- #
 
@@ -390,7 +389,7 @@ if (region == "Poland") {
                    summarise(ratio = sum(count) / sum(t_map_metadata_right$count))) -> t_map_metadata_right) %>%
     mutate(ratio = 2 * (10e12 * ratio / max(t_map_metadata_right$ratio)) ** (1/3)) -> t_map_metadata_right
 
-  map_cord <- sf::st_read("./map/pl-voi.shp")
+  map_cord <- sf::st_read("./map/pl-voi.shp", quiet = TRUE)
   map_cord <- tmaptools::simplify_shape(map_cord, fact = 0.15) # 0.1 oversimplifies and returns error?
   map_cord <- sf::st_transform(map_cord, 2180) # long and lat is no longer used
   map_cord_df <- as.data.frame(sf::st_coordinates(map_cord)) %>% rename(id = L3)
