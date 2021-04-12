@@ -28,22 +28,13 @@ nextclade_full$accession_id <- stringi::stri_extract_first_regex(nextclade_full$
 print(paste('Full pango rows:', nrow(lineage_full)))
 print(paste('Full nextclade rows:', nrow(nextclade_full)))
 
-
-# ----- REPORTS ----- #
-
-source('lineage_report.R')
-for (region in regions) {
-  lineage_report(region)
-}
-
+# Save regions list
 regions_list <- lapply(regions, function(name) {
   list(
-    name=name,
-    dir=gsub(" ", "_", str_squish(gsub("[^a-z0-9 ]", "", tolower(name))))
+    name = name,
+    dir = gsub(" ", "_", stringr::str_squish(gsub("[^a-z0-9 ]", "", tolower(name))))
   )
 })
-
-# Save regions list
 write(jsonlite::toJSON(regions_list, auto_unbox = TRUE), paste0(output_path, '/', lineage_date_clean, '/regions.json'))
 
 # Save dates list
@@ -66,3 +57,11 @@ i18n <- lapply(langs, function(lang) {
 })
 names(i18n) <- langs
 write(jsonlite::toJSON(i18n, auto_unbox = TRUE), paste0(output_path, '/', lineage_date_clean, '/i18n.json'))
+
+
+# ----- REPORTS ----- #
+
+source('lineage_report.R')
+for (region in regions) {
+  lineage_report(region)
+}
