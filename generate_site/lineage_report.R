@@ -10,10 +10,11 @@ options(dplyr.summarise.inform = FALSE)
 
 # ----- READ DATA ----- #
 
-lineage_date <- Sys.getenv("LINEAGE_DATE")
 output_path <- Sys.getenv("OUTPUT_PATH")
+lineage_date <- Sys.getenv("LINEAGE_DATE")
 db_path <- Sys.getenv('DB_PATH')
 region <- Sys.getenv('REGION')
+region_dir <- Sys.getenv('REGION_DIR')
 
 print(paste('Region:', region))
 
@@ -27,8 +28,12 @@ RSQLite::dbDisconnect(con)
 
 print(paste('Found', nrow(metadata), 'rows in database'))
 
+lineage_date_clean <- gsub("/", "-", lineage_date)
+region_output_path <- paste0(output_path, '/', lineage_date_clean, '/', region_dir)
+
+
 # create output folders
-dir.create(paste0(output_path, '/', 'images'), recursive = TRUE, showWarnings = FALSE)
+dir.create(paste0(region_output_path, '/', 'images'), recursive = TRUE, showWarnings = FALSE)
 
 # filter metadata by region
 lineage <- subset(lineage_full, accession_id %in% metadata$accession_id)
@@ -554,7 +559,7 @@ variants2 <- head(colnames(t_cou_cla), 5)
 variants2_list <- paste0(paste0('<a href="https://www.cdc.gov/coronavirus/2019-ncov/more/science-and-research/scientific-brief-emerging-variants.html">', variants2, '</a>'), collapse = ",\n")
 
 placeholders <- list(
-	DATE = gsub("/", "-", lineage_date),
+	DATE = lineage_date_clean,
 	NUMBER = nrow(lineage),
 	DATELAST = max(lineage$date),
 	VARIANTSLIST = variants_list,
@@ -562,8 +567,8 @@ placeholders <- list(
 	VARIANTSLIST2 = variants2_list,
 	VARIANTS2 = length(colnames(t_cou_cla))
 )
-write(jsonlite::toJSON(placeholders, auto_unbox = TRUE), paste0(output_path, '/placeholders.json'))
-file.copy('./source/index_source.html', paste0(output_path, '/index.html'), overwrite = TRUE)
+write(jsonlite::toJSON(placeholders, auto_unbox = TRUE), paste0(region_output_path, '/placeholders.json'))
+file.copy('./source/index_source.html', paste0(region_output_path, '/index.html'), overwrite = TRUE)
 
 i18n <- lapply(langs, function(lang) {
 	i18n_table <- read.table(paste0("./source/lang_", lang, ".txt"), sep = ":", header = TRUE, fileEncoding = "UTF-8", quote = NULL)
@@ -573,7 +578,7 @@ i18n <- lapply(langs, function(lang) {
 	obj
 })
 names(i18n) <- langs
-write(jsonlite::toJSON(i18n, auto_unbox = TRUE), paste0(output_path, '/i18n.json'))
+write(jsonlite::toJSON(i18n, auto_unbox = TRUE), paste0(region_output_path, '/i18n.json'))
 
 
 # ----- SAVE PLOTS ----- #
@@ -581,7 +586,7 @@ write(jsonlite::toJSON(i18n, auto_unbox = TRUE), paste0(output_path, '/i18n.json
 for (lang in langs) {
 	print(paste0('Saving plots in ', lang))
 	plots <- plots_output[[lang]]
-	dir_prefix <- paste0(output_path, '/images/', lang, '/')
+	dir_prefix <- paste0(region_output_path, '/images/', lang, '/')
 	dir.create(dir_prefix, recursive = TRUE, showWarnings = FALSE)
 
 	ggsave(plot = plots[['pl_seq_1']], file = paste0(dir_prefix, "liczba_seq_1.svg"), width = 4, height = 2.5)

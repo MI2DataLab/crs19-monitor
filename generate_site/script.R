@@ -17,13 +17,6 @@ RSQLite::dbDisconnect(con)
 regions <- metadata$country
 regions <- c('Poland', 'Czech Republic', 'Germany')
 
-regions <- lapply(regions, function(name) {
-	list(
-		name = name,
-		dir = gsub(" ", "_", stringr::str_squish(gsub("[^a-z0-9 ]", "", tolower(name))))
-	)
-})
-
 # Preload data for subscripts
 lineage_full <- read.table(lineage_path, sep = ",", header = TRUE, fileEncoding = "UTF-8")
 colnames(lineage_full)[1:2] <- c('Sequence.name', 'Lineage')
@@ -37,9 +30,8 @@ print(paste('Full nextclade rows:', nrow(nextclade_full)))
 
 
 for (region in regions) {
-  region_output_path <- paste0(output_path, '/', lineage_date_clean, '/', region$dir)
-  Sys.setenv('OUTPUT_PATH' = region_output_path)
-  Sys.setenv('REGION' = region$name)
+  Sys.setenv('REGION') <- region
+  Sys.setenv('REGION_DIR') <- gsub(" ", "_", stringr::str_squish(gsub("[^a-z0-9 ]", "", tolower(region))))
   source('lineage_report.R')
 }
 
