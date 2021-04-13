@@ -91,8 +91,8 @@ for (region in regions) {
   cat(paste('found', nrow(metadata), 'rows in database \n'))
 
   # filter data by region
-  lineage_subset <- subset(lineage_df, accession_id %in% metadata$accession_id)
-  nextclade_subset <- subset(nextclade_df, accession_id %in% metadata$accession_id)
+  lineage_subset <- subset(lineage_full, accession_id %in% metadata$accession_id)
+  nextclade_subset <- subset(nextclade_full, accession_id %in% metadata$accession_id)
 
   cat(paste('region pango rows:', nrow(lineage_subset), '\n'))
   cat(paste('region nextclade rows:', nrow(nextclade_subset), '\n'))
