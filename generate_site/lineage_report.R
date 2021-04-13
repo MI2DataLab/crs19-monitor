@@ -200,7 +200,7 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
       )
 
     plots_output[[lang]][['pl_var_all_4']] <-
-      covar::plot_variant_point(
+      covar::plot_variant_point_smooth(
         df = nextclade_input,
         k = k,
         smooth_variants = SMOOTH_VARIANTS,
