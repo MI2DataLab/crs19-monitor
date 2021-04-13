@@ -44,15 +44,15 @@ if (file.copy('./source/index_source_summary.html',
               overwrite = TRUE)) print('CREATE SUMMARY')
 
 langs <- c('pl', 'en')
-i18n <- lapply(langs, function(lang) {
+i18n <- sapply(langs, function(lang) {
 	i18n_table <- read.table(paste0("./source/lang_", lang, ".txt"), sep = ":", header = TRUE, fileEncoding = "UTF-8", quote = NULL)
 	# Transform table to dictionary
 	obj <- as.list(i18n_table[,"names"])
 	names(obj) <- i18n_table[,"tag"]
 	obj
 })
-names(i18n) <- langs
-write(jsonlite::toJSON(i18n, auto_unbox = TRUE), paste0(OUTPUT_DATE_PATH, '/i18n.json'))
+#names(i18n) <- langs
+write(jsonlite::toJSON(i18n), paste0(OUTPUT_DATE_PATH, '/i18n.json'))
 
 
 # ----- REPORTS ----- #

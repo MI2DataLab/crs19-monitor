@@ -443,7 +443,7 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
 
   # ----- CREATE HTML ----- #
 
-  t_cou_lin <- table(lineage$date, lineage$lineage_small)
+  t_cou_lin <- table(lineage$date, lineage$pango_small)
   variants <- head(colnames(t_cou_lin)[-ncol(t_cou_lin)], 7)
   variants_list <- paste0(paste0('<a href="https://cov-lineages.org/lineages/lineage_', variants, '.html">', variants, '</a>'), collapse = ",\n")
   variants2 <- head(colnames(t_cou_cla), 5)
