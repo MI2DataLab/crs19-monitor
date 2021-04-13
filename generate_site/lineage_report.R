@@ -40,8 +40,8 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
   lineage_subset <- subset(lineage_df, accession_id %in% metadata$accession_id)
   nextclade_subset <- subset(nextclade_df, accession_id %in% metadata$accession_id)
 
-  cat(paste('region pango rows:', nrow(lineage_subset, '\n')))
-  cat(paste('region nextclade rows:', nrow(nextclade_subset, '\n')))
+  cat(paste('region pango rows:', nrow(lineage_subset), '\n'))
+  cat(paste('region nextclade rows:', nrow(nextclade_subset), '\n'))
 
   DATE_LAST_SAMPLE <- max(ymd(metadata$collection_date), na.rm = TRUE)
 

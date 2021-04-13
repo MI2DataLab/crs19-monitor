@@ -27,8 +27,8 @@ lineage_full$accession_id <- stringi::stri_extract_first_regex(lineage_full$Sequ
 nextclade_full <- read.table(NEXTCLADE_PATH, sep = "\t", header = TRUE, fileEncoding = "UTF-8")
 nextclade_full$accession_id <- stringi::stri_extract_first_regex(nextclade_full$seqName, 'EPI_ISL_[0-9]+')
 
-cat(paste('full pango rows:', nrow(lineage_full, '\n')))
-cat(paste('full nextclade rows:', nrow(nextclade_full, '\n')))
+cat(paste('full pango rows:', nrow(lineage_full), '\n'))
+cat(paste('full nextclade rows:', nrow(nextclade_full), '\n'))
 
 
 # ----- DATES ----- #
