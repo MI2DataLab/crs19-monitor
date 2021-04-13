@@ -92,12 +92,38 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
       )
 
     plots_output[[lang]][['pl_var_1']] <-
-      monitor::plot_pango_cumulative(
+      monitor::plot_pango_facet(
         df = lineage_input,
         lineage_date = LINEAGE_DATE,
         alarm_pango = ALARM_PANGO,
         no_months_plots = NO_MONTHS_PLOTS,
         title = description_input["pl_var_1_tit", "names"]
+      )
+
+    plots_output[[lang]][['pl_var_2']] <-
+      monitor::plot_pango_cumulative(
+        df = lineage_input,
+        lineage_date = LINEAGE_DATE,
+        alarm_pango = ALARM_PANGO,
+        no_months_plots_long = NO_MONTHS_PLOTS_LONG,
+        title = description_input["pl_var_2_tit", "names"]
+      )
+
+    plots_output[[lang]][['pl_var_3']] <-
+      monitor::plot_clade_facet(
+        df = nextclade_input,
+        lineage_date = LINEAGE_DATE,
+        no_months_plots = NO_MONTHS_PLOTS,
+        title = description_input["pl_var_3_tit", "names"]
+      )
+
+    plots_output[[lang]][['pl_var_4']] <-
+      monitor::plot_clade_cumulative(
+        df = nextclade_input,
+        lineage_date = LINEAGE_DATE,
+        alarm_clade = ALARM_CLADE,
+        no_months_plots_long = NO_MONTHS_PLOTS_LONG,
+        title = description_input["pl_var_4_tit", "names"]
       )
   }
 
@@ -109,113 +135,6 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
   lineage <- lineage_input
   nextclade <- nextclade_input
 
-  # ---------------
-  # Variants
-  t_cou_lin <- table(lineage$date, lineage$lineage_small)
-  t_cou_lin <- apply(t_cou_lin, 2, cumsum)
-
-  df3 <- as.data.frame(as.table(t_cou_lin))
-  colnames(df3) <- c("date", "variant", "n")
-
-  counts <- data.frame(variant = factor(names(t_cou_lin[nrow(t_cou_lin),]),
-                                        labels = names(t_cou_lin[nrow(t_cou_lin),]),
-                                        levels = names(t_cou_lin[nrow(t_cou_lin),])),
-                       label = t_cou_lin[nrow(t_cou_lin),],
-                       date = as.character(ymd(LINEAGE_DATE) %m-% months(NO_MONTHS_PLOTS)),
-                       n = max(t_cou_lin[nrow(t_cou_lin),]))
-
-  # ---------------
-  # Clades
-
-  t_cou_cla <- table(nextclade$date, nextclade$clade_small)
-  t_cou_cla <- apply(t_cou_cla, 2, cumsum)
-
-  df4 <- as.data.frame(as.table(t_cou_cla))
-  colnames(df4) <- c("date", "variant", "n")
-
-  counts4 <- data.frame(variant = factor(names(t_cou_cla[nrow(t_cou_cla),]),
-                                        labels = names(t_cou_cla[nrow(t_cou_cla),]),
-                                        levels = names(t_cou_cla[nrow(t_cou_cla),])),
-                       label = t_cou_cla[nrow(t_cou_cla),],
-                       date = as.character(ymd(LINEAGE_DATE) %m-% months(NO_MONTHS_PLOTS)),
-                       n = max(t_cou_cla[nrow(t_cou_cla),]))
-
-  for (lang in langs) {
-  	plots_output[[lang]][['pl_var_3']] <-
-  	  ggplot(df4, aes(ymd(date), ymax = n, ymin = 0, fill = grepl(variant, pattern = "501Y"))) +
-  	  pammtools::geom_stepribbon() +
-  	  geom_text(data = counts4, aes(x = ymd(date), y = n, label = label, hjust = 0, vjust = 1), size = 2.7) +
-  	  scale_fill_manual(values = c("blue4", "red4")) +
-  	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
-  	               limits = c(ymd(LINEAGE_DATE) %m-% months(NO_MONTHS_PLOTS), ymd(LINEAGE_DATE))) +
-  	  #  scale_x_date("", date_breaks = "2 months", date_labels = "%m") +
-  	  facet_wrap(~variant, ncol = 6) +
-  	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0)) +
-  	  ggtitle(description_input["pl_var_3_tit", "names"]) +
-  	  theme(legend.position = "none")
-  }
-
-
-  # ----------
-
-  lineage$lineage_small <- fct_infreq(lineage$Lineage)
-  # concatenate rare variants
-  lineage$lineage_small <- fct_other(lineage$lineage_small,
-                                     keep = unique(c(head(levels(lineage$lineage_small), 20), ALARM_PANGO)), other_level = description_input["other_level", "names"])
-  t_cou_lin <- table(lineage$date, lineage$lineage_small)
-  t_cou_lin <- apply(t_cou_lin, 2, cumsum)
-  df3 <- as.data.frame(as.table(t_cou_lin))
-  colnames(df3) <- c("date", "variant", "n")
-
-  counts <- data.frame(variant = factor(names(t_cou_lin[nrow(t_cou_lin),]),
-                                        labels = names(t_cou_lin[nrow(t_cou_lin),]),
-                                        levels = names(t_cou_lin[nrow(t_cou_lin),])),
-                       label = t_cou_lin[nrow(t_cou_lin),],
-                       date = "2020/03/01",
-                       n = max(t_cou_lin[nrow(t_cou_lin),]))
-
-  for (lang in langs) {
-  	plots_output[[lang]][['pl_var_2']] <-
-  	  ggplot(df3, aes(ymd(date), y=n, color = variant %in% ALARM_PANGO, group = variant)) +
-  	  geom_step() +
-  	  geom_step(data = df3[df3$variant %in% ALARM_PANGO,], size = 1.1) +
-  	  ggrepel::geom_text_repel(data = counts[counts$variant %in% ALARM_PANGO,], aes(x = ymd(LINEAGE_DATE), y = label, label = variant, hjust = 0, vjust = 0.6), size=2.9, direction = "y") +
-  	  scale_color_manual(values = c("grey", "red3")) +
-  	  scale_x_date("", date_breaks = "2 weeks", date_labels = "%m/%d",
-  	               limits = c(ymd(LINEAGE_DATE) %m-% months(NO_MONTHS_PLOTS_LONG), ymd(LINEAGE_DATE))) +
-  	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0)) +
-  	  ggtitle(description_input["pl_var_3_tit", "names"]) +
-  	  theme(legend.position = "none")
-  }
-
-  # ----------
-
-  nextclade$clade_small <- fct_infreq(nextclade$clade)
-  t_cou_cla <- table(nextclade$date, nextclade$clade_small)
-  t_cou_cla <- apply(t_cou_cla, 2, cumsum)
-  df5 <- as.data.frame(as.table(t_cou_cla))
-  colnames(df5) <- c("date", "variant", "n")
-
-  counts5 <- data.frame(variant = factor(names(t_cou_cla[nrow(t_cou_cla),]),
-                                        labels = names(t_cou_cla[nrow(t_cou_cla),]),
-                                        levels = names(t_cou_cla[nrow(t_cou_cla),])),
-                       label = t_cou_cla[nrow(t_cou_cla),],
-                       date = "2020/03/01",
-                       n = max(t_cou_cla[nrow(t_cou_cla),]))
-
-  for (lang in langs) {
-  	plots_output[[lang]][['pl_var_4']] <-
-  	  ggplot(df5, aes(ymd(date), y=n, color = variant %in% ALARM_CLADE, group = variant)) +
-  	  geom_step() +
-  	  geom_step(data = df5[df5$variant %in% ALARM_CLADE,], size=1.1) +
-  	  ggrepel::geom_text_repel(data = counts5[counts5$variant %in% ALARM_CLADE,], aes(x = ymd(LINEAGE_DATE), y = label, label = variant, hjust = 0, vjust = 0.6), size=2.9, direction = "y") +
-  	  scale_color_manual(values = c("grey", "red3")) +
-  	  scale_x_date("", date_breaks = "2 weeks", date_labels = "%m/%d",
-  	               limits = c(ymd(LINEAGE_DATE) %m-% months(NO_MONTHS_PLOTS_LONG), ymd(LINEAGE_DATE))) +
-  	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0)) +
-  	  ggtitle(description_input["pl_var_4_tit", "names"]) +
-  	  theme(legend.position = "none")
-  }
 
   ############
   ## plots from meta data
@@ -523,8 +442,8 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
   }
 
 
-  ############
-  ## update HTML file
+  # ----- CREATE HTML ----- #
+
   t_cou_lin <- table(lineage$date, lineage$lineage_small)
   variants <- head(colnames(t_cou_lin)[-ncol(t_cou_lin)], 7)
   variants_list <- paste0(paste0('<a href="https://cov-lineages.org/lineages/lineage_', variants, '.html">', variants, '</a>'), collapse = ",\n")
