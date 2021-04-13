@@ -228,7 +228,7 @@ plot_metadata_dates <- function(df,
 plot_location_facet <- function(df,
                                 max_regions,
                                 lineage_date,
-                                no_month_plots,
+                                no_months_plots,
                                 other_level = "Other",
                                 title = "") {
 
@@ -252,7 +252,7 @@ plot_location_facet <- function(df,
     geom_col() +
     scale_fill_manual(values = c("grey", "red3")) +
     scale_x_date("", date_breaks = "1 month", date_labels = "%m",
-                 limits = c(ymd(lineage_date) %m-% months(no_month_plots), ymd(lineage_date))) +
+                 limits = c(ymd(lineage_date) %m-% months(no_months_plots), ymd(lineage_date))) +
     facet_wrap(~Var2, ncol = 5) +
     theme_minimal(base_family = "Arial") +
     scale_y_continuous("", expand = c(0, 0)) +
