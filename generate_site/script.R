@@ -1,6 +1,4 @@
 print('---- START')
-
-
 # ----- GLOBAL VARS ----- #
 
 DB_PATH <- Sys.getenv('DB_PATH')
@@ -29,8 +27,8 @@ lineage_full$accession_id <- stringi::stri_extract_first_regex(lineage_full$Sequ
 nextclade_full <- read.table(NEXTCLADE_PATH, sep = "\t", header = TRUE, fileEncoding = "UTF-8")
 nextclade_full$accession_id <- stringi::stri_extract_first_regex(nextclade_full$seqName, 'EPI_ISL_[0-9]+')
 
-print(paste('Full pango rows:', nrow(lineage_full)))
-print(paste('Full nextclade rows:', nrow(nextclade_full)))
+print(paste('full pango rows:', nrow(lineage_full)))
+print(paste('full nextclade rows:', nrow(nextclade_full)))
 
 
 # ----- DATES ----- #
@@ -75,4 +73,3 @@ regions_list <- lapply(regions, function(name) {
 write(jsonlite::toJSON(regions_list, auto_unbox = TRUE), paste0(OUTPUT_DATE_PATH, '/regions.json'))
 
 print('---- END')
-

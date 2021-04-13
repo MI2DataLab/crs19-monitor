@@ -2,7 +2,8 @@
 #'
 #' @param df cleaned `lineage` data.frame
 #' @export
-plot_sequence_count <- function(df, title = NULL) {
+plot_sequence_count <- function(df,
+                                title = "") {
 
   ggplot(df, aes(ymd(date) - wday(ymd(date)))) +
     geom_histogram(binwidth = 7, color = "white") +
@@ -15,7 +16,8 @@ plot_sequence_count <- function(df, title = NULL) {
 
 #' @param df cleaned `lineage` data.frame
 #' @export
-plot_sequence_cumulative <- function(df, title = NULL) {
+plot_sequence_cumulative <- function(df,
+                                     title = "") {
 
   df <- as.data.frame(table(df$date))
 
@@ -30,7 +32,11 @@ plot_sequence_cumulative <- function(df, title = NULL) {
 
 #' @param df cleaned `nextclade` data.frame
 #' @export
-plot_clade_facet <- function(df, lineage_date, no_months_plots, title = NULL) {
+plot_clade_facet <- function(df,
+                             alarm_pattern,
+                             lineage_date,
+                             no_months_plots,
+                             title = "") {
 
   tab <- apply(table(df$date, df$clade_small), 2, cumsum)
   df <- as.data.frame(as.table(tab))
@@ -43,7 +49,7 @@ plot_clade_facet <- function(df, lineage_date, no_months_plots, title = NULL) {
     n = max(variant)
   )
 
-  ggplot(df, aes(ymd(date), ymax = n, ymin = 0, fill = grepl(variant, pattern = "501Y"))) +
+  ggplot(df, aes(ymd(date), ymax = n, ymin = 0, fill = grepl(variant, pattern = alarm_pattern))) +
     pammtools::geom_stepribbon() +
     geom_text(data = counts,
               aes(x = ymd(date),
@@ -66,8 +72,11 @@ plot_clade_facet <- function(df, lineage_date, no_months_plots, title = NULL) {
 
 #' @param df cleaned `nextclade` data.frame
 #' @export
-plot_clade_cumulative <- function(df, lineage_date, alarm_clade, no_months_plots_long,
-                                  title = NULL) {
+plot_clade_cumulative <- function(df,
+                                  alarm_clade,
+                                  lineage_date,
+                                  no_months_plots_long,
+                                  title = "") {
 
   tab <- apply(table(df$date, df$clade_medium), 2, cumsum)
   df <- as.data.frame(as.table(tab))
@@ -105,8 +114,11 @@ plot_clade_cumulative <- function(df, lineage_date, alarm_clade, no_months_plots
 
 #' @param df cleaned `lineage` data.frame
 #' @export
-plot_pango_facet <- function(df, lineage_date, alarm_pango, no_months_plots,
-                             title = NULL) {
+plot_pango_facet <- function(df,
+                             alarm_pango,
+                             lineage_date,
+                             no_months_plots,
+                             title = "") {
 
   tab <- apply(table(df$date, df$pango_small), 2, cumsum)
   df <- as.data.frame(as.table(tab))
@@ -142,8 +154,11 @@ plot_pango_facet <- function(df, lineage_date, alarm_pango, no_months_plots,
 
 #' @param df cleaned `lineage` data.frame
 #' @export
-plot_pango_cumulative <- function(df, lineage_date, alarm_pango, no_months_plots_long,
-                                  title = NULL) {
+plot_pango_cumulative <- function(df,
+                                  alarm_pango,
+                                  lineage_date,
+                                  no_months_plots_long,
+                                  title = "") {
 
   tab <- apply(table(df$date, df$pango_medium), 2, cumsum)
   df <- as.data.frame(as.table(tab))
@@ -179,14 +194,19 @@ plot_pango_cumulative <- function(df, lineage_date, alarm_pango, no_months_plots
 }
 
 
-#' @param df joined `metadata` with cleaned `nextclade` data.frame
+#' @param df `metadata` joined with cleaned `nextclade` data.frame
 #' @export
-plot_metadata_dates <- function(df, lineage_date, no_months_plots,
-                                title = NULL, xlab = NULL, ylab = NULL) {
+plot_metadata_dates <- function(df,
+                                alarm_pattern,
+                                lineage_date,
+                                no_months_plots,
+                                xlab = "",
+                                ylab = "",
+                                title = "") {
 
   ggplot(df, aes(x = ymd(collection_date),
                  y = ymd(submission_date),
-                 color = grepl(clade_small, pattern = "501Y"))) +
+                 color = grepl(clade_small, pattern = alarm_pattern))) +
     geom_abline(slope = 1, intercept = 0, color = "grey", lty = 4) +
     geom_abline(slope = 1, intercept = 14, color = "grey", lty = 2) +
     geom_abline(slope = 1, intercept = 28, color = "grey", lty = 3) +
@@ -200,4 +220,45 @@ plot_metadata_dates <- function(df, lineage_date, no_months_plots,
     scale_y_date(ylab, date_breaks = "2 weeks", date_labels = "%m/%d",
                  limits = c(ymd(lineage_date) %m-% months(no_months_plots - 1), ymd(lineage_date))) +
     theme(legend.position = "none")
+}
+
+
+#' @param df `metadata` joined with cleaned `nextclade` data.frame
+#' @export
+plot_location_facet <- function(df,
+                                max_regions,
+                                lineage_date,
+                                no_month_plots,
+                                other_level = "Other",
+                                title = "") {
+
+  tab <- table(df$week_start, df$LocationClean, df$is_alarm)
+  tab_df <- data.frame(as.table(tab))
+
+  selected_regions <- head(levels(tab_df$Var2), max_regions)
+  n_unique_regions <- max(length(unique(selected_regions)), 1)
+
+  try({
+    df$LocationClean <- fct_other(df$LocationClean,
+                                  keep = selected_regions,
+                                  other_level = other_level)
+  }, silent = TRUE)
+
+  # calculate this table again with combined levels
+  tab <- table(df$week_start, df$LocationClean, df$is_alarm)
+  tab_df <- data.frame(as.table(tab_df))
+
+  p <- ggplot(tab_df, aes(ymd(Var1), y = Freq, fill = Var3)) +
+    geom_col() +
+    scale_fill_manual(values = c("grey", "red3")) +
+    scale_x_date("", date_breaks = "1 month", date_labels = "%m",
+                 limits = c(ymd(lineage_date) %m-% months(no_month_plots), ymd(lineage_date))) +
+    facet_wrap(~Var2, ncol = 5) +
+    theme_minimal(base_family = "Arial") +
+    scale_y_continuous("", expand = c(0, 0)) +
+    ggtitle(title) +
+    theme(legend.position = "none")
+
+  attr(p, "n_unique_regions") <- n_unique_regions
+  p
 }

@@ -34,14 +34,14 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
   query <- "SELECT * FROM metadata WHERE country = ? AND substr(collection_date,1,4) >= '2019'"
   metadata <- monitor::read_sql(DB_PATH, query, bind = list(region))
 
-  print(paste('Found', nrow(metadata), 'rows in database'))
+  print(paste('found', nrow(metadata), 'rows in database'))
 
   # filter data by region
   lineage_subset <- subset(lineage_df, accession_id %in% metadata$accession_id)
   nextclade_subset <- subset(nextclade_df, accession_id %in% metadata$accession_id)
 
-  print(paste('Region pango rows:', nrow(lineage_subset)))
-  print(paste('Region nextclade rows:', nrow(nextclade_subset)))
+  print(paste('region pango rows:', nrow(lineage_subset)))
+  print(paste('region nextclade rows:', nrow(nextclade_subset)))
 
   DATE_LAST_SAMPLE <- max(ymd(metadata$collection_date), na.rm = TRUE)
 
@@ -52,8 +52,8 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
   misspelled_rows <- is.na(metadata_input$LocationClean)
   misspelled_locations <- table(metadata_input$location[misspelled_rows])
 
-  print(paste("There are", length(misspelled_locations), "misspelled locations"))
-  print(paste("There are", sum(misspelled_rows), "unique misspelled rows"))
+  print(paste("there are", length(misspelled_locations), "misspelled locations"))
+  print(paste("there are", sum(misspelled_rows), "unique misspelled rows"))
   print(as.data.frame(misspelled_locations))
 
 
@@ -62,7 +62,7 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
   plots_output <- list()
 
   for (lang in LANGUAGES) {
-    print(paste0('- Creating plots in ', lang))
+    print(paste0('- creating plots in ', lang))
 
     plots_output[[lang]] <- list()
 
@@ -78,6 +78,8 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
 
     nextclade_input <- monitor::clean_nextclade(
       df = nextclade_subset,
+      alarm_mutation = ALARM_MUTATION,
+      alarm_pattern = ALARM_PATTERN,
       other_level = description_input["other_level", "names"]
     )
 
@@ -98,8 +100,8 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
     plots_output[[lang]][['pl_var_1']] <-
       monitor::plot_pango_facet(
         df = lineage_input,
-        lineage_date = LINEAGE_DATE,
         alarm_pango = ALARM_PANGO,
+        lineage_date = LINEAGE_DATE,
         no_months_plots = NO_MONTHS_PLOTS,
         title = description_input["pl_var_1_tit", "names"]
       )
@@ -107,8 +109,8 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
     plots_output[[lang]][['pl_var_2']] <-
       monitor::plot_pango_cumulative(
         df = lineage_input,
-        lineage_date = LINEAGE_DATE,
         alarm_pango = ALARM_PANGO,
+        lineage_date = LINEAGE_DATE,
         no_months_plots_long = NO_MONTHS_PLOTS_LONG,
         title = description_input["pl_var_2_tit", "names"]
       )
@@ -116,6 +118,7 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
     plots_output[[lang]][['pl_var_3']] <-
       monitor::plot_clade_facet(
         df = nextclade_input,
+        alarm_pattern = ALARM_PATTERN,
         lineage_date = LINEAGE_DATE,
         no_months_plots = NO_MONTHS_PLOTS,
         title = description_input["pl_var_3_tit", "names"]
@@ -124,8 +127,8 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
     plots_output[[lang]][['pl_var_4']] <-
       monitor::plot_clade_cumulative(
         df = nextclade_input,
-        lineage_date = LINEAGE_DATE,
         alarm_clade = ALARM_CLADE,
+        lineage_date = LINEAGE_DATE,
         no_months_plots_long = NO_MONTHS_PLOTS_LONG,
         title = description_input["pl_var_4_tit", "names"]
       )
@@ -133,12 +136,24 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
     plots_output[[lang]][['pl_var_5']] <-
       monitor::plot_metadata_dates(
         df = metadata_nextclade,
+        alarm_pattern = ALARM_PATTERN,
         lineage_date = LINEAGE_DATE,
         no_months_plots = NO_MONTHS_PLOTS,
-        title = description_input["pl_var_5_tit", "names"],
         xlab = description_input["pl_var_5_scx", "names"],
-        ylab = description_input["pl_var_5_scy", "names"]
+        ylab = description_input["pl_var_5_scy", "names"],
+        title = description_input["pl_var_5_tit", "names"]
       )
+
+    plots_output[[lang]][['pl_loc_1']] <-
+      monitor::plot_location_facet(
+        df = metadata_nextclade,
+        max_regions = MAX_REGIONS,
+        lineage_date = LINEAGE_DATE,
+        no_months_plots = NO_MONTHS_PLOTS,
+        other_level = description_input["other_level", "names"],
+        title = description_input["pl_loc_1_tit", "names"]
+      )
+
   }
 
 
@@ -150,72 +165,45 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
   nextclade <- nextclade_input
   metadata_ext <- metadata_nextclade
 
-  ## Do we have information about location
-  if (sum(!is.na(metadata_ext$LocationClean)) > 0) {
-    t_dat_loc_cla <- table(metadata_ext$week_start, metadata_ext$LocationClean,
-                           ifelse(grepl(metadata_ext$clade_small, pattern = ALARM_PATTERN), ALARM_MUTATION, "-"))
-
-    t_dat_loc_cla <- data.frame(as.table(t_dat_loc_cla))
-
-    t_dat_loc_cla$Var2 <- reorder(t_dat_loc_cla$Var2, -t_dat_loc_cla$Freq, sum)
-    # concatenate regions that are rare, keep only MAX_REGIONS
-    selected_regions <- head(levels(t_dat_loc_cla$Var2), MAX_REGIONS)
-    N_UNIQUE_REGIONS <- max(length(unique(selected_regions)), 1)
-    try({
-      metadata_ext$LocationClean <- fct_other(metadata_ext$LocationClean,
-                                              keep = selected_regions,
-                                              other_level = description_input["other_level", "names"])
-    }, silent = TRUE)
-    # calculate this table again with combined levels
-    t_dat_loc_cla <- table(metadata_ext$week_start, metadata_ext$LocationClean,
-                           ifelse(grepl(metadata_ext$clade_small, pattern = ALARM_PATTERN), ALARM_MUTATION, "-"))
-    t_dat_loc_cla <- data.frame(as.table(t_dat_loc_cla))
-    levels1 <- levels(t_dat_loc_cla$Var2)
-    # regions are now concatenated
 
 
-    for (lang in LANGUAGES) {
-    	plots_output[[lang]][['pl_loc_1']] <-
-    	  ggplot(t_dat_loc_cla, aes(ymd(Var1), y = Freq, fill = Var3)) +
-    	  geom_col() +
-    	  #geom_text(data = counts4, aes(x = ymd(date), y = n, label = label, hjust = 0, vjust = 1), size=2.7) +
-    	  scale_fill_manual(values = c("grey", "red3")) +
-    	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
-    	               limits = c(ymd(LINEAGE_DATE) %m-% months(NO_MONTHS_PLOTS), ymd(LINEAGE_DATE))) +
-    	  facet_wrap(~Var2, ncol = 5) +
-    	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0)) +
-    	  ggtitle(description_input["pl_loc_1_tit", "names"]) +
-    	  theme(legend.position = "none")
-    }
 
-    #
-    t_dat_map <- t_dat_loc_cla %>% rename(date = Var1, name = Var2, type = Var3, count = Freq)
-    #
+  t_dat_loc_cla <- table(metadata_ext$week_start, metadata_ext$LocationClean, metadata_ext$is_alarm)
+  t_dat_loc_cla <- data.frame(as.table(t_dat_loc_cla))
+  selected_regions <- head(levels(t_dat_loc_cla$Var2), MAX_REGIONS)
+  try({
+    metadata_ext$LocationClean <- fct_other(metadata_ext$LocationClean,
+                                            keep = selected_regions,
+                                            other_level = description_input["other_level", "names"])
+  }, silent = TRUE)
+  t_dat_loc_cla <- table(metadata_ext$week_start, metadata_ext$LocationClean, metadata_ext$is_alarm)
+  t_dat_loc_cla <- data.frame(as.table(t_dat_loc_cla))
 
-    t_dat_loc_cla <- table(metadata_ext$week_start, metadata_ext$LocationClean,
-                           ifelse(grepl(metadata_ext$clade_small, pattern = ALARM_PATTERN), ALARM_MUTATION, "-"))
-    normalizer <-  t_dat_loc_cla[,,1] + t_dat_loc_cla[,,2]
-    t_dat_loc_cla[,,1] <- t_dat_loc_cla[,,1] / normalizer
-    t_dat_loc_cla[,,2] <- t_dat_loc_cla[,,2] /normalizer
-    t_dat_loc_cla <- data.frame(as.table(t_dat_loc_cla))
+  #
+  t_dat_map <- t_dat_loc_cla %>% rename(date = Var1, name = Var2, type = Var3, count = Freq)
+  #
 
-    t_dat_loc_cla$Var2 <- factor(t_dat_loc_cla$Var2, levels = levels1)
+  levels1 <- levels(t_dat_loc_cla$Var2)
+  t_dat_loc_cla <- table(metadata_ext$week_start, metadata_ext$LocationClean, metadata_ext$is_alarm)
+  normalizer <-  t_dat_loc_cla[,,1] + t_dat_loc_cla[,,2]
+  t_dat_loc_cla[,,1] <- t_dat_loc_cla[,,1] / normalizer
+  t_dat_loc_cla[,,2] <- t_dat_loc_cla[,,2] /normalizer
+  t_dat_loc_cla <- data.frame(as.table(t_dat_loc_cla))
 
-    for (lang in LANGUAGES) {
-    	plots_output[[lang]][['pl_loc_2']] <-
-     	  ggplot(t_dat_loc_cla, aes(ymd(Var1), y = Freq, fill = Var3)) +
-     	  geom_col() +
-     	  #  geom_text(data = counts4, aes(x = ymd(date), y = n, label = label, hjust = 0, vjust = 1), size=2.7) +
-     	  scale_fill_manual(values = c("#77777777", "red3")) +
-     	  scale_y_continuous("", labels = scales::percent, expand = c(0,0)) +
-     	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
-     	               limits = c(ymd(LINEAGE_DATE) %m-% months(NO_MONTHS_PLOTS), ymd(LINEAGE_DATE))) +
-     	  facet_wrap(~Var2, ncol = 5) +
-     	  theme_minimal(base_family = 'Arial') +
-     	  ggtitle(description_input["pl_loc_2_tit", "names"]) +
-     	  theme(legend.position = "none")
-    }
+  t_dat_loc_cla$Var2 <- factor(t_dat_loc_cla$Var2, levels = levels1)
 
+  for (lang in LANGUAGES) {
+  	plots_output[[lang]][['pl_loc_2']] <-
+   	  ggplot(t_dat_loc_cla, aes(ymd(Var1), y = Freq, fill = Var3)) +
+   	  geom_col() +
+   	  scale_fill_manual(values = c("#77777777", "red3")) +
+   	  scale_y_continuous("", labels = scales::percent, expand = c(0,0)) +
+   	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
+   	               limits = c(ymd(LINEAGE_DATE) %m-% months(NO_MONTHS_PLOTS), ymd(LINEAGE_DATE))) +
+   	  facet_wrap(~Var2, ncol = 5) +
+   	  theme_minimal(base_family = 'Arial') +
+   	  ggtitle(description_input["pl_loc_2_tit", "names"]) +
+   	  theme(legend.position = "none")
   }
 
   # --------------------------------- #
@@ -301,9 +289,6 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
 
   # --------------------------------- #
   # --------------------------------- #
-
-  # -------
-  # Clades
 
   t_cou_cla <- table(ymd(nextclade$date) - days(wday(ymd(nextclade$date))), nextclade$clade_small)
   df4 <- as.data.frame(as.table(t_cou_cla))
@@ -437,7 +422,7 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
   # ----- SAVE PLOTS ----- #
 
   for (lang in LANGUAGES) {
-  	print(paste0('- Saving plots in ', lang))
+  	print(paste0('- saving plots in ', lang))
   	plots <- plots_output[[lang]]
   	dir_prefix <- paste0(OUTPUT_DATE_REGION_PATH, '/images/', lang, '/')
   	dir.create(dir_prefix, recursive = TRUE, showWarnings = FALSE)
@@ -445,10 +430,9 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
   	ggsave(plot = plots[['pl_seq_1']], file = paste0(dir_prefix, "liczba_seq_1.svg"), width = 4, height = 2.5)
   	ggsave(plot = plots[['pl_seq_2']], file = paste0(dir_prefix, "liczba_seq_2.svg"), width = 4, height = 2.5)
 
-  	if (sum(!is.na(metadata_ext$LocationClean)) > 0) {
-  		ggsave(plot = plots[['pl_loc_1']], file = paste0(dir_prefix, "liczba_loc_1.svg"), width = 8, height = ceiling(N_UNIQUE_REGIONS / 5) * 5 / 4, limitsize = FALSE)
-  		ggsave(plot = plots[['pl_loc_2']], file = paste0(dir_prefix, "liczba_loc_2.svg"), width = 8, height = ceiling(N_UNIQUE_REGIONS / 5) * 5 / 4, limitsize = FALSE)
-  	}
+  	th <- ceiling(attr(plots[['pl_loc_1']], "n_unique_regions") / 5) * 5 / 4
+		ggsave(plot = plots[['pl_loc_1']], file = paste0(dir_prefix, "liczba_loc_1.svg"), width = 8, height = th, limitsize = FALSE)
+		ggsave(plot = plots[['pl_loc_2']], file = paste0(dir_prefix, "liczba_loc_2.svg"), width = 8, height = th, limitsize = FALSE)
 
   	ggsave(plot = plots[['pl_var_1']], file = paste0(dir_prefix, "liczba_warianty_1.svg"), width = 8, height = 3)
   	ggsave(plot = plots[['pl_var_2']], file = paste0(dir_prefix, "liczba_warianty_2.svg"), width = 8, height = 3)

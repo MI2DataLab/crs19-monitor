@@ -12,7 +12,7 @@ clean_metadata <- function(df) {
   location_to[is.na(names(location_to))] <- NA
   df$LocationClean <- unlist(location_to)
 
-  if (sum(!is.na(df$LocationClean)) == 0) {
+  if (all(is.na(df$LocationClean))) {
     df$LocationClean <- unlist(location_from)
   }
 
@@ -52,7 +52,7 @@ clean_lineage <- function(df, alarm_pango, other_level = "Other") {
 
 #' @param df `nextclade` data.frame
 #' @export
-clean_nextclade <- function(df, other_level = "Other") {
+clean_nextclade <- function(df, alarm_mutation, alarm_pattern, other_level = "Other") {
 
   df$date <- sapply(
     strsplit(df$seqName, split = "|", fixed = TRUE),
@@ -71,6 +71,8 @@ clean_nextclade <- function(df, other_level = "Other") {
   df$clade_medium <- clade
 
   df$seqName <- gsub(df$seqName, pattern = "\\|.*", replacement = "")
+
+  df$is_alarm <- ifelse(grepl(df$clade_small, pattern = alarm_pattern), alarm_mutation, "-")
 
   df
 }
