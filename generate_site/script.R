@@ -15,7 +15,7 @@ LANGUAGES <- c('pl', 'en')
 # ----- READ DATA ----- #
 
 query <- "SELECT country FROM metadata GROUP BY country HAVING COUNT(*) > 200"
-metadata <- monitor::read_sql(DB_PATH, query)
+metadata <- covar::read_sql(DB_PATH, query)
 
 regions <- metadata$country
 regions <- c('Poland', 'Czech Republic', 'Germany') # TODO DELETE
@@ -45,7 +45,7 @@ if (file.copy('./source/index_source_summary.html',
               paste0(OUTPUT_DATE_PATH, '/index.html'),
               overwrite = TRUE)) cat('--- CREATE SUMMARY \n')
 
-monitor::create_i18n(
+covar::create_i18n(
   input_paths = sapply(LANGUAGES, function(lang) paste0("./source/lang_", lang, ".txt")),
   output_path = OUTPUT_DATE_PATH
 )

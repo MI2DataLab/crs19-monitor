@@ -31,7 +31,7 @@ plot_variant_col_fill <- function(df,
 
 #' @param df cleaned `nextclade` data.frame
 #' @export
-plot_variant_col_stasck <- function(df,
+plot_variant_col_stack <- function(df,
                                     alarm_clade,
                                     lineage_date,
                                     palette,

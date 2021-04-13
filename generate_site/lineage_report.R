@@ -32,7 +32,7 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
   # ----- READ DATA ----- #
 
   query <- "SELECT * FROM metadata WHERE country = ? AND substr(collection_date,1,4) >= '2019'"
-  metadata <- monitor::read_sql(DB_PATH, query, bind = list(region))
+  metadata <- covar::read_sql(DB_PATH, query, bind = list(region))
 
   cat(paste('found', nrow(metadata), 'rows in database \n'))
 
@@ -46,7 +46,7 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
   DATE_LAST_SAMPLE <- max(ymd(metadata$collection_date), na.rm = TRUE)
 
   # add location
-  metadata_input <- monitor::clean_metadata(metadata)
+  metadata_input <- covar::clean_metadata(metadata)
 
   # find misspelled data
   misspelled_rows <- is.na(metadata_input$LocationClean)
@@ -70,13 +70,13 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
                                     sep = ":", header = TRUE, row.names = 1,
                                     fileEncoding = "UTF-8", quote = NULL)
 
-    lineage_input <- monitor::clean_lineage(
+    lineage_input <- covar::clean_lineage(
       df = lineage_subset,
       alarm_pango = ALARM_PANGO,
       other_level = description_input["other_level", "names"]
     )
 
-    nextclade_input <- monitor::clean_nextclade(
+    nextclade_input <- covar::clean_nextclade(
       df = nextclade_subset,
       alarm_mutation = ALARM_MUTATION,
       alarm_pattern = ALARM_PATTERN,
@@ -86,19 +86,19 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
     metadata_nextclade <- merge(metadata_input, nextclade_input, by = "accession_id")
 
     plots_output[[lang]][['pl_seq_1']] <-
-      monitor::plot_sequence_count(
+      covar::plot_sequence_count(
         df = lineage_input,
         title = description_input["pl_seq_1_tit", "names"]
       )
 
     plots_output[[lang]][['pl_seq_2']] <-
-      monitor::plot_sequence_cumulative(
+      covar::plot_sequence_cumulative(
         df = lineage_input,
         title = description_input["pl_seq_2_tit", "names"]
       )
 
     plots_output[[lang]][['pl_var_1']] <-
-      monitor::plot_pango_facet(
+      covar::plot_pango_facet(
         df = lineage_input,
         alarm_pango = ALARM_PANGO,
         lineage_date = LINEAGE_DATE,
@@ -107,7 +107,7 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
       )
 
     plots_output[[lang]][['pl_var_2']] <-
-      monitor::plot_pango_cumulative(
+      covar::plot_pango_cumulative(
         df = lineage_input,
         alarm_pango = ALARM_PANGO,
         lineage_date = LINEAGE_DATE,
@@ -116,7 +116,7 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
       )
 
     plots_output[[lang]][['pl_var_3']] <-
-      monitor::plot_clade_facet(
+      covar::plot_clade_facet(
         df = nextclade_input,
         alarm_pattern = ALARM_PATTERN,
         lineage_date = LINEAGE_DATE,
@@ -125,7 +125,7 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
       )
 
     plots_output[[lang]][['pl_var_4']] <-
-      monitor::plot_clade_cumulative(
+      covar::plot_clade_cumulative(
         df = nextclade_input,
         alarm_clade = ALARM_CLADE,
         lineage_date = LINEAGE_DATE,
@@ -134,7 +134,7 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
       )
 
     plots_output[[lang]][['pl_var_5']] <-
-      monitor::plot_metadata_dates(
+      covar::plot_metadata_dates(
         df = metadata_nextclade,
         alarm_pattern = ALARM_PATTERN,
         lineage_date = LINEAGE_DATE,
@@ -145,7 +145,7 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
       )
 
     plots_output[[lang]][['pl_loc_1']] <-
-      monitor::plot_location_count(
+      covar::plot_location_count(
         df = metadata_nextclade,
         max_regions = MAX_REGIONS,
         lineage_date = LINEAGE_DATE,
@@ -155,7 +155,7 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
       )
 
     plots_output[[lang]][['pl_loc_2']] <-
-      monitor::plot_location_proportion(
+      covar::plot_location_proportion(
         df = metadata_nextclade,
         max_regions = MAX_REGIONS,
         lineage_date = LINEAGE_DATE,
@@ -165,7 +165,7 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
       )
 
     plots_output[[lang]][['pl_var_all_2']] <-
-      monitor::plot_variant_col_fill(
+      covar::plot_variant_col_fill(
         df = nextclade_input,
         alarm_clade = ALARM_CLADE,
         lineage_date = LINEAGE_DATE,
@@ -175,7 +175,7 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
       )
 
     plots_output[[lang]][['pl_var_all_3']] <-
-      monitor::plot_variant_col_stack(
+      covar::plot_variant_col_stack(
         df = nextclade_input,
         alarm_clade = ALARM_CLADE,
         lineage_date = LINEAGE_DATE,
@@ -186,10 +186,10 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
 
     if (region == "Poland") {
       path <- "./map/pl-voi.shp"
-      map <- monitor::read_map(path)
+      map <- covar::read_map(path)
 
       plots_output[[lang]][['pl_map']] <-
-        monitor::plot_map(
+        covar::plot_map(
           df = metadata_nextclade,
           map = map,
           alarm_mutation = ALARM_MUTATION,
@@ -307,7 +307,7 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
   write(jsonlite::toJSON(placeholders, auto_unbox = TRUE), paste0(OUTPUT_DATE_REGION_PATH, '/placeholders.json'))
   file.copy('./source/index_source.html', paste0(OUTPUT_DATE_REGION_PATH, '/index.html'), overwrite = TRUE)
 
-  monitor::create_i18n(
+  covar::create_i18n(
     input_paths = sapply(LANGUAGES, function(lang) paste0("./source/lang_", lang, ".txt")),
     output_path = OUTPUT_DATE_REGION_PATH
   )
