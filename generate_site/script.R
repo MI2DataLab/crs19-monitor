@@ -66,7 +66,13 @@ covar::create_i18n(
   output_path = OUTPUT_DATE_PATH
 )
 
+
+# ----- LOAD PACKAGES ----- #
+
+suppressMessages(library(dplyr))
+library(tidyr)
 options(dplyr.summarise.inform = FALSE)
+
 
 # ----- REPORTS ----- #
 
