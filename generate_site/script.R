@@ -1,11 +1,16 @@
-# ----- READ DATA ----- #
+# ----- GLOBAL VARS ----- #
 
 DB_PATH <- Sys.getenv('DB_PATH')
 OUTPUT_PATH <- Sys.getenv('OUTPUT_PATH')
 LINEAGE_PATH <- Sys.getenv("LINEAGE_REPORT_PATH")
 NEXTCLADE_PATH <- Sys.getenv("NEXTCLADE_REPORT_PATH")
 LINEAGE_DATE <- Sys.getenv('LINEAGE_DATE')
+
 LINEAGE_DATE_CLEAN <- gsub('/', '-', LINEAGE_DATE)
+OUTPUT_DATE_PATH <- paste0(OUTPUT_PATH, '/', LINEAGE_DATE_CLEAN)
+
+
+# ----- READ DATA ----- #
 
 query <- "SELECT country FROM metadata GROUP BY country HAVING COUNT(*) > 200"
 metadata <- monitor::read_sql(DB_PATH, query)
@@ -23,6 +28,7 @@ nextclade_full$accession_id <- stringi::stri_extract_first_regex(nextclade_full$
 print(paste('Full pango rows:', nrow(lineage_full)))
 print(paste('Full nextclade rows:', nrow(nextclade_full)))
 
+
 # ----- DATES ----- #
 
 subdirs <- list.dirs(path = OUTPUT_PATH, full.names = FALSE, recursive = FALSE)
@@ -32,9 +38,7 @@ write(jsonlite::toJSON(date_dirs, auto_unbox = FALSE), paste0(OUTPUT_PATH, '/dat
 
 # ----- SUMMARY ----- #
 
-OUTPUT_DATE_PATH <- paste0(OUTPUT_PATH, '/', LINEAGE_DATE_CLEAN)
 dir.create(OUTPUT_DATE_PATH, recursive = TRUE, showWarnings = FALSE)
-
 if (file.copy('./source/index_source_summary.html',
               paste0(OUTPUT_DATE_PATH, '/index.html'),
               overwrite = TRUE)) print('CREATE SUMMARY')
@@ -49,6 +53,7 @@ i18n <- lapply(langs, function(lang) {
 })
 names(i18n) <- langs
 write(jsonlite::toJSON(i18n, auto_unbox = TRUE), paste0(OUTPUT_DATE_PATH, '/i18n.json'))
+
 
 # ----- REPORTS ----- #
 

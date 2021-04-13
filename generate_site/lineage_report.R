@@ -38,7 +38,7 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
 
   print(paste('Found', nrow(metadata), 'rows in database'))
 
-  REGION_CLEAN <- gsub(" ", "_", stringr::str_squish(gsub("[^a-z0-9 ]", "", tolower(region))
+  REGION_CLEAN <- gsub(" ", "_", stringr::str_squish(gsub("[^a-z0-9 ]", "", tolower(region))))
   OUTPUT_DATE_REGION_PATH <- paste0(OUTPUT_DATE_PATH, REGION_CLEAN)
 
 
