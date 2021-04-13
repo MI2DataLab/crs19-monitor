@@ -52,8 +52,6 @@ plot_location_proportion <- function(df,
   tab_df <- data.frame(as.table(tab))
 
   selected_regions <- head(levels(tab_df$Var2), max_regions)
-  n_unique_regions <- max(length(unique(selected_regions)), 1)
-
   try({
     df$LocationClean <- fct_other(df$LocationClean,
                                   keep = selected_regions,
@@ -63,13 +61,13 @@ plot_location_proportion <- function(df,
   # calculate this table again with combined levels
   tab <- table(df$week_start, df$LocationClean, df$is_alarm)
   tab_df <- data.frame(as.table(tab))
+  l <- levels(tab_df$Var2)
 
   # normalize for proportion
-  l <- levels(tab_df$Var2)
-  normalizer <-  tab_df[,,1] + tab_df[,,2]
-  tab_df[,,1] <- tab_df[,,1] / normalizer
-  tab_df[,,2] <- tab_df[,,2] / normalizer
-  tab_df <- data.frame(as.table(tab_df))
+  normalizer <-  tab[,,1] + tab[,,2]
+  tab[,,1] <- tab[,,1] / normalizer
+  tab[,,2] <- tab[,,2] / normalizer
+  tab_df <- data.frame(as.table(tab))
   tab_df$Var2 <- factor(tab_df$Var2, levels = l)
 
   ggplot(tab_df, aes(ymd(Var1), y = Freq, fill = Var3)) +
