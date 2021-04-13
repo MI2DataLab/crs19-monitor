@@ -233,7 +233,6 @@ plot_location_facet <- function(df,
                                 title = "") {
 
   tab <- table(df$week_start, df$LocationClean, df$is_alarm)
-  print(class(tab))
   tab_df <- data.frame(as.table(tab))
 
   selected_regions <- head(levels(tab_df$Var2), max_regions)
@@ -247,7 +246,7 @@ plot_location_facet <- function(df,
 
   # calculate this table again with combined levels
   tab <- table(df$week_start, df$LocationClean, df$is_alarm)
-  tab_df <- data.frame(as.table(tab_df))
+  tab_df <- data.frame(as.table(tab))
 
   p <- ggplot(tab_df, aes(ymd(Var1), y = Freq, fill = Var3)) +
     geom_col() +
