@@ -1,6 +1,30 @@
+#' @param df `metadata` data.frame
+#' @export
+clean_metadata <- function(df) {
+
+  # from location_dict.R
+  location_dict_to_from <- location_dict()
+  location_dict_from_to <- reverse_dict(location_dict_to_from)
+
+  location_from <- sapply(strsplit(df$location, split = "/"), `[`, 3,
+                          simplify = TRUE, USE.NAMES = FALSE)
+  df$LocationRaw <- location_from
+  location_to <- location_dict_from_to[location_from]
+  location_to[is.na(names(location_to))] <- NA
+  df$LocationClean <- unlist(location_to)
+
+  if (sum(!is.na(df$LocationClean)) == 0) {
+    df$LocationClean <- unlist(location_from)
+  }
+
+  df
+}
+
+
 #' @param df `lineage` data.frame
 #' @export
 clean_lineage <- function(df, alarm_pango, other_level = "Other") {
+
   df$date <- sapply(
     strsplit(df$Sequence.name, split = "|", fixed = TRUE),
     function(x) substr(paste0(tail(x, 1), "-01"), 1, 10)
@@ -28,6 +52,7 @@ clean_lineage <- function(df, alarm_pango, other_level = "Other") {
 #' @param df `nextclade` data.frame
 #' @export
 clean_nextclade <- function(df, other_level = "Other") {
+
   df$date <- sapply(
     strsplit(df$seqName, split = "|", fixed = TRUE),
     function(x) substr(paste0(tail(x, 1), "-01"), 1, 10)

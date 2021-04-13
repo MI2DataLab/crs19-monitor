@@ -1,11 +1,16 @@
+reverse_dict <- function(dict) {
+    # https://stackoverflow.com/a/35827024
+    split(rep(names(dict), lengths(dict)), unlist(dict))
+}
+
+
 #' @title Dictionary of clean location names (PL/CZ)
 #'
 #' @description Return a dictionary used to clean the location data in the
 #'  reports for Poland and Czech. The (key, value) scheme uses:
 #'  (clean name, vector of misspelled names).
 #'
-#' @export
-load_location_dict <- function() {
+location_dict <- function() {
     ### reversed dict
     ## NOTE: gsub(" ", "", x) is not possible due to other countries than PL
     # TODO: consider only lowercase keys

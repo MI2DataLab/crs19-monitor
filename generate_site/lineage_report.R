@@ -47,6 +47,17 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
 
   DATE_LAST_SAMPLE <- max(ymd(metadata$collection_date), na.rm = TRUE)
 
+  # add location
+  metadata_input <- monitor::clean_metadata(metadata)
+
+  # find misspelled data
+  misspelled_rows <- is.na(metadata_ext$LocationClean)
+  misspelled_locations <- table(metadata_ext$location[misspelled_rows])
+
+  print(paste("There are", length(misspelled_locations), "misspelled locations"))
+  print(paste("There are", sum(misspelled_rows), "unique misspelled rows"))
+  print(as.data.frame(misspelled_locations))
+
 
   # ----- ITERATE OVER LANGS ----- #
 
@@ -71,7 +82,10 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
       other_level = description_input["other_level", "names"]
     )
 
-    metadata_nextclade <- merge(metadata, nextclade_input, by = "accession_id")
+    metadata_nextclade <- merge(metadata_input, nextclade_input, by = "accession_id")
+    print(dim(metadata_input))
+    print(dim(nextclade_input))
+    print(dim(metadata_nextclade))
 
     plots_output[[lang]][['pl_seq_1']] <-
       monitor::plot_sequence_count(
@@ -138,38 +152,8 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
 
   lineage <- lineage_input
   nextclade <- nextclade_input
+  metadata_ext <- metadata_nextclade
 
-
-
-  # --------------------------------- #
-  # ------------LOCATION------------- #
-  # --------------------------------- #
-
-  reverse_dict <- function(dict) {
-    # https://stackoverflow.com/a/35827024
-    split(rep(names(dict), lengths(dict)), unlist(dict))
-  }
-
-  location_dict_to_from <- monitor::load_location_dict()
-  ### proper dict
-  location_dict_from_to <- reverse_dict(location_dict_to_from)
-
-  ### clean location
-  location_from <- sapply(strsplit(metadata_ext$location, split = "/"), `[`, 3, simplify = TRUE, USE.NAMES = FALSE)
-  metadata_ext$LocationRaw <- location_from
-  location_to <- location_dict_from_to[location_from]
-  location_to[is.na(names(location_to))] <- NA
-  metadata_ext$LocationClean <- unlist(location_to)
-  if (sum(!is.na(metadata_ext$LocationClean)) == 0) {
-      metadata_ext$LocationClean <- unlist(location_from)
-  }
-
-  ### print info about new misspelled data
-  misspelled_rows <- is.na(metadata_ext$LocationClean)
-  misspelled_locations <- table(metadata_ext$location[misspelled_rows])
-  print(paste("There are", length(misspelled_locations), "misspelled locations"))
-  print(paste("There are", sum(misspelled_rows), "unique misspelled rows"))
-  print(as.data.frame(misspelled_locations))
 
   ### PLOTS
 
