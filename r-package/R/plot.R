@@ -191,8 +191,8 @@ plot_metadata_dates <- function(df, lineage_date, no_months_plots,
     geom_abline(slope = 1, intercept = 14, color = "grey", lty = 2) +
     geom_abline(slope = 1, intercept = 28, color = "grey", lty = 3) +
     geom_jitter(size = 0.5) +
-    ggtitle(subtitle = title) +
-    theme_bw(base_family = 'Arial') +
+    ggtitle(title = "", subtitle = title) +
+    theme_bw(base_family = "Arial") +
     coord_fixed() +
     scale_color_manual("", values = c("blue4", "red2")) +
     scale_x_date(xlab, date_breaks = "2 weeks", date_labels = "%m/%d",
