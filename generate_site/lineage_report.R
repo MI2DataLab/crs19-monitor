@@ -164,6 +164,26 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
         title = description_input["pl_loc_2_tit", "names"]
       )
 
+    plots_output[[lang]][['pl_var_all_2']] <-
+      monitor::plot_variant_col_fill(
+        df = nextclade_input,
+        alarm_clade = ALARM_CLADE,
+        lineage_date = LINEAGE_DATE,
+        palette = PALETTE,
+        no_months_plots = NO_MONTHS_PLOTS,
+        title = description_input["pl_var_all_2_tit", "names"]
+      )
+
+    plots_output[[lang]][['pl_var_all_3']] <-
+      monitor::plot_variant_col_stack(
+        df = nextclade_input,
+        alarm_clade = ALARM_CLADE,
+        lineage_date = LINEAGE_DATE,
+        palette = PALETTE,
+        no_months_plots = NO_MONTHS_PLOTS,
+        title = description_input["pl_var_all_3_tit", "names"]
+      )
+
     if (region == "Poland") {
       path <- "./map/pl-voi.shp"
       map <- monitor::read_map(path)
@@ -197,40 +217,6 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
 
   # --------------------------------- #
   # --------------------------------- #
-
-  t_cou_cla <- table(ymd(nextclade$date) - days(wday(ymd(nextclade$date))), nextclade$clade_small)
-  df4 <- as.data.frame(as.table(t_cou_cla))
-  colnames(df4) <- c("date", "variant", "n")
-
-  df4$variant <- reorder(df4$variant, df4$n, tail, 1)
-  df4$variant <- fct_relevel(df4$variant, ALARM_CLADE, after = Inf)
-
-  df4 <- df4[df4$variant %in% names(PALETTE),]
-  df4 <- df4[ymd(df4$date) > ymd(LINEAGE_DATE) %m-% months(NO_MONTHS_PLOTS),]
-
-  for (lang in LANGUAGES) {
-  	plots_output[[lang]][['pl_var_all_2']] <-
-  	  ggplot(df4, aes(ymd(date) + days(3), y=n, fill = variant)) +
-  	  geom_col( position = "fill", color = "white") +
-  	  coord_cartesian(xlim = c(ymd(LINEAGE_DATE) %m-% months(NO_MONTHS_PLOTS), ymd(LINEAGE_DATE)), ylim = c(0,1)) +
-  	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
-  	               limits = c(ymd(LINEAGE_DATE) %m-% months(NO_MONTHS_PLOTS), ymd(LINEAGE_DATE))) +
-  	  scale_fill_manual("", values = PALETTE) +
-  	  ggtitle(description_input["pl_var_all_2_tit", "names"]) +
-  	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0), labels = scales::percent)
-  }
-
-  for (lang in LANGUAGES) {
-  	plots_output[[lang]][['pl_var_all_3']] <-
-  	  ggplot(df4, aes(ymd(date) + days(3), y=n, fill = variant)) +
-  	  geom_col( position = "stack", color = "white") +
-  	  coord_cartesian(xlim = c(ymd(LINEAGE_DATE) %m-% months(NO_MONTHS_PLOTS), ymd(LINEAGE_DATE))) +
-  	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
-  	               limits = c(ymd(LINEAGE_DATE) %m-% months(NO_MONTHS_PLOTS), ymd(LINEAGE_DATE))) +
-  	  scale_fill_manual("", values = PALETTE) +
-  	  ggtitle(description_input["pl_var_all_3_tit", "names"]) +
-  	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0))
-  }
 
   t_cou_cla <- table(nextclade$date, nextclade$clade_small)
   # add +k days for reporting lag
