@@ -44,5 +44,7 @@ clean_nextclade <- function(df, other_level = "Other") {
   )
   df$clade_medium <- clade
 
+  df$seqName <- gsub(df$seqName, pattern = "\\|.*", replacement = "")
+
   df
 }

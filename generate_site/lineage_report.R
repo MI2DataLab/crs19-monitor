@@ -71,6 +71,8 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
       other_level = description_input["other_level", "names"]
     )
 
+    metadata_nextclade <- merge(metadata, nextclade_input, by = "accession_id")
+
     plots_output[[lang]][['pl_seq_1']] <-
       monitor::plot_sequence_count(
         df = lineage_input,
@@ -117,6 +119,16 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
         no_months_plots_long = NO_MONTHS_PLOTS_LONG,
         title = description_input["pl_var_4_tit", "names"]
       )
+
+    plots_output[[lang]][['pl_var_5']] <-
+      monitor::plot_metadata_dates(
+        df = metadata_nextclade,
+        lineage_date = LINEAGE_DATE,
+        no_months_plots = NO_MONTHS_PLOTS,
+        title = description_input["pl_var_5_tit", "names"],
+        xlab = description_input["pl_var_5_scx", "names"],
+        ylab = description_input["pl_var_5_scy", "names"]
+      )
   }
 
 
@@ -127,29 +139,6 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
   lineage <- lineage_input
   nextclade <- nextclade_input
 
-
-  ############
-  ## plots from meta data
-
-  nextclade$seqName <- gsub(nextclade$seqName, pattern = "\\|.*", replacement = "")
-  metadata_ext <- merge(metadata, nextclade, by.x = "accession_id", by.y = "accession_id")
-
-  for (lang in langs) {
-  	plots_output[[lang]][['pl_var_5']] <-
-  	  ggplot(metadata_ext, aes(ymd(collection_date), ymd(submission_date), color = grepl(clade_small, pattern = "501Y"))) +
-  	  geom_abline(slope = 1, intercept = 0, color = "grey", lty = 4) +
-  	  geom_abline(slope = 1, intercept = 14, color = "grey", lty = 2) +
-  	  geom_abline(slope = 1, intercept = 28, color = "grey", lty = 3) +
-  	  geom_jitter(size = 0.5) +
-  	  ggtitle("", description_input["pl_var_5_tit", "names"]) +
-  	  theme_bw(base_family = 'Arial') + coord_fixed() +
-  	  scale_color_manual("", values = c("blue4", "red2")) +
-  	  scale_x_date(description_input["pl_var_5_scx", "names"], date_breaks = "2 weeks", date_labels = "%m/%d",
-  	               limits = c(ymd(LINEAGE_DATE) %m-% months(NO_MONTHS_PLOTS), ymd(LINEAGE_DATE)))  +
-  	  scale_y_date(description_input["pl_var_5_scy", "names"], date_breaks = "2 weeks", date_labels = "%m/%d",
-  	               limits = c(ymd(LINEAGE_DATE) %m-% months(NO_MONTHS_PLOTS - 1), ymd(LINEAGE_DATE)))+
-  	  theme(legend.position = "none")
-  }
 
 
   # --------------------------------- #
@@ -268,7 +257,8 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
        pivot_wider(id_cols = name, names_from = type, values_from = count) %>%
        inner_join(t_map_metadata_left %>%
                     group_by(name) %>%
-                    summarise(ratio = sum(count) / sum(t_map_metadata_left$count))) -> t_map_metadata_left) %>%
+                    summarise(ratio = sum(count) / sum(t_map_metadata_left$count)),
+                  by = "name") -> t_map_metadata_left) %>%
       mutate(ratio = 2 * (10e12 * ratio / max(t_map_metadata_left$ratio)) ** (1/3)) -> t_map_metadata_left
 
     ((t_dat_map %>%
@@ -279,7 +269,8 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
         pivot_wider(id_cols = name, names_from = type, values_from = count) %>%
         inner_join(t_map_metadata_right %>%
                      group_by(name) %>%
-                     summarise(ratio = sum(count) / sum(t_map_metadata_right$count))) -> t_map_metadata_right) %>%
+                     summarise(ratio = sum(count) / sum(t_map_metadata_right$count)),
+                   by = "name") -> t_map_metadata_right) %>%
       mutate(ratio = 2 * (10e12 * ratio / max(t_map_metadata_right$ratio)) ** (1/3)) -> t_map_metadata_right
 
     map_cord <- sf::st_read("./map/pl-voi.shp", quiet = TRUE)
@@ -426,7 +417,7 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
   	                           (ymd(df5$date) > ymd(LINEAGE_DATE) %m-% months(2)),],
   	              se = FALSE, span = 1, method = 'loess', formula = y ~ x) +
   	  scale_y_continuous("",expand = c(0,0),
-  	                     breaks = c(0.01,0.1,0.25,0.5,0.75,0.9, 0.99), limits = c(0,1)) +
+  	                     breaks = c(0.01, 0.1, 0.25, 0.5, 0.75, 0.9, 0.99), limits = c(0, 1)) +
   	  scale_color_manual("", values = PALETTE) +
   	  ggtitle(description_input["pl_var_all_4_tit", "names"]) +
   	  theme_minimal(base_family = 'Arial') +
@@ -462,14 +453,13 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
   write(jsonlite::toJSON(placeholders, auto_unbox = TRUE), paste0(OUTPUT_DATE_REGION_PATH, '/placeholders.json'))
   file.copy('./source/index_source.html', paste0(OUTPUT_DATE_REGION_PATH, '/index.html'), overwrite = TRUE)
 
-  i18n <- lapply(langs, function(lang) {
+  i18n <- sapply(langs, function(lang) {
   	i18n_table <- read.table(paste0("./source/lang_", lang, ".txt"), sep = ":", header = TRUE, fileEncoding = "UTF-8", quote = NULL)
   	# Transform table to dictionary
-  	obj = as.list(i18n_table[,"names"])
-  	names(obj) <- i18n_table[,"tag"]
+  	obj = as.list(i18n_table[["names"]])
+  	names(obj) <- i18n_table[["tag"]]
   	obj
-  })
-  names(i18n) <- langs
+  }, simplify = FALSE)
   write(jsonlite::toJSON(i18n, auto_unbox = TRUE), paste0(OUTPUT_DATE_REGION_PATH, '/i18n.json'))
 
 

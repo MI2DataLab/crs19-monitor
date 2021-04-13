@@ -1,8 +1,9 @@
 Package: monitor
 Title: Monitor of SARS-CoV-2 variants and mutations in Europe
 Version: 0.1.0
-Authors@R: person("Hubert", "Baniecki", email = "hbaniecki@gmail.com",
-                  role = c("aut", "cre"))
+Authors@R: c(person("Hubert", "Baniecki", email = "hbaniecki@gmail.com",
+                    role = c("aut", "cre")),
+             person("Przemyslaw", "Biecek", role = c("aut")))
 Description: Functionalities for the project of SARS-CoV-2 variants monitoring.
     Website: <https://monitor.mi2.ai>.
     GitHub: <https://github.com/MI2DataLab/crs19-monitor>.

@@ -72,7 +72,6 @@ regions_list <- lapply(regions, function(name) {
     dir = gsub(" ", "_", stringr::str_squish(gsub("[^a-z0-9 ]", "", tolower(name))))
   )
 })
-print(regions_list)
 write(jsonlite::toJSON(regions_list, auto_unbox = TRUE), paste0(OUTPUT_DATE_PATH, '/regions.json'))
 
 print('-- END')

@@ -66,7 +66,8 @@ plot_clade_facet <- function(df, lineage_date, no_months_plots, title = NULL) {
 
 #' @param df cleaned `nextclade` data.frame
 #' @export
-plot_clade_cumulative <- function(df, lineage_date, alarm_clade, no_months_plots_long, title = NULL) {
+plot_clade_cumulative <- function(df, lineage_date, alarm_clade, no_months_plots_long,
+                                  title = NULL) {
 
   tab <- apply(table(df$date, df$clade_medium), 2, cumsum)
   df <- as.data.frame(as.table(tab))
@@ -104,7 +105,8 @@ plot_clade_cumulative <- function(df, lineage_date, alarm_clade, no_months_plots
 
 #' @param df cleaned `lineage` data.frame
 #' @export
-plot_pango_facet <- function(df, lineage_date, alarm_pango, no_months_plots, title = NULL) {
+plot_pango_facet <- function(df, lineage_date, alarm_pango, no_months_plots,
+                             title = NULL) {
 
   tab <- apply(table(df$date, df$pango_small), 2, cumsum)
   df <- as.data.frame(as.table(tab))
@@ -140,7 +142,8 @@ plot_pango_facet <- function(df, lineage_date, alarm_pango, no_months_plots, tit
 
 #' @param df cleaned `lineage` data.frame
 #' @export
-plot_pango_cumulative <- function(df, lineage_date, alarm_pango, no_months_plots_long, title = NULL) {
+plot_pango_cumulative <- function(df, lineage_date, alarm_pango, no_months_plots_long,
+                                  title = NULL) {
 
   tab <- apply(table(df$date, df$pango_medium), 2, cumsum)
   df <- as.data.frame(as.table(tab))
@@ -173,4 +176,28 @@ plot_pango_cumulative <- function(df, lineage_date, alarm_pango, no_months_plots
     ggtitle(title) +
     theme(legend.position = "none")
 
+}
+
+
+#' @param df joined `metadata` with cleaned `nextclade` data.frame
+#' @export
+plot_metadata_dates <- function(df, lineage_date, no_months_plots,
+                                title = NULL, xlab = NULL, ylab = NULL) {
+
+  ggplot(df, aes(x = ymd(collection_date),
+                 y = ymd(submission_date),
+                 color = grepl(clade_small, pattern = "501Y"))) +
+    geom_abline(slope = 1, intercept = 0, color = "grey", lty = 4) +
+    geom_abline(slope = 1, intercept = 14, color = "grey", lty = 2) +
+    geom_abline(slope = 1, intercept = 28, color = "grey", lty = 3) +
+    geom_jitter(size = 0.5) +
+    ggtitle(subtitle = title) +
+    theme_bw(base_family = 'Arial') +
+    coord_fixed() +
+    scale_color_manual("", values = c("blue4", "red2")) +
+    scale_x_date(xlab, date_breaks = "2 weeks", date_labels = "%m/%d",
+                 limits = c(ymd(lineage_date) %m-% months(no_months_plots), ymd(lineage_date)))  +
+    scale_y_date(ylab, date_breaks = "2 weeks", date_labels = "%m/%d",
+                 limits = c(ymd(lineage_date) %m-% months(no_months_plots - 1), ymd(lineage_date))) +
+    theme(legend.position = "none")
 }
