@@ -11,11 +11,6 @@ options(dplyr.summarise.inform = FALSE)
 
 # ----- GLOBAL VARS ----- #
 
-OUTPUT_PATH <- Sys.getenv("OUTPUT_PATH")
-DB_PATH <- Sys.getenv('DB_PATH')
-LINEAGE_DATE <- Sys.getenv("LINEAGE_DATE")
-LINEAGE_DATE_CLEAN <- gsub("/", "-", LINEAGE_DATE)
-
 ALARM_MUTATION <- "N501Y"
 ALARM_PATTERN <- "501Y"
 ALARM_PANGO <- c("B.1.1.7", "B.1.351", "P.1")
@@ -32,7 +27,7 @@ PALETTE <- structure(
 
 # ----- REPORT ----- #
 
-lineage_report <- function(region) {
+lineage_report <- function(region, lineage_df, nextclade_df) {
 
   # ----- READ DATA ----- #
 
@@ -52,8 +47,8 @@ lineage_report <- function(region) {
   dir.create(paste0(region_output_path, '/', 'images'), recursive = TRUE, showWarnings = FALSE)
 
   # filter metadata by region
-  lineage_subset <- subset(lineage_full, accession_id %in% metadata$accession_id)
-  nextclade_subset <- subset(nextclade_full, accession_id %in% metadata$accession_id)
+  lineage_subset <- subset(lineage_df, accession_id %in% metadata$accession_id)
+  nextclade_subset <- subset(nextclade_df, accession_id %in% metadata$accession_id)
 
   print(paste('Region pango rows:', nrow(lineage_subset)))
   print(paste('Region nextclade rows:', nrow(nextclade_subset)))

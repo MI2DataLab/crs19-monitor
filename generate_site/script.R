@@ -4,7 +4,8 @@ DB_PATH <- Sys.getenv('DB_PATH')
 OUTPUT_PATH <- Sys.getenv('OUTPUT_PATH')
 LINEAGE_PATH <- Sys.getenv("LINEAGE_REPORT_PATH")
 NEXTCLADE_PATH <- Sys.getenv("NEXTCLADE_REPORT_PATH")
-LINEAGE_DATE_CLEAN <- gsub('/', '-', Sys.getenv('LINEAGE_DATE'))
+LINEAGE_DATE <- Sys.getenv('LINEAGE_DATE')
+LINEAGE_DATE_CLEAN <- gsub('/', '-', LINEAGE_DATE)
 
 query <- "SELECT country FROM metadata GROUP BY country HAVING COUNT(*) > 200"
 metadata <- monitor::read_sql(DB_PATH, query)
@@ -22,21 +23,6 @@ nextclade_full$accession_id <- stringi::stri_extract_first_regex(nextclade_full$
 
 print(paste('Full pango rows:', nrow(lineage_full)))
 print(paste('Full nextclade rows:', nrow(nextclade_full)))
-
-# Save regions list
-regions_list <- lapply(regions, function(name) {
-  list(
-    name = name,
-    dir = gsub(" ", "_", stringr::str_squish(gsub("[^a-z0-9 ]", "", tolower(name))))
-  )
-})
-write(jsonlite::toJSON(regions_list, auto_unbox = TRUE), paste0(OUTPUT_PATH, '/', LINEAGE_DATE_CLEAN, '/regions.json'))
-
-# Save dates list
-subdirs <- list.dirs(path = OUTPUT_PATH, full.names = FALSE, recursive = FALSE)
-date_dirs <- stringi::stri_subset_regex(subdirs, '^\\d{4}-\\d{2}-\\d{2}$')
-write(jsonlite::toJSON(date_dirs, auto_unbox = FALSE), paste0(OUTPUT_PATH, '/dates.json'))
-
 
 # ----- SUMMARY ----- #
 
@@ -60,5 +46,20 @@ print('CREATE REPORTS')
 
 source('lineage_report.R')
 for (region in regions) {
-  lineage_report(region)
+  lineage_report(region, lineage_full, nextclade_full)
 }
+
+# Save regions list
+regions_list <- lapply(regions, function(name) {
+  list(
+    name = name,
+    dir = gsub(" ", "_", stringr::str_squish(gsub("[^a-z0-9 ]", "", tolower(name))))
+  )
+})
+write(jsonlite::toJSON(regions_list, auto_unbox = TRUE), paste0(OUTPUT_PATH, '/', LINEAGE_DATE_CLEAN, '/regions.json'))
+
+# Save dates list
+subdirs <- list.dirs(path = OUTPUT_PATH, full.names = FALSE, recursive = FALSE)
+date_dirs <- stringi::stri_subset_regex(subdirs, '^\\d{4}-\\d{2}-\\d{2}$')
+write(jsonlite::toJSON(date_dirs, auto_unbox = FALSE), paste0(OUTPUT_PATH, '/dates.json'))
+
