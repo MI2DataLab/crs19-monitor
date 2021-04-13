@@ -78,7 +78,7 @@ plot_clade_cumulative <- function(df, lineage_date, alarm_clade, no_months_plots
   )
   counts <- counts[counts$variant %in% alarm_clade,]
 
-  ggplot(df5, aes(ymd(date), y = n, color = variant %in% alarm_clade, group = variant)) +
+  ggplot(df, aes(ymd(date), y = n, color = variant %in% alarm_clade, group = variant)) +
     geom_step() +
     geom_step(data = df[df$variant %in% alarm_clade,], size = 1.1) +
     ggrepel::geom_text_repel(data = counts,
