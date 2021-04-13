@@ -65,7 +65,7 @@ plot_location_proportion <- function(df,
   tab_df <- data.frame(as.table(tab))
 
   # normalize for proportion
-  l <- levels(tab_df)
+  l <- levels(tab_df$Var2)
   normalizer <-  tab_df[,,1] + tab_df[,,2]
   tab_df[,,1] <- tab_df[,,1] / normalizer
   tab_df[,,2] <- tab_df[,,2] / normalizer
