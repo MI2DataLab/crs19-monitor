@@ -8,6 +8,7 @@ LINEAGE_DATE <- Sys.getenv('LINEAGE_DATE')
 
 LINEAGE_DATE_CLEAN <- gsub('/', '-', LINEAGE_DATE)
 OUTPUT_DATE_PATH <- paste0(OUTPUT_PATH, '/', LINEAGE_DATE_CLEAN)
+LANGUAGES <- c('pl', 'en')
 
 
 # ----- READ DATA ----- #
@@ -43,15 +44,10 @@ if (file.copy('./source/index_source_summary.html',
               paste0(OUTPUT_DATE_PATH, '/index.html'),
               overwrite = TRUE)) print('-- CREATE SUMMARY')
 
-langs <- c('pl', 'en')
-i18n <- sapply(langs, function(lang) {
-	i18n_table <- read.table(paste0("./source/lang_", lang, ".txt"), sep = ":", header = TRUE, fileEncoding = "UTF-8", quote = NULL)
-	# Transform table to dictionary
-	obj <- as.list(i18n_table[["names"]])
-	names(obj) <- i18n_table[["tag"]]
-	obj
-}, simplify = FALSE)
-write(jsonlite::toJSON(i18n, auto_unbox = TRUE), paste0(OUTPUT_DATE_PATH, '/i18n.json'))
+monitor::create_i18n(
+  input_paths = sapply(LANGUAGES, function(lang) paste0("./source/lang_", lang, ".txt")),
+  output_path = OUTPUT_DATE_PATH
+)
 
 
 # ----- REPORTS ----- #

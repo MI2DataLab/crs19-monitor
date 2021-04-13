@@ -59,12 +59,11 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
   print(as.data.frame(misspelled_locations))
 
 
-  # ----- ITERATE OVER LANGS ----- #
+  # ----- ITERATE OVER LANGUAGES ----- #
 
-  langs <- c('pl', 'en')
   plots_output <- list()
 
-  for (lang in langs) {
+  for (lang in LANGUAGES) {
     plots_output[[lang]] <- list()
 
     description_input <- read.table(paste0("./source/lang_", lang, ".txt"),
@@ -178,7 +177,7 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
     # regions are now concatenated
 
 
-    for (lang in langs) {
+    for (lang in LANGUAGES) {
     	plots_output[[lang]][['pl_loc_1']] <-
     	  ggplot(t_dat_loc_cla, aes(ymd(Var1), y = Freq, fill = Var3)) +
     	  geom_col() +
@@ -205,7 +204,7 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
 
     t_dat_loc_cla$Var2 <- factor(t_dat_loc_cla$Var2, levels = levels1)
 
-    for (lang in langs) {
+    for (lang in LANGUAGES) {
     	plots_output[[lang]][['pl_loc_2']] <-
      	  ggplot(t_dat_loc_cla, aes(ymd(Var1), y = Freq, fill = Var3)) +
      	  geom_col() +
@@ -266,7 +265,7 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
     )
 
 
-    for (lang in langs) {
+    for (lang in LANGUAGES) {
   	  pl_map_1 <- ggplot(map_cord_df) +
   	    geom_polygon(aes(X, Y, group = id), color = "black", fill = "white") +
   	    scatterpie::geom_scatterpie(data = map_metadata  %>%
@@ -319,7 +318,7 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
   df4 <- df4[df4$variant %in% names(PALETTE),]
   df4 <- df4[ymd(df4$date) > ymd(LINEAGE_DATE) %m-% months(NO_MONTHS_PLOTS),]
 
-  for (lang in langs) {
+  for (lang in LANGUAGES) {
   	plots_output[[lang]][['pl_var_all_2']] <-
   	  ggplot(df4, aes(ymd(date) + days(3), y=n, fill = variant)) +
   	  geom_col( position = "fill", color = "white") +
@@ -331,7 +330,7 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
   	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0), labels = scales::percent)
   }
 
-  for (lang in langs) {
+  for (lang in LANGUAGES) {
   	plots_output[[lang]][['pl_var_all_3']] <-
   	  ggplot(df4, aes(ymd(date) + days(3), y=n, fill = variant)) +
   	  geom_col( position = "stack", color = "white") +
@@ -359,7 +358,7 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
   df4 <- df4[df4$variant %in% names(PALETTE),]
   df4 <- df4[ymd(df4$date) > ymd(LINEAGE_DATE) %m-% months(NO_MONTHS_PLOTS),]
 
-  for (lang in langs) {
+  for (lang in LANGUAGES) {
   	plots_output[[lang]][['pl_var_all_1']] <-
   	  ggplot(df4, aes(ymd(date), y=n, fill = variant)) +
   	  geom_area( position = "fill", color = "white") +
@@ -385,7 +384,7 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
   df5 <- df5[df5$variant %in% names(PALETTE),]
   df5 <- df5[ymd(df5$date) > ymd(LINEAGE_DATE) %m-% months(NO_MONTHS_PLOTS),]
 
-  for (lang in langs) {
+  for (lang in LANGUAGES) {
   	plots_output[[lang]][['pl_var_all_4']] <-
   	  ggplot(na.omit(df5[df5$n > 0 & df5$n < 1,]), aes(ymd(date), y=n, color = variant)) +
   	  geom_point( ) +
@@ -432,19 +431,15 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
   write(jsonlite::toJSON(placeholders, auto_unbox = TRUE), paste0(OUTPUT_DATE_REGION_PATH, '/placeholders.json'))
   file.copy('./source/index_source.html', paste0(OUTPUT_DATE_REGION_PATH, '/index.html'), overwrite = TRUE)
 
-  i18n <- sapply(langs, function(lang) {
-  	i18n_table <- read.table(paste0("./source/lang_", lang, ".txt"), sep = ":", header = TRUE, fileEncoding = "UTF-8", quote = NULL)
-  	# Transform table to dictionary
-  	obj = as.list(i18n_table[["names"]])
-  	names(obj) <- i18n_table[["tag"]]
-  	obj
-  }, simplify = FALSE)
-  write(jsonlite::toJSON(i18n, auto_unbox = TRUE), paste0(OUTPUT_DATE_REGION_PATH, '/i18n.json'))
+  monitor::create_i18n(
+    input_paths = sapply(LANGUAGES, function(lang) paste0("./source/lang_", lang, ".txt")),
+    output_path = OUTPUT_DATE_REGION_PATH
+  )
 
 
   # ----- SAVE PLOTS ----- #
 
-  for (lang in langs) {
+  for (lang in LANGUAGES) {
   	print(paste0('Saving plots in ', lang))
   	plots <- plots_output[[lang]]
   	dir_prefix <- paste0(OUTPUT_DATE_REGION_PATH, '/images/', lang, '/')
