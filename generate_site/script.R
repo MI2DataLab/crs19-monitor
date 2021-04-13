@@ -1,4 +1,4 @@
-cat('---- START')
+cat('---- START \n')
 # ----- GLOBAL VARS ----- #
 
 DB_PATH <- Sys.getenv('DB_PATH')
@@ -27,8 +27,8 @@ lineage_full$accession_id <- stringi::stri_extract_first_regex(lineage_full$Sequ
 nextclade_full <- read.table(NEXTCLADE_PATH, sep = "\t", header = TRUE, fileEncoding = "UTF-8")
 nextclade_full$accession_id <- stringi::stri_extract_first_regex(nextclade_full$seqName, 'EPI_ISL_[0-9]+')
 
-cat(paste('full pango rows:', nrow(lineage_full)))
-cat(paste('full nextclade rows:', nrow(nextclade_full)))
+cat(paste('full pango rows:', nrow(lineage_full, '\n')))
+cat(paste('full nextclade rows:', nrow(nextclade_full, '\n')))
 
 
 # ----- DATES ----- #
@@ -43,7 +43,7 @@ write(jsonlite::toJSON(date_dirs, auto_unbox = FALSE), paste0(OUTPUT_PATH, '/dat
 dir.create(OUTPUT_DATE_PATH, recursive = TRUE, showWarnings = FALSE)
 if (file.copy('./source/index_source_summary.html',
               paste0(OUTPUT_DATE_PATH, '/index.html'),
-              overwrite = TRUE)) cat('--- CREATE SUMMARY')
+              overwrite = TRUE)) cat('--- CREATE SUMMARY \n')
 
 monitor::create_i18n(
   input_paths = sapply(LANGUAGES, function(lang) paste0("./source/lang_", lang, ".txt")),
@@ -53,11 +53,11 @@ monitor::create_i18n(
 
 # ----- REPORTS ----- #
 
-cat('--- CREATE REPORTS')
+cat('--- CREATE REPORTS \n')
 
 source('lineage_report.R')
 for (region in regions) {
-  cat(paste('-- REGION:', region))
+  cat(paste('-- REGION:', region, '\n'))
   lineage_report(region, lineage_full, nextclade_full)
 }
 
@@ -72,4 +72,4 @@ regions_list <- lapply(regions, function(name) {
 })
 write(jsonlite::toJSON(regions_list, auto_unbox = TRUE), paste0(OUTPUT_DATE_PATH, '/regions.json'))
 
-cat('---- END')
+cat('---- END \n')

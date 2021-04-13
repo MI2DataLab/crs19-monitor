@@ -34,14 +34,14 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
   query <- "SELECT * FROM metadata WHERE country = ? AND substr(collection_date,1,4) >= '2019'"
   metadata <- monitor::read_sql(DB_PATH, query, bind = list(region))
 
-  cat(paste('found', nrow(metadata), 'rows in database'))
+  cat(paste('found', nrow(metadata), 'rows in database \n'))
 
   # filter data by region
   lineage_subset <- subset(lineage_df, accession_id %in% metadata$accession_id)
   nextclade_subset <- subset(nextclade_df, accession_id %in% metadata$accession_id)
 
-  cat(paste('region pango rows:', nrow(lineage_subset)))
-  cat(paste('region nextclade rows:', nrow(nextclade_subset)))
+  cat(paste('region pango rows:', nrow(lineage_subset, '\n')))
+  cat(paste('region nextclade rows:', nrow(nextclade_subset, '\n')))
 
   DATE_LAST_SAMPLE <- max(ymd(metadata$collection_date), na.rm = TRUE)
 
@@ -52,8 +52,8 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
   misspelled_rows <- is.na(metadata_input$LocationClean)
   misspelled_locations <- as.data.frame(table(metadata_input$location[misspelled_rows]))
 
-  cat(paste("there are", sum(misspelled_rows), "unique misspelled rows"))
-  cat(paste("there are", nrow(misspelled_locations), "misspelled locations / TOP5:"))
+  cat(paste("there are", sum(misspelled_rows), "unique misspelled rows \n"))
+  cat(paste("there are", nrow(misspelled_locations), "misspelled locations / TOP5: \n"))
   print(head(arrange(misspelled_locations, -Freq), 5))
 
 
@@ -62,7 +62,7 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
   plots_output <- list()
 
   for (lang in LANGUAGES) {
-    cat(paste0('- creating plots in ', lang))
+    cat(paste0('- creating plots in ', lang, '\n'))
 
     plots_output[[lang]] <- list()
 
@@ -154,6 +154,16 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
         title = description_input["pl_loc_1_tit", "names"]
       )
 
+    plots_output[[lang]][['pl_loc_2']] <-
+      monitor::plot_location_proportion(
+        df = metadata_nextclade,
+        max_regions = MAX_REGIONS,
+        lineage_date = LINEAGE_DATE,
+        no_months_plots = NO_MONTHS_PLOTS,
+        other_level = description_input["other_level", "names"],
+        title = description_input["pl_loc_2_tit", "names"]
+      )
+
   }
 
 
@@ -182,29 +192,6 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
   #
   t_dat_map <- t_dat_loc_cla %>% rename(date = Var1, name = Var2, type = Var3, count = Freq)
   #
-
-  levels1 <- levels(t_dat_loc_cla$Var2)
-  t_dat_loc_cla <- table(metadata_ext$week_start, metadata_ext$LocationClean, metadata_ext$is_alarm)
-  normalizer <-  t_dat_loc_cla[,,1] + t_dat_loc_cla[,,2]
-  t_dat_loc_cla[,,1] <- t_dat_loc_cla[,,1] / normalizer
-  t_dat_loc_cla[,,2] <- t_dat_loc_cla[,,2] /normalizer
-  t_dat_loc_cla <- data.frame(as.table(t_dat_loc_cla))
-
-  t_dat_loc_cla$Var2 <- factor(t_dat_loc_cla$Var2, levels = levels1)
-
-  for (lang in LANGUAGES) {
-  	plots_output[[lang]][['pl_loc_2']] <-
-   	  ggplot(t_dat_loc_cla, aes(ymd(Var1), y = Freq, fill = Var3)) +
-   	  geom_col() +
-   	  scale_fill_manual(values = c("#77777777", "red3")) +
-   	  scale_y_continuous("", labels = scales::percent, expand = c(0,0)) +
-   	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
-   	               limits = c(ymd(LINEAGE_DATE) %m-% months(NO_MONTHS_PLOTS), ymd(LINEAGE_DATE))) +
-   	  facet_wrap(~Var2, ncol = 5) +
-   	  theme_minimal(base_family = 'Arial') +
-   	  ggtitle(description_input["pl_loc_2_tit", "names"]) +
-   	  theme(legend.position = "none")
-  }
 
   # --------------------------------- #
   # --------------MAP---------------- #
@@ -422,7 +409,7 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
   # ----- SAVE PLOTS ----- #
 
   for (lang in LANGUAGES) {
-  	cat(paste0('- saving plots in ', lang))
+  	cat(paste0('- saving plots in ', lang, '\n'))
   	plots <- plots_output[[lang]]
   	dir_prefix <- paste0(OUTPUT_DATE_REGION_PATH, '/images/', lang, '/')
   	dir.create(dir_prefix, recursive = TRUE, showWarnings = FALSE)
