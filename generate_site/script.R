@@ -34,7 +34,7 @@ query <- "SELECT country FROM metadata GROUP BY country HAVING COUNT(*) > 200"
 metadata <- covar::read_sql(DB_PATH, query)
 
 regions <- metadata$country
-regions <- c('Poland', 'Czech Republic', 'Germany') # TODO DELETE
+# regions <- c('Poland', 'Czech Republic', 'Germany')
 
 lineage_full <- read.table(LINEAGE_PATH, sep = ",", header = TRUE, fileEncoding = "UTF-8")
 colnames(lineage_full)[1:2] <- c('Sequence.name', 'Lineage')
