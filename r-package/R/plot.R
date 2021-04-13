@@ -57,7 +57,8 @@ plot_clade_facet <- function(df, lineage_date, no_months_plots, title = NULL) {
                  limits = c(ymd(lineage_date) %m-% months(no_months_plots), ymd(lineage_date))) +
     #  scale_x_date("", date_breaks = "2 months", date_labels = "%m") +
     facet_wrap(~variant, ncol = 6) +
-    theme_minimal(base_family = "Arial") + scale_y_continuous("", expand = c(0, 0)) +
+    theme_minimal(base_family = "Arial") +
+    scale_y_continuous("", expand = c(0, 0)) +
     ggtitle(title) +
     theme(legend.position = "none")
 }
@@ -130,7 +131,8 @@ plot_pango_facet <- function(df, lineage_date, alarm_pango, no_months_plots, tit
                  limits = c(ymd(lineage_date) %m-% months(no_months_plots), ymd(lineage_date))) +
     #  scale_x_date("", date_breaks = "2 months", date_labels = "%m") +
     facet_wrap(~variant, ncol = 5) +
-    theme_minimal(base_family = "Arial") + scale_y_continuous("", expand = c(0, 0)) +
+    theme_minimal(base_family = "Arial") +
+    scale_y_continuous("", expand = c(0, 0)) +
     ggtitle(title) +
     theme(legend.position = "none")
 }
