@@ -164,6 +164,25 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
         title = description_input["pl_loc_2_tit", "names"]
       )
 
+    if (region == "Poland") {
+      path <- "./map/pl-voi.shp"
+      map <- monitor::read_map(path)
+
+      plots_output[[lang]][['pl_map']] <-
+        monitor::plot_map(
+          df = metadata_nextclade,
+          map = map,
+          alarm_mutation = ALARM_MUTATION,
+          date_last_sample = DATE_LAST_SAMPLE,
+          max_regions = MAX_REGIONS,
+          other_level = description_input["other_level", "names"],
+          subtitle1 = paste(description_input["pl_map_sub1", "names"], DATE_LAST_SAMPLE),
+          subtitle2 = paste(description_input["pl_map_sub2", "names"], DATE_LAST_SAMPLE),
+          title = paste(description_input["pl_map_pt1", "names"],
+                        ALARM_MUTATION,
+                        description_input["pl_map_pt2", "names"])
+        )
+    }
   }
 
 
@@ -175,104 +194,6 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
   nextclade <- nextclade_input
   metadata_ext <- metadata_nextclade
 
-  # ----- TODO ----- #
-
-
-  t_dat_loc_cla <- table(metadata_ext$week_start, metadata_ext$LocationClean, metadata_ext$is_alarm)
-  t_dat_loc_cla <- data.frame(as.table(t_dat_loc_cla))
-  selected_regions <- head(levels(t_dat_loc_cla$Var2), MAX_REGIONS)
-  try({
-    metadata_ext$LocationClean <- fct_other(metadata_ext$LocationClean,
-                                            keep = selected_regions,
-                                            other_level = description_input["other_level", "names"])
-  }, silent = TRUE)
-  t_dat_loc_cla <- table(metadata_ext$week_start, metadata_ext$LocationClean, metadata_ext$is_alarm)
-  t_dat_loc_cla <- data.frame(as.table(t_dat_loc_cla))
-
-  #
-  t_dat_map <- t_dat_loc_cla %>% rename(date = Var1, name = Var2, type = Var3, count = Freq)
-  #
-
-  # --------------------------------- #
-  # --------------MAP---------------- #
-  # --------------------------------- #
-
-  if (region == "Poland") {
-
-    ((t_dat_map %>%
-        filter(ymd(date) %m+% months(3) >= DATE_LAST_SAMPLE) %>%
-        mutate(name = tolower(name)) -> t_map_metadata_left) %>%
-       group_by(name, type) %>%
-       summarise(count = sum(count))  %>%
-       pivot_wider(id_cols = name, names_from = type, values_from = count) %>%
-       inner_join(t_map_metadata_left %>%
-                    group_by(name) %>%
-                    summarise(ratio = sum(count) / sum(t_map_metadata_left$count)),
-                  by = "name") -> t_map_metadata_left) %>%
-      mutate(ratio = 2 * (10e12 * ratio / max(t_map_metadata_left$ratio)) ** (1/3)) -> t_map_metadata_left
-
-    ((t_dat_map %>%
-        filter(ymd(date) %m+% months(1) >= DATE_LAST_SAMPLE) %>%
-        mutate(name = tolower(name)) -> t_map_metadata_right) %>%
-        group_by(name, type) %>%
-        summarise(count = sum(count))  %>%
-        pivot_wider(id_cols = name, names_from = type, values_from = count) %>%
-        inner_join(t_map_metadata_right %>%
-                     group_by(name) %>%
-                     summarise(ratio = sum(count) / sum(t_map_metadata_right$count)),
-                   by = "name") -> t_map_metadata_right) %>%
-      mutate(ratio = 2 * (10e12 * ratio / max(t_map_metadata_right$ratio)) ** (1/3)) -> t_map_metadata_right
-
-    map_cord <- sf::st_read("./map/pl-voi.shp", quiet = TRUE)
-    map_cord <- tmaptools::simplify_shape(map_cord, fact = 0.15) # 0.1 oversimplifies and returns error?
-    map_cord <- sf::st_transform(map_cord, 2180) # long and lat is no longer used
-    map_cord_df <- as.data.frame(sf::st_coordinates(map_cord)) %>% rename(id = L3)
-    centroid_cord <- as.data.frame(sf::st_coordinates(sf::st_centroid(map_cord)))
-
-    map_metadata <- data.frame(
-      id   = as.data.frame(map_cord)$JPT_KOD_JE,
-      name = as.data.frame(map_cord)$JPT_NAZWA_,
-      X = centroid_cord$X,
-      Y = centroid_cord$Y
-    )
-
-
-    for (lang in LANGUAGES) {
-  	  pl_map_1 <- ggplot(map_cord_df) +
-  	    geom_polygon(aes(X, Y, group = id), color = "black", fill = "white") +
-  	    scatterpie::geom_scatterpie(data = map_metadata  %>%
-  	                                  left_join(t_map_metadata_left, by = "name") %>%
-  	                                  drop_na(),
-  	                    cols = c(ALARM_MUTATION, "-"),
-  	                    aes(x = X, y = Y, r = ratio, group = id)) +
-  	    coord_equal() +
-  	    scale_fill_manual(values = c("red3", "grey")) +
-  	    theme_void() +
-  	    theme(legend.position = "none") +
-  	    ggtitle(paste(description_input["pl_map_sub1", "names"], DATE_LAST_SAMPLE)) +
-  	    theme(plot.title = element_text(size = 12, hjust = 0.5))
-
-  	  pl_map_2 <- ggplot(map_cord_df) +
-  	    geom_polygon(aes(X, Y, group = id), color = "black", fill = "white") +
-  	    scatterpie::geom_scatterpie(data = map_metadata  %>%
-  	                                  left_join(t_map_metadata_right, by = "name") %>%
-  	                                  drop_na(),
-  	                    cols = c(ALARM_MUTATION, "-"),
-  	                    aes(x = X, y = Y, r = ratio, group = id)) +
-  	    coord_equal() +
-  	    scale_fill_manual(values = c("red3", "grey")) +
-  	    theme_void() +
-  	    theme(legend.position = "none") +
-  	    ggtitle(paste(description_input["pl_map_sub2", "names"], DATE_LAST_SAMPLE)) +
-  	    theme(plot.title = element_text(size = 12, hjust = 0.5))
-
-  	  plots_output[[lang]][['pl_map']] <- (pl_map_1 + pl_map_2) +
-  	    plot_annotation(
-  	      title=paste(description_input["pl_map_pt1", "names"], ALARM_MUTATION, description_input["pl_map_pt2", "names"]),
-  	      theme = theme(plot.title = element_text(size = 15, hjust = 0.5))
-  	    )
-    }
-  }
 
   # --------------------------------- #
   # --------------------------------- #
