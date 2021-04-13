@@ -1,3 +1,6 @@
+print('---- START')
+
+
 # ----- GLOBAL VARS ----- #
 
 DB_PATH <- Sys.getenv('DB_PATH')
@@ -42,7 +45,7 @@ write(jsonlite::toJSON(date_dirs, auto_unbox = FALSE), paste0(OUTPUT_PATH, '/dat
 dir.create(OUTPUT_DATE_PATH, recursive = TRUE, showWarnings = FALSE)
 if (file.copy('./source/index_source_summary.html',
               paste0(OUTPUT_DATE_PATH, '/index.html'),
-              overwrite = TRUE)) print('-- CREATE SUMMARY')
+              overwrite = TRUE)) print('--- CREATE SUMMARY')
 
 monitor::create_i18n(
   input_paths = sapply(LANGUAGES, function(lang) paste0("./source/lang_", lang, ".txt")),
@@ -52,10 +55,11 @@ monitor::create_i18n(
 
 # ----- REPORTS ----- #
 
-print('-- CREATE REPORTS')
+print('--- CREATE REPORTS')
 
 source('lineage_report.R')
 for (region in regions) {
+  print(paste('-- REGION:', region))
   lineage_report(region, lineage_full, nextclade_full)
 }
 
@@ -70,4 +74,5 @@ regions_list <- lapply(regions, function(name) {
 })
 write(jsonlite::toJSON(regions_list, auto_unbox = TRUE), paste0(OUTPUT_DATE_PATH, '/regions.json'))
 
-print('-- END')
+print('---- END')
+

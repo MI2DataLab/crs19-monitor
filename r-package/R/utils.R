@@ -1,3 +1,5 @@
+# --- INTERNAL FUNCTIONS --- #
+
 reverse_dict <- function(dict) {
     # https://stackoverflow.com/a/35827024
     split(rep(names(dict), lengths(dict)), unlist(dict))

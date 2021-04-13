@@ -31,8 +31,6 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
 
   # ----- READ DATA ----- #
 
-  print(paste('Region:', region))
-
   query <- "SELECT * FROM metadata WHERE country = ? AND substr(collection_date,1,4) >= '2019'"
   metadata <- monitor::read_sql(DB_PATH, query, bind = list(region))
 
@@ -64,6 +62,8 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
   plots_output <- list()
 
   for (lang in LANGUAGES) {
+    print(paste0('- Creating plots in ', lang))
+
     plots_output[[lang]] <- list()
 
     description_input <- read.table(paste0("./source/lang_", lang, ".txt"),
@@ -82,9 +82,6 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
     )
 
     metadata_nextclade <- merge(metadata_input, nextclade_input, by = "accession_id")
-    print(dim(metadata_input))
-    print(dim(nextclade_input))
-    print(dim(metadata_nextclade))
 
     plots_output[[lang]][['pl_seq_1']] <-
       monitor::plot_sequence_count(
@@ -440,7 +437,7 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
   # ----- SAVE PLOTS ----- #
 
   for (lang in LANGUAGES) {
-  	print(paste0('Saving plots in ', lang))
+  	print(paste0('- Saving plots in ', lang))
   	plots <- plots_output[[lang]]
   	dir_prefix <- paste0(OUTPUT_DATE_REGION_PATH, '/images/', lang, '/')
   	dir.create(dir_prefix, recursive = TRUE, showWarnings = FALSE)
