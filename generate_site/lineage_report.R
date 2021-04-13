@@ -34,14 +34,14 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
   query <- "SELECT * FROM metadata WHERE country = ? AND substr(collection_date,1,4) >= '2019'"
   metadata <- monitor::read_sql(DB_PATH, query, bind = list(region))
 
-  print(paste('found', nrow(metadata), 'rows in database'))
+  cat(paste('found', nrow(metadata), 'rows in database'))
 
   # filter data by region
   lineage_subset <- subset(lineage_df, accession_id %in% metadata$accession_id)
   nextclade_subset <- subset(nextclade_df, accession_id %in% metadata$accession_id)
 
-  print(paste('region pango rows:', nrow(lineage_subset)))
-  print(paste('region nextclade rows:', nrow(nextclade_subset)))
+  cat(paste('region pango rows:', nrow(lineage_subset)))
+  cat(paste('region nextclade rows:', nrow(nextclade_subset)))
 
   DATE_LAST_SAMPLE <- max(ymd(metadata$collection_date), na.rm = TRUE)
 
@@ -50,11 +50,11 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
 
   # find misspelled data
   misspelled_rows <- is.na(metadata_input$LocationClean)
-  misspelled_locations <- table(metadata_input$location[misspelled_rows])
+  misspelled_locations <- as.data.frame(table(metadata_input$location[misspelled_rows]))
 
-  print(paste("there are", length(misspelled_locations), "misspelled locations"))
-  print(paste("there are", sum(misspelled_rows), "unique misspelled rows"))
-  print(as.data.frame(misspelled_locations))
+  cat(paste("there are", sum(misspelled_rows), "unique misspelled rows"))
+  cat(paste("there are", nrow(misspelled_locations), "misspelled locations / TOP5:"))
+  print(head(arrange(misspelled_locations, -Freq), 5))
 
 
   # ----- ITERATE OVER LANGUAGES ----- #
@@ -62,7 +62,7 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
   plots_output <- list()
 
   for (lang in LANGUAGES) {
-    print(paste0('- creating plots in ', lang))
+    cat(paste0('- creating plots in ', lang))
 
     plots_output[[lang]] <- list()
 
@@ -422,7 +422,7 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
   # ----- SAVE PLOTS ----- #
 
   for (lang in LANGUAGES) {
-  	print(paste0('- saving plots in ', lang))
+  	cat(paste0('- saving plots in ', lang))
   	plots <- plots_output[[lang]]
   	dir_prefix <- paste0(OUTPUT_DATE_REGION_PATH, '/images/', lang, '/')
   	dir.create(dir_prefix, recursive = TRUE, showWarnings = FALSE)
