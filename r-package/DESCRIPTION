@@ -4,8 +4,8 @@ Version: 0.1.0
 Authors@R: person("Hubert", "Baniecki", email = "hbaniecki@gmail.com",
                   role = c("aut", "cre"))
 Description: Functionalities for the project of SARS-CoV-2 variants monitoring.
-    Website: <https://monitor.mi2.ai>
-    GitHub: <https://github.com/MI2DataLab/crs19-monitor>
+    Website: <https://monitor.mi2.ai>.
+    GitHub: <https://github.com/MI2DataLab/crs19-monitor>.
 Depends: R (>= 4.0.0)
 Imports: 
     ggplot2,

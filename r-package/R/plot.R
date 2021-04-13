@@ -1,13 +1,14 @@
 #' @import ggplot2 dplyr tidyr lubridate forcats
+#'
 #' @param df cleaned `lineage` data.frame
 #' @export
 plot_sequence_count <- function(df, title = NULL) {
 
   ggplot(df, aes(ymd(date) - wday(ymd(date)))) +
     geom_histogram(binwidth = 7, color = "white") +
-    theme_minimal(base_family = 'Arial') +
+    theme_minimal(base_family = "Arial") +
     scale_x_date("", date_breaks = "2 months", date_labels = "%m") +
-    scale_y_continuous("", expand = c(0,0)) +
+    scale_y_continuous("", expand = c(0, 0)) +
     ggtitle(title)
 }
 
@@ -20,9 +21,9 @@ plot_sequence_cumulative <- function(df, title = NULL) {
 
   ggplot(df, aes(x = ymd(Var1), ymin = 0, ymax = cumsum(Freq))) +
     pammtools::geom_stepribbon() + geom_hline(yintercept = 0) +
-    theme_minimal(base_family = 'Arial') +
+    theme_minimal(base_family = "Arial") +
     scale_x_date("", date_breaks = "2 months", date_labels = "%m") +
-    scale_y_continuous("", expand = c(0,0)) +
+    scale_y_continuous("", expand = c(0, 0)) +
     ggtitle(title)
 }
 
@@ -56,7 +57,7 @@ plot_clade_facet <- function(df, lineage_date, no_months_plots, title = NULL) {
                  limits = c(ymd(lineage_date) %m-% months(no_months_plots), ymd(lineage_date))) +
     #  scale_x_date("", date_breaks = "2 months", date_labels = "%m") +
     facet_wrap(~variant, ncol = 6) +
-    theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0)) +
+    theme_minimal(base_family = "Arial") + scale_y_continuous("", expand = c(0, 0)) +
     ggtitle(title) +
     theme(legend.position = "none")
 }
@@ -92,8 +93,8 @@ plot_clade_cumulative <- function(df, lineage_date, alarm_clade, no_months_plots
     scale_color_manual(values = c("grey", "red3")) +
     scale_x_date("", date_breaks = "2 weeks", date_labels = "%m/%d",
                  limits = c(ymd(lineage_date) %m-% months(no_months_plots_long), ymd(lineage_date))) +
-    theme_minimal(base_family = 'Arial') +
-    scale_y_continuous("", expand = c(0,0)) +
+    theme_minimal(base_family = "Arial") +
+    scale_y_continuous("", expand = c(0, 0)) +
     ggtitle(title) +
     theme(legend.position = "none")
 
@@ -129,7 +130,7 @@ plot_pango_facet <- function(df, lineage_date, alarm_pango, no_months_plots, tit
                  limits = c(ymd(lineage_date) %m-% months(no_months_plots), ymd(lineage_date))) +
     #  scale_x_date("", date_breaks = "2 months", date_labels = "%m") +
     facet_wrap(~variant, ncol = 5) +
-    theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0)) +
+    theme_minimal(base_family = "Arial") + scale_y_continuous("", expand = c(0, 0)) +
     ggtitle(title) +
     theme(legend.position = "none")
 }
@@ -165,8 +166,8 @@ plot_pango_cumulative <- function(df, lineage_date, alarm_pango, no_months_plots
     scale_color_manual(values = c("grey", "red3")) +
     scale_x_date("", date_breaks = "2 weeks", date_labels = "%m/%d",
                  limits = c(ymd(lineage_date) %m-% months(no_months_plots_long), ymd(lineage_date))) +
-    theme_minimal(base_family = 'Arial') +
-    scale_y_continuous("", expand = c(0,0)) +
+    theme_minimal(base_family = "Arial") +
+    scale_y_continuous("", expand = c(0, 0)) +
     ggtitle(title) +
     theme(legend.position = "none")
 

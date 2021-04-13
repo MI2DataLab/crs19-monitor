@@ -16,7 +16,7 @@ query <- "SELECT country FROM metadata GROUP BY country HAVING COUNT(*) > 200"
 metadata <- monitor::read_sql(DB_PATH, query)
 
 regions <- metadata$country
-regions <- c('Poland', 'Czech Republic', 'Germany') # TODELETE
+regions <- c('Poland', 'Czech Republic', 'Germany') # TODO DELETE
 
 lineage_full <- read.table(LINEAGE_PATH, sep = ",", header = TRUE, fileEncoding = "UTF-8")
 colnames(lineage_full)[1:2] <- c('Sequence.name', 'Lineage')
@@ -41,23 +41,23 @@ write(jsonlite::toJSON(date_dirs, auto_unbox = FALSE), paste0(OUTPUT_PATH, '/dat
 dir.create(OUTPUT_DATE_PATH, recursive = TRUE, showWarnings = FALSE)
 if (file.copy('./source/index_source_summary.html',
               paste0(OUTPUT_DATE_PATH, '/index.html'),
-              overwrite = TRUE)) print('CREATE SUMMARY')
+              overwrite = TRUE)) print('-- CREATE SUMMARY')
 
 langs <- c('pl', 'en')
-i18n <- sapply(langs, function(lang) {
+i18n <- lapply(langs, function(lang) {
 	i18n_table <- read.table(paste0("./source/lang_", lang, ".txt"), sep = ":", header = TRUE, fileEncoding = "UTF-8", quote = NULL)
 	# Transform table to dictionary
 	obj <- as.list(i18n_table[["names"]])
 	names(obj) <- i18n_table[["tag"]]
 	obj
 })
-#names(i18n) <- langs
-write(jsonlite::toJSON(i18n), paste0(OUTPUT_DATE_PATH, '/i18n.json'))
-
+names(i18n) <- langs
+print(jsonlite::toJSON(i18n, auto_unbox = TRUE))
+write(jsonlite::toJSON(i18n, auto_unbox = TRUE), paste0(OUTPUT_DATE_PATH, '/i18n.json'))
 
 # ----- REPORTS ----- #
 
-print('CREATE REPORTS')
+print('-- CREATE REPORTS')
 
 source('lineage_report.R')
 for (region in regions) {
@@ -75,3 +75,4 @@ regions_list <- lapply(regions, function(name) {
 })
 write(jsonlite::toJSON(regions_list, auto_unbox = TRUE), paste0(OUTPUT_DATE_PATH, '/regions.json'))
 
+print('-- END')
