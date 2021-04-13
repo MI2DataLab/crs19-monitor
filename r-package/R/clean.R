@@ -12,8 +12,10 @@ clean_metadata <- function(df) {
   location_to[is.na(names(location_to))] <- NA
   df$LocationClean <- unlist(location_to)
 
-  if (all(is.na(df$LocationClean))) {
+  if (all(is.na(df$LocationClean)) & !all(is.na(location_from))) {
     df$LocationClean <- unlist(location_from)
+  } else if (all(is.na(df$LocationClean))) {
+    df$LocationClean <- "country"
   }
 
   df$week_start <- ymd(df$collection_date) - days(wday(ymd(df$collection_date)))

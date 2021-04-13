@@ -144,6 +144,8 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
         title = description_input["pl_var_5_tit", "names"]
       )
 
+    print(data.frame(as.table(table(metadata_nextclade$week_start, metadata_nextclade$LocationClean, metadata_nextclade$is_alarm))))
+
     plots_output[[lang]][['pl_loc_1']] <-
       monitor::plot_location_facet(
         df = metadata_nextclade,
@@ -165,7 +167,7 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
   nextclade <- nextclade_input
   metadata_ext <- metadata_nextclade
 
-
+  # ----- TODO ----- #
 
 
   t_dat_loc_cla <- table(metadata_ext$week_start, metadata_ext$LocationClean, metadata_ext$is_alarm)

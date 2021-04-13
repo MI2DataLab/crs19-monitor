@@ -233,6 +233,7 @@ plot_location_facet <- function(df,
                                 title = "") {
 
   tab <- table(df$week_start, df$LocationClean, df$is_alarm)
+  print(class(tab))
   tab_df <- data.frame(as.table(tab))
 
   selected_regions <- head(levels(tab_df$Var2), max_regions)
