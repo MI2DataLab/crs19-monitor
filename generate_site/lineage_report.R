@@ -38,13 +38,12 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
 
   print(paste('Found', nrow(metadata), 'rows in database'))
 
-  region_output_path <- paste0(OUTPUT_PATH, '/',
-                               LINEAGE_DATE_CLEAN, '/',
-                               gsub(" ", "_", stringr::str_squish(gsub("[^a-z0-9 ]", "", tolower(region)))))
+  REGION_CLEAN <- gsub(" ", "_", stringr::str_squish(gsub("[^a-z0-9 ]", "", tolower(region))
+  OUTPUT_DATE_REGION_PATH <- paste0(OUTPUT_DATE_PATH, REGION_CLEAN)
 
 
   # create output folders
-  dir.create(paste0(region_output_path, '/', 'images'), recursive = TRUE, showWarnings = FALSE)
+  dir.create(paste0(OUTPUT_DATE_REGION_PATH, '/', 'images'), recursive = TRUE, showWarnings = FALSE)
 
   # filter metadata by region
   lineage_subset <- subset(lineage_df, accession_id %in% metadata$accession_id)
@@ -459,8 +458,8 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
   	VARIANTSLIST2 = variants2_list,
   	VARIANTS2 = length(colnames(t_cou_cla))
   )
-  write(jsonlite::toJSON(placeholders, auto_unbox = TRUE), paste0(region_output_path, '/placeholders.json'))
-  file.copy('./source/index_source.html', paste0(region_output_path, '/index.html'), overwrite = TRUE)
+  write(jsonlite::toJSON(placeholders, auto_unbox = TRUE), paste0(OUTPUT_DATE_REGION_PATH, '/placeholders.json'))
+  file.copy('./source/index_source.html', paste0(OUTPUT_DATE_REGION_PATH, '/index.html'), overwrite = TRUE)
 
   i18n <- lapply(langs, function(lang) {
   	i18n_table <- read.table(paste0("./source/lang_", lang, ".txt"), sep = ":", header = TRUE, fileEncoding = "UTF-8", quote = NULL)
@@ -470,7 +469,7 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
   	obj
   })
   names(i18n) <- langs
-  write(jsonlite::toJSON(i18n, auto_unbox = TRUE), paste0(region_output_path, '/i18n.json'))
+  write(jsonlite::toJSON(i18n, auto_unbox = TRUE), paste0(OUTPUT_DATE_REGION_PATH, '/i18n.json'))
 
 
   # ----- SAVE PLOTS ----- #
@@ -478,7 +477,7 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
   for (lang in langs) {
   	print(paste0('Saving plots in ', lang))
   	plots <- plots_output[[lang]]
-  	dir_prefix <- paste0(region_output_path, '/images/', lang, '/')
+  	dir_prefix <- paste0(OUTPUT_DATE_REGION_PATH, '/images/', lang, '/')
   	dir.create(dir_prefix, recursive = TRUE, showWarnings = FALSE)
 
   	ggsave(plot = plots[['pl_seq_1']], file = paste0(dir_prefix, "liczba_seq_1.svg"), width = 4, height = 2.5)
