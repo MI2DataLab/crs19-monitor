@@ -51,8 +51,8 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
   metadata_input <- monitor::clean_metadata(metadata)
 
   # find misspelled data
-  misspelled_rows <- is.na(metadata_ext$LocationClean)
-  misspelled_locations <- table(metadata_ext$location[misspelled_rows])
+  misspelled_rows <- is.na(metadata_input$LocationClean)
+  misspelled_locations <- table(metadata_input$location[misspelled_rows])
 
   print(paste("There are", length(misspelled_locations), "misspelled locations"))
   print(paste("There are", sum(misspelled_rows), "unique misspelled rows"))
@@ -153,11 +153,6 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
   lineage <- lineage_input
   nextclade <- nextclade_input
   metadata_ext <- metadata_nextclade
-
-
-  ### PLOTS
-
-  metadata_ext$week_start <- ymd(metadata_ext$collection_date) - days(wday(ymd(metadata_ext$collection_date)))
 
   ## Do we have information about location
   if (sum(!is.na(metadata_ext$LocationClean)) > 0) {

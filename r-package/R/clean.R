@@ -2,7 +2,6 @@
 #' @export
 clean_metadata <- function(df) {
 
-  # from location_dict.R
   location_dict_to_from <- location_dict()
   location_dict_from_to <- reverse_dict(location_dict_to_from)
 
@@ -16,6 +15,8 @@ clean_metadata <- function(df) {
   if (sum(!is.na(df$LocationClean)) == 0) {
     df$LocationClean <- unlist(location_from)
   }
+
+  df$week_start <- ymd(df$collection_date) - days(wday(ymd(df$collection_date)))
 
   df
 }
