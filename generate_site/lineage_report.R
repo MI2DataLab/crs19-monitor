@@ -1,31 +1,3 @@
-# ----- LOAD PACKAGES ----- #
-
-library(ggplot2)                          # plot
-library(patchwork)                        # plot
-suppressMessages(library(dplyr))          # data
-library(tidyr)                            # drop_na
-suppressMessages(library(lubridate))      # date
-library(forcats)                          # factor
-options(dplyr.summarise.inform = FALSE)
-
-
-# ----- GLOBAL VARS ----- #
-
-ALARM_MUTATION <- "N501Y"
-ALARM_PATTERN <- "501Y"
-ALARM_PANGO <- c("B.1.1.7", "B.1.351", "P.1")
-ALARM_CLADE <- c("20I/501Y.V1","20H/501Y.V2", "20J/501Y.V3")
-MAX_REGIONS <- 23
-NO_MONTHS_PLOTS <- 4
-NO_MONTHS_PLOTS_LONG <- 8
-PALETTE <- structure(
-  c("#E9C622", "#51A4B8", "#E5BC13", "#67AFBF", "#E1B103",
-    "#82B8B6", "#E58600", "#ACC07E", "#3B9AB2", "#7F00FF", "#EB5000", "#F21A00"),
-  .Names = c("20A.EU2", "19A", "20D", "19B", "20C", "20E (EU1)",
-             "20G", "20A", "20B", "20J/501Y.V3", "20H/501Y.V2", "20I/501Y.V1"))
-SMOOTH_VARIANTS <- c("20I/501Y.V1", "20A", "20B")
-
-
 # ----- REPORT ----- #
 
 lineage_report <- function(region, lineage_df, nextclade_df) {
@@ -44,7 +16,7 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
   cat(paste('region pango rows:', nrow(lineage_subset), '\n'))
   cat(paste('region nextclade rows:', nrow(nextclade_subset), '\n'))
 
-  DATE_LAST_SAMPLE <- max(ymd(metadata$collection_date), na.rm = TRUE)
+  DATE_LAST_SAMPLE <- max(lubridate::ymd(metadata$collection_date), na.rm = TRUE)
 
   # add location
   metadata_input <- covar::clean_metadata(metadata)
@@ -246,7 +218,7 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
   tab <- table(lineage_input$date, lineage_input$pango_small)
   variants <- head(colnames(tab)[-ncol(tab)], 7)
   variants_list <- paste0(paste0('<a href="https://cov-lineages.org/lineages/lineage_', variants, '.html">', variants, '</a>'), collapse = ",\n")
-  variants2 <- head(colnames(t_cou_cla), 5)
+  variants2 <- head(colnames(tab), 5)
   variants2_list <- paste0(paste0('<a href="https://www.cdc.gov/coronavirus/2019-ncov/more/science-and-research/scientific-brief-emerging-variants.html">', variants2, '</a>'), collapse = ",\n")
 
   placeholders <- list(
@@ -256,7 +228,7 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
   	VARIANTSLIST = variants_list,
   	VARIANTS = length(unique(lineage_input$Lineage)),
   	VARIANTSLIST2 = variants2_list,
-  	VARIANTS2 = length(colnames(t_cou_cla))
+  	VARIANTS2 = length(colnames(tab))
   )
   write(jsonlite::toJSON(placeholders, auto_unbox = TRUE), paste0(OUTPUT_DATE_REGION_PATH, '/placeholders.json'))
   file.copy('./source/index_source.html', paste0(OUTPUT_DATE_REGION_PATH, '/index.html'), overwrite = TRUE)

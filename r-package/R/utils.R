@@ -1,6 +1,6 @@
 #' Internal functions
 #'
-#' @import ggplot2 dplyr tidyr lubridate forcats
+#' @import ggplot2 dplyr tidyr lubridate forcats patchwork
 
 reverse_dict <- function(dict) {
     # https://stackoverflow.com/a/35827024

@@ -1,4 +1,6 @@
 cat('---- START \n')
+
+
 # ----- GLOBAL VARS ----- #
 
 DB_PATH <- Sys.getenv('DB_PATH')
@@ -10,6 +12,20 @@ LINEAGE_DATE <- Sys.getenv('LINEAGE_DATE')
 LINEAGE_DATE_CLEAN <- gsub('/', '-', LINEAGE_DATE)
 OUTPUT_DATE_PATH <- paste0(OUTPUT_PATH, '/', LINEAGE_DATE_CLEAN)
 LANGUAGES <- c('pl', 'en')
+
+ALARM_MUTATION <- "N501Y"
+ALARM_PATTERN <- "501Y"
+ALARM_PANGO <- c("B.1.1.7", "B.1.351", "P.1")
+ALARM_CLADE <- c("20I/501Y.V1","20H/501Y.V2", "20J/501Y.V3")
+MAX_REGIONS <- 23
+NO_MONTHS_PLOTS <- 4
+NO_MONTHS_PLOTS_LONG <- 8
+PALETTE <- structure(
+  c("#E9C622", "#51A4B8", "#E5BC13", "#67AFBF", "#E1B103",
+    "#82B8B6", "#E58600", "#ACC07E", "#3B9AB2", "#7F00FF", "#EB5000", "#F21A00"),
+  .Names = c("20A.EU2", "19A", "20D", "19B", "20C", "20E (EU1)",
+             "20G", "20A", "20B", "20J/501Y.V3", "20H/501Y.V2", "20I/501Y.V1"))
+SMOOTH_VARIANTS <- c("20I/501Y.V1", "20A", "20B")
 
 
 # ----- READ DATA ----- #
@@ -49,6 +65,14 @@ covar::create_i18n(
   input_paths = sapply(LANGUAGES, function(lang) paste0("./source/lang_", lang, ".txt")),
   output_path = OUTPUT_DATE_PATH
 )
+
+
+# ----- LOAD PACKAGES ----- #
+
+suppressMessages(library(dplyr))          # data
+library(tidyr)                            # drop_na
+suppressMessages(library(lubridate))      # date
+options(dplyr.summarise.inform = FALSE)
 
 
 # ----- REPORTS ----- #
