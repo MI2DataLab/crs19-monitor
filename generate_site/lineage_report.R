@@ -38,14 +38,7 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
 
   print(paste('Found', nrow(metadata), 'rows in database'))
 
-  REGION_CLEAN <- gsub(" ", "_", stringr::str_squish(gsub("[^a-z0-9 ]", "", tolower(region))))
-  OUTPUT_DATE_REGION_PATH <- paste0(OUTPUT_DATE_PATH, REGION_CLEAN)
-
-
-  # create output folders
-  dir.create(paste0(OUTPUT_DATE_REGION_PATH, '/', 'images'), recursive = TRUE, showWarnings = FALSE)
-
-  # filter metadata by region
+  # filter data by region
   lineage_subset <- subset(lineage_df, accession_id %in% metadata$accession_id)
   nextclade_subset <- subset(nextclade_df, accession_id %in% metadata$accession_id)
 
@@ -439,6 +432,14 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
   	  theme_minimal(base_family = 'Arial') +
   	  coord_cartesian(xlim = c(ymd(LINEAGE_DATE) %m-% months(NO_MONTHS_PLOTS), ymd(LINEAGE_DATE)))
   }
+
+
+  # ----- CREATE OUTPUT DIR----- #
+
+  REGION_CLEAN <- gsub(" ", "_", stringr::str_squish(gsub("[^a-z0-9 ]", "", tolower(region))))
+  OUTPUT_DATE_REGION_PATH <- paste0(OUTPUT_DATE_PATH, '/', REGION_CLEAN)
+
+  dir.create(paste0(OUTPUT_DATE_REGION_PATH, '/', 'images'), recursive = TRUE, showWarnings = FALSE)
 
 
   # ----- CREATE HTML ----- #

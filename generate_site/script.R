@@ -47,8 +47,8 @@ langs <- c('pl', 'en')
 i18n <- sapply(langs, function(lang) {
 	i18n_table <- read.table(paste0("./source/lang_", lang, ".txt"), sep = ":", header = TRUE, fileEncoding = "UTF-8", quote = NULL)
 	# Transform table to dictionary
-	obj <- as.list(i18n_table[,"names"])
-	names(obj) <- i18n_table[,"tag"]
+	obj <- as.list(i18n_table[["names"]])
+	names(obj) <- i18n_table[["tag"]]
 	obj
 })
 #names(i18n) <- langs
