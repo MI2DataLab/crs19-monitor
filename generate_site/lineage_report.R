@@ -145,7 +145,7 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
       )
 
     plots_output[[lang]][['pl_loc_1']] <-
-      monitor::plot_location_facet(
+      monitor::plot_location_count(
         df = metadata_nextclade,
         max_regions = MAX_REGIONS,
         lineage_date = LINEAGE_DATE,
