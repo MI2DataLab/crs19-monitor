@@ -23,6 +23,7 @@ PALETTE <- structure(
     "#82B8B6", "#E58600", "#ACC07E", "#3B9AB2", "#7F00FF", "#EB5000", "#F21A00"),
   .Names = c("20A.EU2", "19A", "20D", "19B", "20C", "20E (EU1)",
              "20G", "20A", "20B", "20J/501Y.V3", "20H/501Y.V2", "20I/501Y.V1"))
+SMOOTH_VARIANTS <- c("20I/501Y.V1", "20A", "20B")
 
 
 # ----- REPORT ----- #
@@ -184,6 +185,32 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
         title = description_input["pl_var_all_3_tit", "names"]
       )
 
+    # add +k days for reporting lag
+    k <- 7
+
+    plots_output[[lang]][['pl_var_all_1']] <-
+      covar::plot_variant_area(
+        df = nextclade_input,
+        k = k,
+        alarm_clade = ALARM_CLADE,
+        lineage_date = LINEAGE_DATE,
+        palette = PALETTE,
+        no_months_plots = NO_MONTHS_PLOTS,
+        title = description_input["pl_var_all_1_tit", "names"]
+      )
+
+    plots_output[[lang]][['pl_var_all_4']] <-
+      covar::plot_variant_point(
+        df = nextclade_input,
+        k = k,
+        smooth_variants = SMOOTH_VARIANTS,
+        alarm_clade = ALARM_CLADE,
+        lineage_date = LINEAGE_DATE,
+        palette = PALETTE,
+        no_months_plots = NO_MONTHS_PLOTS,
+        title = description_input["pl_var_all_4_tit", "names"]
+      )
+
     if (region == "Poland") {
       path <- "./map/pl-voi.shp"
       map <- covar::read_map(path)
@@ -206,79 +233,6 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
   }
 
 
-  # ----- BELOW ----- #
-  # TODO 1 : add code to the loop
-  # TODO 2 : fix languages
-
-  lineage <- lineage_input
-  nextclade <- nextclade_input
-  metadata_ext <- metadata_nextclade
-
-
-  # --------------------------------- #
-  # --------------------------------- #
-
-  t_cou_cla <- table(nextclade$date, nextclade$clade_small)
-  # add +k days for reporting lag
-  k <- 7
-  for (i in nrow(t_cou_cla):k) {
-    t_cou_cla[i,] <- colSums(t_cou_cla[i-(1:k)+1,])
-  }
-
-  df4 <- as.data.frame(as.table(t_cou_cla))
-  colnames(df4) <- c("date", "variant", "n")
-
-  df4$variant <- reorder(df4$variant, df4$n, tail, 1)
-  df4$variant <- fct_relevel(df4$variant, ALARM_CLADE, after = Inf)
-
-  df4 <- df4[df4$variant %in% names(PALETTE),]
-  df4 <- df4[ymd(df4$date) > ymd(LINEAGE_DATE) %m-% months(NO_MONTHS_PLOTS),]
-
-  for (lang in LANGUAGES) {
-  	plots_output[[lang]][['pl_var_all_1']] <-
-  	  ggplot(df4, aes(ymd(date), y=n, fill = variant)) +
-  	  geom_area( position = "fill", color = "white") +
-  	  coord_cartesian(xlim = c(ymd(LINEAGE_DATE) %m-% months(NO_MONTHS_PLOTS), ymd(LINEAGE_DATE)), ylim = c(0,1)) +
-  	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
-  	               limits = c(ymd(LINEAGE_DATE) %m-% months(NO_MONTHS_PLOTS), ymd(LINEAGE_DATE))) +
-  	  scale_fill_manual("", values = PALETTE) +
-  	  ggtitle(description_input["pl_var_all_1_tit", "names"]) +
-  	  theme_minimal(base_family = 'Arial') + scale_y_continuous("", expand = c(0,0), labels = scales::percent)
-  }
-
-  # profiles
-
-  t_cou_cla <- apply(t_cou_cla, 1, function(x) x / sum(x))
-  t_cou_cla <- t(t_cou_cla)
-
-  df5 <- as.data.frame(as.table(t_cou_cla))
-  colnames(df5) <- c("date", "variant", "n")
-
-  df5$variant <- reorder(df5$variant, df5$n, tail, 1)
-  df5$variant <- fct_relevel(df5$variant, ALARM_CLADE, after = Inf)
-
-  df5 <- df5[df5$variant %in% names(PALETTE),]
-  df5 <- df5[ymd(df5$date) > ymd(LINEAGE_DATE) %m-% months(NO_MONTHS_PLOTS),]
-
-  for (lang in LANGUAGES) {
-  	plots_output[[lang]][['pl_var_all_4']] <-
-  	  ggplot(na.omit(df5[df5$n > 0 & df5$n < 1,]), aes(ymd(date), y=n, color = variant)) +
-  	  geom_point( ) +
-  	  scale_x_date("", date_breaks = "1 month", date_labels = "%m",
-  	               limits = c(ymd(LINEAGE_DATE) %m-% months(NO_MONTHS_PLOTS), ymd(LINEAGE_DATE))) +
-  	  theme_minimal(base_family = 'Arial') +
-  	  geom_smooth(data = df5[(df5$variant %in% c("20I/501Y.V1", "20A", "20B")) &
-  	                           (ymd(df5$date) > ymd(LINEAGE_DATE) %m-% months(2)),],
-  	              se = FALSE, span = 1, method = 'loess', formula = y ~ x) +
-  	  scale_y_continuous("",expand = c(0,0),
-  	                     breaks = c(0.01, 0.1, 0.25, 0.5, 0.75, 0.9, 0.99), limits = c(0, 1)) +
-  	  scale_color_manual("", values = PALETTE) +
-  	  ggtitle(description_input["pl_var_all_4_tit", "names"]) +
-  	  theme_minimal(base_family = 'Arial') +
-  	  coord_cartesian(xlim = c(ymd(LINEAGE_DATE) %m-% months(NO_MONTHS_PLOTS), ymd(LINEAGE_DATE)))
-  }
-
-
   # ----- CREATE OUTPUT DIR----- #
 
   REGION_CLEAN <- gsub(" ", "_", stringr::str_squish(gsub("[^a-z0-9 ]", "", tolower(region))))
@@ -289,18 +243,18 @@ lineage_report <- function(region, lineage_df, nextclade_df) {
 
   # ----- CREATE HTML ----- #
 
-  t_cou_lin <- table(lineage$date, lineage$pango_small)
-  variants <- head(colnames(t_cou_lin)[-ncol(t_cou_lin)], 7)
+  tab <- table(lineage_input$date, lineage_input$pango_small)
+  variants <- head(colnames(tab)[-ncol(tab)], 7)
   variants_list <- paste0(paste0('<a href="https://cov-lineages.org/lineages/lineage_', variants, '.html">', variants, '</a>'), collapse = ",\n")
   variants2 <- head(colnames(t_cou_cla), 5)
   variants2_list <- paste0(paste0('<a href="https://www.cdc.gov/coronavirus/2019-ncov/more/science-and-research/scientific-brief-emerging-variants.html">', variants2, '</a>'), collapse = ",\n")
 
   placeholders <- list(
   	DATE = LINEAGE_DATE_CLEAN,
-  	NUMBER = nrow(lineage),
-  	DATELAST = max(lineage$date),
+  	NUMBER = nrow(lineage_input),
+  	DATELAST = max(lineage_input$date),
   	VARIANTSLIST = variants_list,
-  	VARIANTS = length(unique(lineage$Lineage)),
+  	VARIANTS = length(unique(lineage_input$Lineage)),
   	VARIANTSLIST2 = variants2_list,
   	VARIANTS2 = length(colnames(t_cou_cla))
   )
