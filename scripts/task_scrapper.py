@@ -17,4 +17,6 @@ os.environ["MAX_DATE_RANGE"] = '6'
 os.environ["MINIMUM_START_DATE"] = '2020-01-29'
 
 out = os.system('bash -c "source ' + conda_sh_path + ' && cd ' + work_dir + ' && conda activate crs19 && python script.py"')
+if out == 0:
+    out = os.system('cd ' + gisaid_fasta_dir + ' && find . -type f ! -name \'*.gz\' -exec gzip -9 "{}" \;')
 sys.exit(out >> 8)

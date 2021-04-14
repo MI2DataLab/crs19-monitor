@@ -7,6 +7,7 @@ data_dir = parent_path + "/data"
 site_dist = parent_path + "/site_dist"
 backup_dir = parent_path + "/backups"
 keys_dir = parent_path + "/keys"
+tmp_dir = parent_path + '/tmp'
 # List of remotes (name,ssh key,cname)
 remotes = [('crs19', keys_dir + '/' + 'monitor_crs19_pl', 'monitor.crs19.pl'),('mi2ai', keys_dir + '/' + 'monitor_mi2_ai', 'monitor.mi2.ai')]
 rsync_remotes = ['europe-monitor-site@dementor:/monitor/']
@@ -19,4 +20,5 @@ pango_output_dir = data_dir + '/pango'
 pango_merged_file = data_dir + '/pango.csv'
 mutation_output_dir = data_dir + '/mutation'
 mutation_merged_file = data_dir + '/mutation.csv'
+unpacked_fasta_dir = tmp_dir + '/unpacked_fasta'
 db_path = data_dir + '/sequences.sqlite'
