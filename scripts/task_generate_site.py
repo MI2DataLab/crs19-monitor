@@ -2,7 +2,7 @@ import os
 import glob
 import sys
 from datetime import datetime
-from config import repo_path, site_dist, pango_merged_file, clades_merged_file, mutation_merged_file, db_path, remotes
+from config import repo_path, site_dist, pango_merged_file, clades_merged_file, mutation_merged_file, db_path, remotes, rsync_remotes
 
 work_dir = repo_path + '/generate_site'
 exec_path = "script.R"
@@ -24,6 +24,12 @@ if out == 0 and not os.environ.get('NOT_PUSH'):
     for remote in remotes:
         os.environ['GIT_SSH_COMMAND'] = 'ssh -i ' + remote[1] + ' -o IdentitiesOnly=yes'
         out = os.system('cd ' + site_dist + ' && echo "' + remote[2] + '" > CNAME && git add -A && git commit -m "update" && git push -f -u ' + remote[0] + ' gh-pages')
+        if out != 0:
+            sys.exit(out >> 8)
+
+if out == 0 and not os.environ.get('NOT_PUSH'):
+    for remote in rsync_remotes:
+        out = os.system('rsync -avu --exclude \'gg_objects.rda\' --exclude \'.git\' ' + site_dist + '/ ' + remote)
         if out != 0:
             sys.exit(out >> 8)
 sys.exit(out >> 8)
