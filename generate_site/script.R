@@ -47,13 +47,6 @@ cat(paste('full pango rows:', nrow(lineage_full), '\n'))
 cat(paste('full nextclade rows:', nrow(nextclade_full), '\n'))
 
 
-# ----- DATES ----- #
-
-subdirs <- list.dirs(path = OUTPUT_PATH, full.names = FALSE, recursive = FALSE)
-date_dirs <- stringi::stri_subset_regex(subdirs, '^\\d{4}-\\d{2}-\\d{2}$')
-write(jsonlite::toJSON(date_dirs, auto_unbox = FALSE), paste0(OUTPUT_PATH, '/dates.json'))
-
-
 # ----- SUMMARY ----- #
 
 dir.create(OUTPUT_DATE_PATH, recursive = TRUE, showWarnings = FALSE)
@@ -364,5 +357,13 @@ regions_list <- lapply(regions, function(name) {
   )
 })
 write(jsonlite::toJSON(regions_list, auto_unbox = TRUE), paste0(OUTPUT_DATE_PATH, '/regions.json'))
+
+
+# ----- DATES ----- #
+
+subdirs <- list.dirs(path = OUTPUT_PATH, full.names = FALSE, recursive = FALSE)
+date_dirs <- stringi::stri_subset_regex(subdirs, '^\\d{4}-\\d{2}-\\d{2}$')
+write(jsonlite::toJSON(date_dirs, auto_unbox = FALSE), paste0(OUTPUT_PATH, '/dates.json'))
+
 
 cat('---- END \n')
