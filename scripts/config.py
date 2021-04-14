@@ -1,10 +1,14 @@
+from pathlib import Path
+
 conda_sh_path = "/home/crs19monitor/miniconda3/etc/profile.d/conda.sh"
-repo_path = "/crs19/production/repo"
-data_dir = "/crs19/production/data"
-site_dist = "/crs19/production/site_dist"
-backup_dir = "/crs19/production/backups"
+parent_path = str(Path(__file__).absolute().parents[2])
+repo_path = parent_path + "/repo"
+data_dir = parent_path + "/data"
+site_dist = parent_path + "/site_dist"
+backup_dir = parent_path + "/backups"
+keys_dir = parent_path + "/keys"
 # List of remotes (name,ssh key,cname)
-remotes = [('crs19', '/home/crs19monitor/.ssh/id_rsa', 'monitor.crs19.pl'),('mi2ai', '/home/crs19monitor/.ssh/id_rsa.mi2ai', 'monitor.mi2.ai')]
+remotes = [('crs19', keys_dir + '/' + 'monitor_crs19_pl', 'monitor.crs19.pl'),('mi2ai', keys_dir + '/' + 'monitor_mi2_ai', 'monitor.mi2.ai')]
 backups_number = 3
 
 gisaid_fasta_dir = data_dir + '/gisaid_fasta'
