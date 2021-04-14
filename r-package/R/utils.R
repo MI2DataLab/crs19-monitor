@@ -1,4 +1,20 @@
-load_location_dict <- function() { 
+#' Internal functions
+#'
+#' @import ggplot2 dplyr tidyr lubridate forcats patchwork
+
+reverse_dict <- function(dict) {
+    # https://stackoverflow.com/a/35827024
+    split(rep(names(dict), lengths(dict)), unlist(dict))
+}
+
+
+#' @title Dictionary of clean location names (PL/CZ)
+#'
+#' @description Return a dictionary used to clean the location data in the
+#'  reports for Poland and Czech. The (key, value) scheme uses:
+#'  (clean name, vector of misspelled names).
+#'
+location_dict <- function() {
     ### reversed dict
     ## NOTE: gsub(" ", "", x) is not possible due to other countries than PL
     # TODO: consider only lowercase keys
@@ -186,7 +202,7 @@ load_location_dict <- function() {
         , " Prague-Miskovice ", " prague-miskovice "
         , "Central Czechia and Prague", "central czechia and prague"
         , " Central Czechia and Prague", " central czechia and prague"
-        , " Central Czechia and Prague ", " central czechia and prague " 
+        , " Central Czechia and Prague ", " central czechia and prague "
         , "Praha", "praha"
         , " Praha", " praha"
         , " Praha ", " praha "
@@ -212,7 +228,7 @@ load_location_dict <- function() {
         , " Trutnov", " trutnov"
         , " Trutnov ", " trutnov "
         )
-    , "Karlovy Vary Region" = 
+    , "Karlovy Vary Region" =
         c(
         "Karlovy Vary Region", "karlovy vary region"
         , "Carlsbad", "carlsbad"
