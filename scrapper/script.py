@@ -130,7 +130,7 @@ def scrap_fasta(db_path, fasta_files_dir, download_dir = None):
         except NoSuchWindowException:
             driver.switch_to.default_content()
         
-        print("Downloading fasta file")
+        print("Downloading tar file")
         driver.find_element_by_xpath(("//button[contains(., 'Download')]")).click()
         find_and_switch_to_iframe(driver)
         
@@ -144,15 +144,15 @@ def scrap_fasta(db_path, fasta_files_dir, download_dir = None):
             time.sleep(1)
 
         list_of_files = glob.glob(download_dir + "/*") 
-        fasta = max(list_of_files, key=os.path.getmtime)
+        tar = max(list_of_files, key=os.path.getmtime)
     
-        last_size = os.path.getsize(fasta)
+        last_size = os.path.getsize(tar)
         time.sleep(20)
-        while os.path.exists(fasta) and last_size < os.path.getsize(fasta):
-            last_size = os.path.getsize(fasta)
+        while os.path.exists(tar) and last_size < os.path.getsize(tar):
+            last_size = os.path.getsize(tar)
             time.sleep(1)
-        if fasta.endswith('.part'):
-            fasta = fasta[:-5]
+        if tar.endswith('.part'):
+            tar = tar[:-5]
 
         time.sleep(1)
     except Exception as e:
@@ -164,14 +164,16 @@ def scrap_fasta(db_path, fasta_files_dir, download_dir = None):
         raise e
     driver.quit()
 
-    # move file
     time_file = str(int(time.time() * 1000))
-    move_fasta = fasta_files_dir + "/" + time_file + ".fasta"
-    shutil.copyfile(fasta, move_fasta)
+    metadata = load_from_tar(tar, fasta_files_dir + "/" + time_file + ".fasta")
+
+
 
     # update db
     for p in part_ids: 
-        cur.execute("UPDATE metadata SET fasta_file=? WHERE accession_id=?", (time_file, p[0]))
+        meta = metadata[metadata['gisaid_epi_isl'] == p[0],:]
+
+        cur.execute("UPDATE metadata SET fasta_file=?, sex=?, age=? WHERE accession_id=?", (time_file, meta['sex'], meta['age'], p[0]))
 
     con.commit()
     con.close()
