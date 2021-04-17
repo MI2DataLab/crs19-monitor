@@ -26,8 +26,8 @@ def init_db(db_path):
                           country VARCHAR(32) NULL,
                           sex VARCHAR(32) NULL,
                           age INT NULL,
-                          is_meta_loaded BIT NULL,
-                          is_variant_loaded BIT NULL, 
+                          is_meta_loaded BIT NOT NULL DEFAULT 0,
+                          is_variant_loaded BIT NOT NULL DEFAULT 0,
     )""")
     con.commit()
 
@@ -137,7 +137,7 @@ def load_metadata_table(compressed_metadata):
             fixed_metadata_handle.seek(0)
         return pd.read_csv(fixed_metadata_handle, sep="\t")
 
-def fix_fasta_file(metadata, input_fasta_path, output_fasta_path):
+def fix_fasta_file(metadata, input_fasta_path, output_fasta_path, missing_fasta_ids):
     with lzma.open(input_fasta_path, 'rt') as raw_fasta_handle:
         raw_fasta = FastaFile.read(raw_fasta_handle)
     output_fasta = FastaFile()
@@ -145,11 +145,12 @@ def fix_fasta_file(metadata, input_fasta_path, output_fasta_path):
     ids = metadata['gisaid_epi_isl']
     collection_dates = metadata['date']
     for key in raw_fasta.keys():
-        new_key = '|'.join([key, str(ids[key]), str(collection_dates[key])])
-        output_fasta[new_key] = raw_fasta[key]
+        if ids[key] in missing_fasta_ids:
+            new_key = '|'.join([key, str(ids[key]), str(collection_dates[key])])
+            output_fasta[new_key] = raw_fasta[key]
     output_fasta.write(output_fasta_path)
 
-def load_from_tar(tar_file, output_fasta_path):
+def load_from_tar(tar_file, output_fasta_path, missing_fasta_ids):
     with tarfile.open(tar_file) as tar_handle:
         members = tar_handle.getmembers()
         members.sort(key = operator.attrgetter('name'))
@@ -161,5 +162,5 @@ def load_from_tar(tar_file, output_fasta_path):
         compressed_fasta = tar_handle.extractfile(members[1])
         # get pandas df from compressed metadata
         metadata = load_metadata_table(compressed_metadata)
-        fix_fasta_file(metadata, compressed_fasta, output_fasta_path)
+        fix_fasta_file(metadata, compressed_fasta, output_fasta_path, missing_fasta_ids)
         return metadata

@@ -91,8 +91,10 @@ def scrap_fasta(db_path, fasta_files_dir, download_dir = None):
     cur = con.cursor()
 
     # get ids from db without fasta file
-    cur.execute("SELECT accession_id FROM metadata WHERE fasta_file IS NULL LIMIT 10000")
+    cur.execute("SELECT accession_id, (fasta_file IS NULL), (is_meta_loaded == 0) FROM metadata WHERE fasta_file IS NULL OR is_meta_loaded == 0 ORDER BY submission_date DESC LIMIT 5000")
     part_ids = cur.fetchall()
+    missing_fasta_ids = [p[0] for p in part_ids if p[1]]
+    missing_meta_ids = [p[0] for p in part_ids if p[2]]
 
     # handle empty list
     if len(part_ids) == 0:
@@ -165,15 +167,15 @@ def scrap_fasta(db_path, fasta_files_dir, download_dir = None):
     driver.quit()
 
     time_file = str(int(time.time() * 1000))
-    metadata = load_from_tar(tar, fasta_files_dir + "/" + time_file + ".fasta")
+    metadata = load_from_tar(tar, fasta_files_dir + "/" + time_file + ".fasta", missing_fasta_ids).set_index('gisaid_epi_isl')
 
+    for accession_id in missing_fasta_ids:
+        meta = metadata[accession_id,:]
+        cur.execute("UPDATE metadata SET fasta_file=? WHERE accession_id=?", (time_file, accession_id))
 
-
-    # update db
-    for p in part_ids: 
-        meta = metadata[metadata['gisaid_epi_isl'] == p[0],:]
-
-        cur.execute("UPDATE metadata SET fasta_file=?, sex=?, age=?, is_meta_loaded=1 WHERE accession_id=?", (time_file, meta['sex'], meta['age'], p[0]))
+    for accession_id in missing_meta_ids:
+        meta = metadata[accession_id,:]
+        cur.execute("UPDATE metadata SET sex=?, age=?, is_meta_loaded=1 WHERE accession_id=?", (meta['sex'], meta['age'], accession_id))
 
     con.commit()
     con.close()
