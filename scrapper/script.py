@@ -170,11 +170,11 @@ def scrap_fasta(db_path, fasta_files_dir, download_dir = None):
     metadata = load_from_tar(tar, fasta_files_dir + "/" + time_file + ".fasta", missing_fasta_ids).set_index('gisaid_epi_isl')
 
     for accession_id in missing_fasta_ids:
-        meta = metadata[accession_id,:]
+        meta = metadata.loc[accession_id]
         cur.execute("UPDATE metadata SET fasta_file=? WHERE accession_id=?", (time_file, accession_id))
 
     for accession_id in missing_meta_ids:
-        meta = metadata[accession_id,:]
+        meta = metadata.loc[accession_id]
         cur.execute("UPDATE metadata SET sex=?, age=?, is_meta_loaded=1 WHERE accession_id=?", (meta['sex'], meta['age'], accession_id))
 
     con.commit()
@@ -182,14 +182,14 @@ def scrap_fasta(db_path, fasta_files_dir, download_dir = None):
 
     return len(part_ids)
 
-def scrap_fasta_repeater(db_path, fasta_files_dir):
+def scrap_fasta_repeater(db_path, fasta_files_dir, download_dir = None):
     """
     Loop scrapping fasta
     """
     repeats = 15
     for i in range(repeats):
         try:
-            done = scrap_fasta(db_path, fasta_files_dir)
+            done = scrap_fasta(db_path, fasta_files_dir, download_dir)
             return done
         except Exception as e:
             exc_info = sys.exc_info()
@@ -200,11 +200,11 @@ def scrap_fasta_repeater(db_path, fasta_files_dir):
             del exc_info
             print('%s try failed' % (i,))
 
-def manage_fasta_scrapping(db_path, fasta_files_dir):
+def manage_fasta_scrapping(db_path, fasta_files_dir, download_dir = None):
     """
     Loop fasta scrapping
     """
-    while scrap_fasta_repeater(db_path, fasta_files_dir) == 10**4:
+    while scrap_fasta_repeater(db_path, fasta_files_dir, download_dir) == 5 * (10**3):
         pass
 
 class ScrappingMetaHistory:
@@ -410,9 +410,10 @@ if __name__ == "__main__":
     MINIMUM_START_DATE = datetime.datetime.strptime(os.environ['MINIMUM_START_DATE'], '%Y-%m-%d').date()
     MAX_DATE_RANGE = int(os.environ['MAX_DATE_RANGE'])
     ROOT_REGION = os.environ['ROOT_REGION']
+    TMP_DIR = os.environ['TMP_DIR']
     
     init_db(DB_PATH)
     if not os.environ.get('SKIP_METATABLE'):
         manage_table_scrapping(DB_PATH, MINIMUM_START_DATE, MAX_DATE_RANGE, ROOT_REGION)
     if not os.environ.get('SKIP_FASTA'):
-        manage_fasta_scrapping(DB_PATH, FASTA_FILES_DIR)
+        manage_fasta_scrapping(DB_PATH, FASTA_FILES_DIR, TMP_DIR)

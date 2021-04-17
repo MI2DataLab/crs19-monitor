@@ -27,10 +27,30 @@ def init_db(db_path):
                           sex VARCHAR(32) NULL,
                           age INT NULL,
                           is_meta_loaded BIT NOT NULL DEFAULT 0,
-                          is_variant_loaded BIT NOT NULL DEFAULT 0,
+                          is_variant_loaded BIT NOT NULL DEFAULT 0
     )""")
     con.commit()
 
+
+def find_and_switch_to_iframe(driver):
+    print("Switching to iframe")
+    wait_for_timer(driver)
+    iframe = driver.find_element_by_class_name("sys-overlay-style")
+    driver.switch_to.frame(iframe)
+    time.sleep(1)
+    wait_for_timer(driver)
+    return
+
+def action_click(driver, element):
+    action = ActionChains(driver)
+    try:
+        action.move_to_element(element).perform()
+        element.click()
+    except ElementClickInterceptedException:
+        self.driver.execute_script(
+            "document.getElementById('sys_curtain').remove()")
+        action.move_to_element(element).perform()
+        element.click()
     
 def get_number_of_files(dir : str):
     """
@@ -135,7 +155,7 @@ def load_metadata_table(compressed_metadata):
         with lzma.open(compressed_metadata, 'rt') as raw_metadata_handle:
             fix_metadata_table(raw_metadata_handle, fixed_metadata_handle)
             fixed_metadata_handle.seek(0)
-        return pd.read_csv(fixed_metadata_handle, sep="\t")
+        return pd.read_csv(fixed_metadata_handle, sep="\t", quoting=3) # 3 = disabled
 
 def fix_fasta_file(metadata, input_fasta_path, output_fasta_path, missing_fasta_ids):
     with lzma.open(input_fasta_path, 'rt') as raw_fasta_handle:
