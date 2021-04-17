@@ -173,7 +173,7 @@ def scrap_fasta(db_path, fasta_files_dir, download_dir = None):
     for p in part_ids: 
         meta = metadata[metadata['gisaid_epi_isl'] == p[0],:]
 
-        cur.execute("UPDATE metadata SET fasta_file=?, sex=?, age=? WHERE accession_id=?", (time_file, meta['sex'], meta['age'], p[0]))
+        cur.execute("UPDATE metadata SET fasta_file=?, sex=?, age=?, is_meta_loaded=1 WHERE accession_id=?", (time_file, meta['sex'], meta['age'], p[0]))
 
     con.commit()
     con.close()
