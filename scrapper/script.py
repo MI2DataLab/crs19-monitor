@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # coding: utf-8
-
 import glob
 import os
 import time
@@ -13,37 +12,17 @@ import traceback
 
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.action_chains import ActionChains
 import pandas as pd
 import sqlite3
+from utils import *
+
+from selenium.common.exceptions import NoAlertPresentException, MoveTargetOutOfBoundsException,TimeoutException, ElementClickInterceptedException, StaleElementReferenceException, WebDriverException, NoSuchWindowException
 
 from secret import elogin, epass  # file secret.py with credentials
 
 
-def get_number_of_files(dir : str):
-    """
-    Returns number of files in dir
-    Excludes .part files
-    """
-    if os.path.exists(dir):
-        files = [f for f in os.listdir(dir) if ".part" not in f]
-        n_files = len(files)
-    else:
-        n_files = 0
-    return n_files
-
-def extract_country(location: str):
-    """
-    Returns country from location string
-    """
-    l = location.split("/")
-    if len(l) < 2:
-        return None
-    
-    c = l[1].rstrip(" ").lstrip(" ")
-    
-    return c
-
-def get_driver(region = None, download_dir = None):
+def get_driver(region = None, download_dir = None, headless = True):
     """
     Returns firefox driver logged to https://@epicov.org/epi3/ 
     @param region - used to filtered by Location for example "Europe / Poland" 
@@ -59,10 +38,14 @@ def get_driver(region = None, download_dir = None):
     profile.set_preference(
         "browser.helperApps.neverAsk.saveToDisk", "application/octet-stream"
     )
+    profile.set_preference(
+        "browser.helperApps.neverAsk.saveToDisk", "application/x-tar"
+    )
 
     options = webdriver.firefox.options.Options()
     # comment to allow firefox window
-    options.add_argument("--headless")
+    if headless:
+        options.add_argument("--headless")
 
     driver = webdriver.Firefox(
         executable_path="./geckodriver", firefox_profile=profile, options=options
@@ -98,7 +81,7 @@ def get_driver(region = None, download_dir = None):
 
     return driver
 
-def scrap_fasta(db_path, fasta_files_dir):
+def scrap_fasta(db_path, fasta_files_dir, download_dir = None):
     """
     Downloads fasta files and updates them in given database
     """
@@ -108,8 +91,10 @@ def scrap_fasta(db_path, fasta_files_dir):
     cur = con.cursor()
 
     # get ids from db without fasta file
-    cur.execute("SELECT accession_id FROM metadata WHERE fasta_file IS NULL LIMIT 10000")
+    cur.execute("SELECT accession_id, (fasta_file IS NULL), (is_meta_loaded == 0) FROM metadata WHERE fasta_file IS NULL OR is_meta_loaded == 0 ORDER BY submission_date DESC LIMIT 5000")
     part_ids = cur.fetchall()
+    missing_fasta_ids = [p[0] for p in part_ids if p[1]]
+    missing_meta_ids = [p[0] for p in part_ids if p[2]]
 
     # handle empty list
     if len(part_ids) == 0:
@@ -119,56 +104,57 @@ def scrap_fasta(db_path, fasta_files_dir):
 
     ids_str = ",".join([ p[0] for p in part_ids])
 
-    download_dir = os.getcwd() + "/gisaid_data"
+    if download_dir is None:
+        download_dir = os.getcwd() + "/gisaid_data"
     n_files_before = get_number_of_files(download_dir)
     driver = get_driver(None, download_dir)
 
     try:
-        driver.find_elements_by_class_name("sys-form-button")[2].click()
+        driver.find_element_by_xpath(("//button[contains(., 'Select')]")).click()
         wait_for_timer(driver)
 
-        print("Switching to iframe")
-        iframe = driver.find_element_by_class_name("sys-overlay-style")
-        driver.switch_to.frame(iframe)
-        time.sleep(1)
+        find_and_switch_to_iframe(driver)
 
         readed_records = driver.find_element_by_class_name("sys-event-hook.sys-fi-mark.sys-form-fi-multiline").send_keys(ids_str)
         wait_for_timer(driver)
 
-        driver.find_elements_by_class_name("sys-form-button")[1].click()
+        driver.find_element_by_xpath(("//button[contains(., 'OK')]")).click()
         time.sleep(3)
-        buttons = driver.find_elements_by_class_name("sys-form-button")
+        try:
+            buttons = driver.find_elements_by_class_name("sys-form-button")
 
-        if len(buttons) == 4:
-            #message dialog
-            driver.find_element_by_xpath(("//button[contains(., 'OK')]")).click()
-            time.sleep(10)
-            driver.switch_to_default_content()
+            if len(buttons) == 4:
+                #message dialog
+                driver.find_element_by_xpath(("//button[contains(., 'OK')]")).click()
+                time.sleep(10)
+                driver.switch_to.default_content()
 
-        print("Downloading fasta file")
-        driver.find_elements_by_class_name("sys-form-button")[4].click()
+        except NoSuchWindowException:
+            driver.switch_to.default_content()
+        
+        print("Downloading tar file")
+        driver.find_element_by_xpath(("//button[contains(., 'Download')]")).click()
+        find_and_switch_to_iframe(driver)
+        
+        driver.find_element_by_xpath(("//input[@value='augur_input']")).click()
         wait_for_timer(driver)
-
-        # switch to frame
-        iframe = driver.find_element_by_tag_name("iframe").get_attribute("id")
-        driver.switch_to.frame(iframe)
-        time.sleep(1)
-        driver.find_elements_by_class_name("sys-event-hook.sys-form-button")[1].click()
+        
+        driver.find_element_by_xpath(("//button[contains(., 'Download')]")).click()
 
         while get_number_of_files(download_dir) == n_files_before:
             # sleep until file is downloaded
             time.sleep(1)
 
         list_of_files = glob.glob(download_dir + "/*") 
-        fasta = max(list_of_files, key=os.path.getmtime)
+        tar = max(list_of_files, key=os.path.getmtime)
     
-        last_size = os.path.getsize(fasta)
+        last_size = os.path.getsize(tar)
         time.sleep(20)
-        while os.path.exists(fasta) and last_size < os.path.getsize(fasta):
-            last_size = os.path.getsize(fasta)
-            time.sleep(20)
-        if fasta.endswith('.part'):
-            fasta = fasta[:-5]
+        while os.path.exists(tar) and last_size < os.path.getsize(tar):
+            last_size = os.path.getsize(tar)
+            time.sleep(1)
+        if tar.endswith('.part'):
+            tar = tar[:-5]
 
         time.sleep(1)
     except Exception as e:
@@ -180,28 +166,30 @@ def scrap_fasta(db_path, fasta_files_dir):
         raise e
     driver.quit()
 
-    # move file
     time_file = str(int(time.time() * 1000))
-    move_fasta = fasta_files_dir + "/" + time_file + ".fasta"
-    shutil.copyfile(fasta, move_fasta)
+    metadata = load_from_tar(tar, fasta_files_dir + "/" + time_file + ".fasta", missing_fasta_ids).set_index('gisaid_epi_isl')
 
-    # update db
-    for p in part_ids: 
-        cur.execute("UPDATE metadata SET fasta_file=? WHERE accession_id=?", (time_file, p[0]))
+    for accession_id in missing_fasta_ids:
+        meta = metadata.loc[accession_id]
+        cur.execute("UPDATE metadata SET fasta_file=? WHERE accession_id=?", (time_file, accession_id))
+
+    for accession_id in missing_meta_ids:
+        meta = metadata.loc[accession_id]
+        cur.execute("UPDATE metadata SET sex=?, age=?, is_meta_loaded=1 WHERE accession_id=?", (meta['sex'], meta['age'], accession_id))
 
     con.commit()
     con.close()
 
     return len(part_ids)
 
-def scrap_fasta_repeater(db_path, fasta_files_dir):
+def scrap_fasta_repeater(db_path, fasta_files_dir, download_dir = None):
     """
     Loop scrapping fasta
     """
     repeats = 15
     for i in range(repeats):
         try:
-            done = scrap_fasta(db_path, fasta_files_dir)
+            done = scrap_fasta(db_path, fasta_files_dir, download_dir)
             return done
         except Exception as e:
             exc_info = sys.exc_info()
@@ -212,63 +200,12 @@ def scrap_fasta_repeater(db_path, fasta_files_dir):
             del exc_info
             print('%s try failed' % (i,))
 
-def manage_fasta_scrapping(db_path, fasta_files_dir):
+def manage_fasta_scrapping(db_path, fasta_files_dir, download_dir = None):
     """
     Loop fasta scrapping
     """
-    while scrap_fasta_repeater(db_path, fasta_files_dir) == 10**4:
+    while scrap_fasta_repeater(db_path, fasta_files_dir, download_dir) == 5 * (10**3):
         pass
-
-def get_elem_or_None(driver,class_name):
-    """
-    Returns element by class_name or None if it doesn't exist
-    """
-    try:
-        elem = driver.find_element_by_class_name(class_name)
-    except:
-        elem = None
-    return elem
-
-def get_elements_or_empty(driver,class_name):
-    """
-    Returns elements by class_name or [] if there is none
-    """
-    try:
-        elems = driver.find_elements_by_class_name(class_name)
-    except:
-        elems = []
-    return elems
-
-def is_spinning(driver, class_name):
-    """
-    Returns bool if element with class_name is visible
-    """
-    elems = get_elements_or_empty(driver, class_name)
-    for elem in elems:
-        if elem is not None and list(elem.rect.values()) != [0,0,0,0]:
-            return True
-    return False
-
-def wait_for_timer(driver):
-    """
-    Sleeps until "sys_timer_img" and "small_spinner" are visible
-    """
-    time.sleep(5)
-    while is_spinning(driver, "sys_timer_img") or is_spinning(driver, "small_spinner"):
-        time.sleep(1)
-        
-def set_region(driver, region):
-    """
-    Filters by given region
-    """
-    driver.find_element_by_class_name("sys-event-hook.sys-fi-mark.yui-ac-input").clear()
-    #wait_for_timer(driver)
-    
-    print("Setting region to ", region)
-    driver.find_element_by_class_name("sys-event-hook.sys-fi-mark.yui-ac-input").send_keys(region)
-    wait_for_timer(driver)
-    
-    return
 
 class ScrappingMetaHistory:
     def __init__(self):
@@ -466,25 +403,6 @@ def manage_table_scrapping(db_path, minimum_start_date, max_date_range, region):
 
     scrap_table_repeater(region, db_path, start_date, end_date)
 
-def init_db(db_path):
-    """
-    Creates table metadata in database if not exists
-    """
-    con = sqlite3.connect(db_path)
-    cur = con.cursor()
-    cur.execute("""CREATE TABLE IF NOT EXISTS metadata (
-                          accession_id CHAR(16) PRIMARY KEY NOT NULL, 
-                          fasta_file VARCHAR(16) NULL,
-                          passage VARCHAR(32) NULL,
-                          submission_date DATE NOT NULL, 
-                          collection_date DATE NULL,
-                          host VARCHAR(32) NULL,
-                          location VARCHAR(128) NULL,
-                          originating_lab TEXT NULL,
-                          submitting_lab TEXT NULL,
-                          country VARCHAR(32) NULL
-    )""")
-    con.commit()
 
 if __name__ == "__main__":
     DB_PATH = os.environ["DB_PATH"]
@@ -492,9 +410,10 @@ if __name__ == "__main__":
     MINIMUM_START_DATE = datetime.datetime.strptime(os.environ['MINIMUM_START_DATE'], '%Y-%m-%d').date()
     MAX_DATE_RANGE = int(os.environ['MAX_DATE_RANGE'])
     ROOT_REGION = os.environ['ROOT_REGION']
+    TMP_DIR = os.environ['TMP_DIR']
     
     init_db(DB_PATH)
     if not os.environ.get('SKIP_METATABLE'):
         manage_table_scrapping(DB_PATH, MINIMUM_START_DATE, MAX_DATE_RANGE, ROOT_REGION)
     if not os.environ.get('SKIP_FASTA'):
-        manage_fasta_scrapping(DB_PATH, FASTA_FILES_DIR)
+        manage_fasta_scrapping(DB_PATH, FASTA_FILES_DIR, TMP_DIR)
