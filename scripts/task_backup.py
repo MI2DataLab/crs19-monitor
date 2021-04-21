@@ -3,17 +3,15 @@ import time
 from datetime import datetime
 import sys
 import glob
-from config import data_dir, backup_dir, backups_number
+from config import data_dir, backup_dir, backups_number, site_dist
 
-if not os.path.exists(data_dir):
-    print('Skipping backup, because data directory doeas not exists')
-
-if not os.path.exists(backup_dir):
-    os.makedirs(backup_dir)
+for d in [data_dir, backup_dir, site_dist]:
+    if not os.path.exists(d):
+        os.makedirs(d)
 
 filename = datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + '.tar.gz'
 
-out = os.system('bash -c "tar -cf - ' + data_dir + '|gzip > ' + backup_dir + '/' + filename + '"')
+out = os.system('bash -c "tar -cf - --exclude=\'.git\' --exclude=\'*.rda\' ' + data_dir + ' ' + site_dist + ' |gzip > ' + backup_dir + '/' + filename + '"')
 if out != 0:
     sys.exit(out >> 8)
 
