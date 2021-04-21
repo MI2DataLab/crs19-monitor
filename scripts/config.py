@@ -9,8 +9,8 @@ backup_dir = parent_path + "/backups"
 keys_dir = parent_path + "/keys"
 tmp_dir = parent_path + '/tmp'
 # List of remotes (name,ssh key,cname)
-remotes = [('crs19', keys_dir + '/' + 'monitor_crs19_pl', 'monitor.crs19.pl'),('mi2ai', keys_dir + '/' + 'monitor_mi2_ai', 'monitor.mi2.ai')]
-rsync_remotes = ['europe-monitor-site@dementor:/monitor/']
+remotes = []
+rsync_remotes = ['europe-monitor-site@dementor:/monitor/'] if 'production' in parent_path else []
 backups_number = 3
 
 gisaid_fasta_dir = data_dir + '/gisaid_fasta'
