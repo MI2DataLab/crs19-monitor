@@ -158,16 +158,37 @@ def load_metadata_table(compressed_metadata):
         return pd.read_csv(fixed_metadata_handle, sep="\t", quoting=3) # 3 = disabled
 
 def fix_fasta_file(metadata, input_fasta_path, output_fasta_path, missing_fasta_ids):
+    if len(missing_fasta_ids) == 0:
+        return
+
     with lzma.open(input_fasta_path, 'rt') as raw_fasta_handle:
-        raw_fasta = FastaFile.read(raw_fasta_handle)
+        lines = raw_fasta_handle.readlines()
+
+    # Just check if order and values of keys are the same as in metadata
+    # fasta files can contain duplicated keys
+    fasta_keys = [l[1:].replace('\n', '') for l in lines if l.startswith('>')]
+    assert metadata['strain'].tolist() == fasta_keys
+
+    # Create fasta file in buffor with gisaid accession_id as key
+    with StringIO() as tmp_fasta_handle:
+        header_counter = 0
+        for line in lines:
+            if line.startswith('>'):
+                row = metadata.iloc[header_counter]
+                tmp_fasta_handle.write('>' + row['gisaid_epi_isl'] + '\n')
+                header_counter += 1
+            else:
+                tmp_fasta_handle.write(line)
+        tmp_fasta_handle.seek(0)
+        full_fasta = FastaFile.read(tmp_fasta_handle)
+
     output_fasta = FastaFile()
-    metadata = metadata.set_index('strain')
-    ids = metadata['gisaid_epi_isl']
-    collection_dates = metadata['date']
-    for key in raw_fasta.keys():
-        if ids[key] in missing_fasta_ids:
-            new_key = '|'.join([key, str(ids[key]), str(collection_dates[key])])
-            output_fasta[new_key] = raw_fasta[key]
+    metadata = metadata.set_index('gisaid_epi_isl')
+    for accession_id in full_fasta.keys():
+        if accession_id in missing_fasta_ids:
+            row = metadata.loc[accession_id]
+            new_key = '|'.join([row['strain'], accession_id, str(row['date'])])
+            output_fasta[new_key] = full_fasta[accession_id]
     output_fasta.write(output_fasta_path)
 
 def load_from_tar(tar_file, output_fasta_path, missing_fasta_ids):

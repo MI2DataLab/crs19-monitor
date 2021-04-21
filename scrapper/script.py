@@ -174,8 +174,11 @@ def scrap_fasta(db_path, fasta_files_dir, download_dir = None):
         cur.execute("UPDATE metadata SET fasta_file=? WHERE accession_id=?", (time_file, accession_id))
 
     for accession_id in missing_meta_ids:
-        meta = metadata.loc[accession_id]
-        cur.execute("UPDATE metadata SET sex=?, age=?, is_meta_loaded=1 WHERE accession_id=?", (meta['sex'], meta['age'], accession_id))
+        if accession_id in metadata.index:
+            meta = metadata.loc[accession_id]
+            cur.execute("UPDATE metadata SET sex=?, age=?, is_meta_loaded=1 WHERE accession_id=?", (meta['sex'], meta['age'], accession_id))
+        else:
+            cur.execute("UPDATE metadata SET is_meta_loaded=1 WHERE accession_id=?", (accession_id,))
 
     con.commit()
     con.close()
