@@ -53,14 +53,12 @@ plot_map <- function(df,
   map_cord <- map$map_cord %>% select(X, Y, id)
   map_metadata_left <- map$map_metadata %>%
                           left_join(t_map_metadata_left, by = "name") %>%
-                          drop_na() %>%
-                          select(X, Y, ratio, id)
+                          drop_na() # %>% select(X, Y, ratio, id)
   map_metadata_right <- map$map_metadata %>%
                           left_join(t_map_metadata_right, by = "name") %>%
-                          drop_na() %>%
-                          select(X, Y, ratio, id)
-  print(head(map_cord))
-  print(head(map_metadata_left))
+                          drop_na() # %>% select(X, Y, ratio, id)
+
+  print(head(map_metadata_right))
   pl_map_1 <- ggplot(map_cord) +
     geom_polygon(aes(X, Y, group = id), color = "black", fill = "white") +
     scatterpie::geom_scatterpie(data = map_metadata_left,
