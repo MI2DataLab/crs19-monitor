@@ -59,8 +59,8 @@ plot_map <- function(df,
                           left_join(t_map_metadata_right, by = "name") %>%
                           drop_na() %>%
                           select(X, Y, ratio, id)
-  print(colnames(map_cord))
-  print(colnames(map_metadata_left))
+  print(head(map_cord))
+  print(head(map_metadata_left))
   pl_map_1 <- ggplot(map_cord) +
     geom_polygon(aes(X, Y, group = id), color = "black", fill = "white") +
     scatterpie::geom_scatterpie(data = map_metadata_left,
@@ -90,6 +90,6 @@ plot_map <- function(df,
       title = title,
       theme = theme(plot.title = element_text(size = 15, hjust = 0.5))
     )
-
+  print("cpt")
   p
 }
