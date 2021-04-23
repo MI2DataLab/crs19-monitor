@@ -55,7 +55,7 @@ plot_map <- function(df,
                           left_join(t_map_metadata_left, by = "name") %>%
                           drop_na() %>%
                           select(X, Y, ratio, id)
-  map_metadata_right <- map_metadata  %>%
+  map_metadata_right <- map$map_metadata %>%
                           left_join(t_map_metadata_right, by = "name") %>%
                           drop_na() %>%
                           select(X, Y, ratio, id)
