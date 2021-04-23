@@ -60,7 +60,7 @@ plot_clade_cumulative <- function(df,
 
   ggplot(tab_df, aes(ymd(date), y = n, color = variant %in% alarm_clade, group = variant)) +
     geom_step() +
-    geom_step(data = tab_df[tab_dfdf$variant %in% alarm_clade,], size = 1.1) +
+    geom_step(data = tab_df[tab_df$variant %in% alarm_clade,], size = 1.1) +
     ggrepel::geom_text_repel(data = counts,
                              aes(x = ymd(lineage_date),
                                  y = label,
