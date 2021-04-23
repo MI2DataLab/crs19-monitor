@@ -8,9 +8,11 @@ plot_metadata_dates <- function(df,
                                 ylab = "",
                                 title = "") {
 
-  ggplot(df, aes(x = ymd(collection_date),
-                 y = ymd(submission_date),
-                 color = grepl(clade_small, pattern = alarm_pattern))) +
+  tdf <- df %>% select(collection_date, submission_date, clade_small) 
+
+  ggplot(tdf, aes(x = ymd(collection_date),
+                  y = ymd(submission_date),
+                  color = grepl(clade_small, pattern = alarm_pattern))) +
     geom_abline(slope = 1, intercept = 0, color = "grey", lty = 4) +
     geom_abline(slope = 1, intercept = 14, color = "grey", lty = 2) +
     geom_abline(slope = 1, intercept = 28, color = "grey", lty = 3) +

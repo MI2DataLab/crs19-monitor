@@ -32,11 +32,11 @@ plot_variant_col_fill <- function(df,
 #' @param df cleaned `nextclade` data.frame
 #' @export
 plot_variant_col_stack <- function(df,
-                                    alarm_clade,
-                                    lineage_date,
-                                    palette,
-                                    no_months_plots,
-                                    title = "") {
+                                   alarm_clade,
+                                   lineage_date,
+                                   palette,
+                                   no_months_plots,
+                                   title = "") {
 
   tab <- table(ymd(df$date) - days(wday(ymd(df$date))), df$clade_small)
   tab_df <- as.data.frame(as.table(tab))

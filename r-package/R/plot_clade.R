@@ -7,8 +7,8 @@ plot_clade_facet <- function(df,
                              title = "") {
 
   tab <- apply(table(df$date, df$clade_small), 2, cumsum)
-  df <- as.data.frame(as.table(tab))
-  colnames(df) <- c("date", "variant", "n")
+  tab_df <- as.data.frame(as.table(tab))
+  colnames(tab_df) <- c("date", "variant", "n")
   variant <- tab[nrow(tab),]
   counts <- data.frame(
     variant = factor(names(variant), levels = names(variant)),
@@ -17,7 +17,7 @@ plot_clade_facet <- function(df,
     n = max(variant)
   )
 
-  ggplot(df, aes(ymd(date), ymax = n, ymin = 0, fill = grepl(variant, pattern = alarm_pattern))) +
+  ggplot(tab_df, aes(ymd(date), ymax = n, ymin = 0, fill = grepl(variant, pattern = alarm_pattern))) +
     pammtools::geom_stepribbon() +
     geom_text(data = counts,
               aes(x = ymd(date),
@@ -47,8 +47,8 @@ plot_clade_cumulative <- function(df,
                                   title = "") {
 
   tab <- apply(table(df$date, df$clade_medium), 2, cumsum)
-  df <- as.data.frame(as.table(tab))
-  colnames(df) <- c("date", "variant", "n")
+  tab_df <- as.data.frame(as.table(tab))
+  colnames(tab_df) <- c("date", "variant", "n")
   variant <- tab[nrow(tab),]
   counts <- data.frame(
     variant = factor(names(variant), levels = names(variant)),
@@ -58,9 +58,9 @@ plot_clade_cumulative <- function(df,
   )
   counts <- counts[counts$variant %in% alarm_clade,]
 
-  ggplot(df, aes(ymd(date), y = n, color = variant %in% alarm_clade, group = variant)) +
+  ggplot(tab_df, aes(ymd(date), y = n, color = variant %in% alarm_clade, group = variant)) +
     geom_step() +
-    geom_step(data = df[df$variant %in% alarm_clade,], size = 1.1) +
+    geom_step(data = tab_df[tab_dfdf$variant %in% alarm_clade,], size = 1.1) +
     ggrepel::geom_text_repel(data = counts,
                              aes(x = ymd(lineage_date),
                                  y = label,

@@ -50,14 +50,19 @@ plot_map <- function(df,
                  by = "name") -> t_map_metadata_right) %>%
     mutate(ratio = 2 * (10e12 * ratio / max(t_map_metadata_right$ratio)) ** (1/3)) -> t_map_metadata_right
 
-  map_cord <- map$map_cord
-  map_metadata <- map$map_metadata
+  map_cord <- map$map_cord %>% select(X, Y, id)
+  map_metadata_left <- map$map_metadata %>%
+                          left_join(t_map_metadata_left, by = "name") %>%
+                          drop_na() %>%
+                          select(X, Y, ratio, id)
+  map_metadata_right <- map_metadata  %>%
+                          left_join(t_map_metadata_right, by = "name") %>%
+                          drop_na() %>%
+                          select(X, Y, ratio, id)
 
   pl_map_1 <- ggplot(map_cord) +
     geom_polygon(aes(X, Y, group = id), color = "black", fill = "white") +
-    scatterpie::geom_scatterpie(data = map_metadata  %>%
-                                  left_join(t_map_metadata_left, by = "name") %>%
-                                  drop_na(),
+    scatterpie::geom_scatterpie(data = map_metadata_left,
                                 cols = c(alarm_mutation, "-"),
                                 aes(x = X, y = Y, r = ratio, group = id)) +
     coord_equal() +
@@ -69,9 +74,7 @@ plot_map <- function(df,
 
   pl_map_2 <- ggplot(map_cord) +
     geom_polygon(aes(X, Y, group = id), color = "black", fill = "white") +
-    scatterpie::geom_scatterpie(data = map_metadata  %>%
-                                  left_join(t_map_metadata_right, by = "name") %>%
-                                  drop_na(),
+    scatterpie::geom_scatterpie(data = map_metadata_right,
                                 cols = c(alarm_mutation, "-"),
                                 aes(x = X, y = Y, r = ratio, group = id)) +
     coord_equal() +
