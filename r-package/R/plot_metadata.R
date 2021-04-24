@@ -10,7 +10,7 @@ plot_metadata_dates <- function(df,
 
   tdf <- df %>% select(collection_date, submission_date, clade_small) 
 
-  ggplot(tdf, aes(x = ymd(collection_date),
+  p <- ggplot(tdf, aes(x = ymd(collection_date),
                   y = ymd(submission_date),
                   color = grepl(clade_small, pattern = alarm_pattern))) +
     geom_abline(slope = 1, intercept = 0, color = "grey", lty = 4) +
@@ -26,4 +26,7 @@ plot_metadata_dates <- function(df,
     scale_y_date(ylab, date_breaks = "2 weeks", date_labels = "%m/%d",
                  limits = c(ymd(lineage_date) %m-% months(no_months_plots - 1), ymd(lineage_date))) +
     theme(legend.position = "none")
+    
+  p$plot_env <- rlang::new_environment()
+  p
 }

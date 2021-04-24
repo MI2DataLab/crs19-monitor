@@ -17,7 +17,7 @@ plot_pango_facet <- function(df,
     n = max(variant)
   )
 
-  ggplot(tab_df, aes(ymd(date), ymax = n, ymin = 0, fill = variant %in% alarm_pango)) +
+  p <- ggplot(tab_df, aes(ymd(date), ymax = n, ymin = 0, fill = variant %in% alarm_pango)) +
     pammtools::geom_stepribbon() +
     geom_text(data = counts,
               aes(x = ymd(date),
@@ -35,6 +35,9 @@ plot_pango_facet <- function(df,
     scale_y_continuous("", expand = c(0, 0)) +
     ggtitle(title) +
     theme(legend.position = "none")
+
+  p$plot_env <- rlang::new_environment()
+  p
 }
 
 
@@ -58,7 +61,7 @@ plot_pango_cumulative <- function(df,
   )
   counts <- counts[counts$variant %in% alarm_pango,]
 
-  ggplot(tab_df, aes(ymd(date), y = n, color = variant %in% alarm_pango, group = variant)) +
+  p <- ggplot(tab_df, aes(ymd(date), y = n, color = variant %in% alarm_pango, group = variant)) +
     geom_step() +
     geom_step(data = tab_df[tab_df$variant %in% alarm_pango,], size = 1.1) +
     ggrepel::geom_text_repel(data = counts,
@@ -76,4 +79,7 @@ plot_pango_cumulative <- function(df,
     scale_y_continuous("", expand = c(0, 0)) +
     ggtitle(title) +
     theme(legend.position = "none")
+
+  p$plot_env <- rlang::new_environment()
+  p
 }

@@ -83,6 +83,9 @@ plot_map <- function(df,
     ggtitle(subtitle2) +
     theme(plot.title = element_text(size = 12, hjust = 0.5))
 
+  pl_map_1$plot_env <- rlang::new_environment()
+  pl_map_2$plot_env <- rlang::new_environment()
+  
   p <- (pl_map_1 + pl_map_2) +
     plot_annotation(
       title = title,
