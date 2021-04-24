@@ -407,6 +407,70 @@ def manage_table_scrapping(db_path, minimum_start_date, max_date_range, region):
     scrap_table_repeater(region, db_path, start_date, end_date)
 
 
+
+def scrap_variants(region, db_path, start_date, end_date):
+    if end_date < start_date:
+        print('Skipping, invalid date range')
+        return
+    try:
+        driver = get_driver()
+        set_region(driver, region)
+
+        con = sqlite3.connect(db_path)
+        cur = con.cursor()
+
+        update_clade(driver, cur)
+        update_substitusions(driver, cur)
+    except Exception as e:
+        name = str(int(time.time() * 1000))
+        driver.save_screenshot(name + ".png")
+        with open(name + '.html', 'w') as f:
+            f.write(driver.page_source)
+        driver.quit()
+        raise e
+
+def scrap_variants_repeater(region, db_path, start_date, end_date):
+    """
+    Loop scrapping variants
+    """
+    repeats = 15
+    for i in range(repeats):
+        try:
+            scrap_variants(region, db_path, start_date, end_date)
+            return
+        except Exception as e:
+            exc_info = sys.exc_info()
+            if i == repeats - 1:
+                raise e
+            else:
+                traceback.print_exception(*exc_info)
+            del exc_info
+            print('%s try failed' % (i,))
+
+def manage_variant_scrapping(db_path, minimum_start_date, max_date_range, region):
+    """
+    Handles date ranges for variant scrapping
+    """
+    con = sqlite3.connect(db_path)
+    cur = con.cursor()
+    cur.execute("SELECT MAX(submission_date) FROM metadata WHERE is_variant_loaded=0")
+    start_date = cur.fetchone()[0]
+    con.close()
+
+    if start_date is None:
+        start_date = minimum_start_date
+    else:
+        start_date = datetime.datetime.strptime(start_date, '%Y-%m-%d').date()
+        print('Scrapping 3 days before proper date range')
+        scrap_table_repeater(region, db_path, start_date - datetime.timedelta(days=3), start_date - datetime.timedelta(days=1))
+        print('Scrapping starting day')
+        scrap_table_repeater(region, db_path, start_date, start_date)
+        start_date = start_date + datetime.timedelta(days=1)
+
+    end_date = min(datetime.date.today(), start_date + datetime.timedelta(days = max_date_range))
+
+    scrap_variants_repeater(region, db_path, start_date, end_date)
+
 if __name__ == "__main__":
     DB_PATH = os.environ["DB_PATH"]
     FASTA_FILES_DIR = os.environ["FASTA_FILES_DIR"]
@@ -420,3 +484,5 @@ if __name__ == "__main__":
         manage_table_scrapping(DB_PATH, MINIMUM_START_DATE, MAX_DATE_RANGE, ROOT_REGION)
     if not os.environ.get('SKIP_FASTA'):
         manage_fasta_scrapping(DB_PATH, FASTA_FILES_DIR, TMP_DIR)
+    if not os.environ.get('SKIP_VARIANTS'):
+        manage_fasta_scrapping(DB_PATH, MINIMUM_START_DATE, MAX_DATE_RANGE, ROOT_REGION)

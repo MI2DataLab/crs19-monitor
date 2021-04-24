@@ -26,6 +26,8 @@ def init_db(db_path):
                           country VARCHAR(32) NULL,
                           sex VARCHAR(32) NULL,
                           age INT NULL,
+                          substitutions VARCHAR(64) NULL,
+                          clade VARCHAR(32) NULL,
                           is_meta_loaded BIT NOT NULL DEFAULT 0,
                           is_variant_loaded BIT NOT NULL DEFAULT 0
     )""")
@@ -205,3 +207,120 @@ def load_from_tar(tar_file, output_fasta_path, missing_fasta_ids):
         metadata = load_metadata_table(compressed_metadata)
         fix_fasta_file(metadata, compressed_fasta, output_fasta_path, missing_fasta_ids)
         return metadata
+
+def get_accesion_ids(driver):
+    time.sleep(1)
+    total_records = driver.find_element_by_class_name("sys-datatable-info-left").text
+    total_records = int(re.sub(r'[^0-9]*', "", total_records))
+    
+    wait_for_timer(driver)
+    checkbox = driver.find_elements_by_xpath("//input[starts-with(@type, 'checkbox')]")[5]
+    if checkbox.get_property('checked') is False:
+        print("Checkbox not checked, checking")
+        checkbox.click()
+        wait_for_timer(driver)
+    else:
+        print("Checkbox checked from last search, unchecking")
+        checkbox.click()
+        wait_for_timer(driver)
+        
+        print("Checkbox checking")
+        checkbox.click()
+        wait_for_timer(driver)
+    
+    
+    driver.find_element_by_xpath(("//button[contains(., 'Select')]")).click()
+    wait_for_timer(driver)
+
+    find_and_switch_to_iframe(driver)
+    readed_records = driver.find_element_by_class_name("sys-event-hook.sys-fi-mark.sys-form-fi-multiline").text.split(", ")
+    
+    if readed_records == ['']:
+        readed_records = []
+    
+    if len(readed_records) != total_records:
+        raise Exception("Readed records ({})!= Total records({})".format(len(readed_records), total_records))
+        
+    print("Switching to default_content")
+    driver.find_element_by_xpath(("//button[contains(., 'Back')]")).click()
+    wait_for_timer(driver)
+    driver.switch_to.default_content()
+    
+    return readed_records
+
+def update_clade(driver, cur):
+    # get clade list
+    clades = driver.find_elements_by_class_name("sys-event-hook.sys-fi-mark")[8].text.split('\n')
+    clades.remove('all')
+
+    print("Found clades: ", clades)
+
+    for clade in clades:
+        clades_selector = driver.find_element_by_xpath("//select[@class='sys-event-hook sys-fi-mark']")
+        try:
+            clades_selector.clear()
+        except:
+            pass
+        clades_selector.send_keys(clade)
+        wait_for_timer(driver)
+
+        #get list of ids
+        ids = get_accesion_ids(driver)
+        print("found %s ids for clade %s" %(len(ids), clade))
+        # update database
+        for accession_id in ids:
+            cur.execute("UPDATE metadata SET clade=? WHERE accession_id=?", (clade, accession_id))
+
+            con.commit()
+    clades_selector = driver.find_element_by_xpath("//select[@class='sys-event-hook sys-fi-mark']")
+    try:
+        clades_selector.clear()
+    except:
+        pass
+    clades_selector.send_keys("all")
+
+def update_substitusions(driver, cur):
+    subs = get_substitusions(driver)
+    selector = driver.find_elements_by_xpath("//input[@class='sys-event-hook sys-fi-mark yui-ac-input']")[4]
+    
+    for sub in subs:
+        selector.clear()
+        wait_for_timer(driver)
+        selector.send_keys(sub)
+        wait_for_timer(driver)
+        #get list of ids
+        ids = get_accesion_ids(driver)
+    
+        print("found %s ids for substitusions %s" %(len(ids), sub))
+        
+        # update database
+        for accession_id in ids:
+            cur.execute("SELECT accession_id, substitutions FROM metadata WHERE accession_id=?", (id_,))
+            curr_id = cur.fetchall()[0]
+            curr_id_subs = curr_id[1]
+            if curr_id_subs is None:
+                merged_subs = sub
+            else:
+                merged_subs = curr_id_subs + "," + sub
+            
+            cur.execute("UPDATE metadata SET substitutions=?, is_variant_loaded=1  WHERE accession_id=?", (merged_subs, accession_id))
+    
+            con.commit()
+
+def get_substitusions(driver):
+    substitusions = driver.find_elements_by_class_name("sys-event-hook.sys-fi-mark.yui-ac-input")[4]
+    substitusions.clear() 
+    wait_for_timer(driver)
+    substitusions.click()
+    wait_for_timer(driver)
+    
+    cont_table_html = driver.find_elements_by_class_name("yui-ac-content")[4].get_attribute("innerHTML")
+    soup =   BeautifulSoup(cont_table_html)
+    subs = []
+    for elem in soup.findAll('li'):
+        if elem['style'] == 'display: none;':
+            continue
+        subs.append(elem.text)
+    
+    print("Substitusions found: %s" %subs)
+    return subs
