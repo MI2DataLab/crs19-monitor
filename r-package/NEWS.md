@@ -1,4 +1,8 @@
-# covar 1.0
+# covar 1.0.1
+
+* fix heavy `gg_objects.rda` - filter columns before passing the data to `ggplot()`
+
+# covar 1.0.0
 
 Functionalities for the project of SARS-CoV-2 variants monitoring:
 * Website: <https://monitor.mi2.ai>
