@@ -421,6 +421,10 @@ def scrap_variants(region, db_path, start_date, end_date):
 
         update_clade(driver, cur)
         update_substitusions(driver, cur)
+
+        driver.quit()
+        con.close()
+        
     except Exception as e:
         name = str(int(time.time() * 1000))
         driver.save_screenshot(name + ".png")
