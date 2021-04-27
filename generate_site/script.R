@@ -1,5 +1,5 @@
 cat('---- START \n')
-
+devtools::install_local('../r-package/', force=TRUE)
 
 # ----- GLOBAL VARS ----- #
 
