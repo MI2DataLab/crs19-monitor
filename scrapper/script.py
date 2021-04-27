@@ -53,6 +53,7 @@ def get_driver(region = None, download_dir = None, headless = True):
     try:
         driver.get(url)
         time.sleep(3)
+        wait_for_timer(driver)
 
         print("Logging in as ", elogin)
         # login
@@ -60,6 +61,7 @@ def get_driver(region = None, download_dir = None, headless = True):
         driver.find_element_by_id("epassword").send_keys(epass)
         driver.find_element_by_class_name("form_button_submit").click()
         time.sleep(3)
+        wait_for_timer(driver)
 
         # navigate to search
         driver.find_elements_by_class_name("sys-actionbar-action")[1].click()
@@ -475,6 +477,35 @@ def manage_variant_scrapping(db_path, minimum_start_date, max_date_range, region
 
     scrap_variants_repeater(region, db_path, start_date, end_date)
 
+def update_pango(driver, db_path, pango_filename, region, start_date, end_date):
+    
+    driver = get_driver(headless=False)
+    
+    total_records = get_search(driver, region, db_path, start_date, end_date)
+    
+    pangodf = pd.read_csv(pango_filename)
+    pango = pangodf['lineage'].unique().tolist()
+    pango.remove('None')
+    
+    con = sqlite3.connect(db_path)
+    cur = con.cursor()
+    
+    for p in pango:
+        print("Checking pango %s" %p)
+        lineage_input = driver.find_elements_by_class_name("sys-event-hook.sys-fi-mark.yui-ac-input")[3]
+        lineage_input.clear()
+        lineage_input.send_keys(p)
+    
+        ids = get_accesion_ids(driver)
+    
+        for accession_id in ids:
+            cur.execute("UPDATE metadata SET gisaid_pango=? WHERE accession_id=?", (p, accession_id))
+        con.commit()
+    con.close()
+    driver.quit()
+    return
+
+    
 if __name__ == "__main__":
     DB_PATH = os.environ["DB_PATH"]
     FASTA_FILES_DIR = os.environ["FASTA_FILES_DIR"]

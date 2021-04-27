@@ -5,6 +5,7 @@ from io import StringIO
 from biotite.sequence.io.fasta import FastaFile
 import tarfile
 import operator
+import re
 
 
 def init_db(db_path):
@@ -210,9 +211,7 @@ def load_from_tar(tar_file, output_fasta_path, missing_fasta_ids):
 
 def get_accesion_ids(driver):
     time.sleep(1)
-    total_records = driver.find_element_by_class_name("sys-datatable-info-left").text
-    total_records = int(re.sub(r'[^0-9]*', "", total_records))
-    
+
     wait_for_timer(driver)
     checkbox = driver.find_elements_by_xpath("//input[starts-with(@type, 'checkbox')]")[5]
     if checkbox.get_property('checked') is False:
@@ -228,6 +227,8 @@ def get_accesion_ids(driver):
         checkbox.click()
         wait_for_timer(driver)
     
+    total_records = driver.find_element_by_class_name("sys-datatable-info-left").text
+    total_records = int(re.sub(r'[^0-9]*', "", total_records))
     
     driver.find_element_by_xpath(("//button[contains(., 'Select')]")).click()
     wait_for_timer(driver)
@@ -324,3 +325,42 @@ def get_substitusions(driver):
     
     print("Substitusions found: %s" %subs)
     return subs
+
+def get_search(driver, region, db_path, start_date, end_date, headless = True):
+    
+    set_region(driver, region)
+
+    con = sqlite3.connect(db_path)
+    cur = con.cursor()
+
+    cur.execute("SELECT COUNT(*) FROM metadata WHERE submission_date <= ? AND submission_date >= ?", (end_date, start_date))
+    total_records_in_db = cur.fetchone()[0]
+    con.commit()
+    con.close()
+        
+    # read total_records from left bottom corner
+    total_records_before_filter = driver.find_element_by_class_name("sys-datatable-info-left").text
+    total_records_before_filter = int(re.sub(r'[^0-9]*', "", total_records_before_filter))
+
+    # filter by date 
+    print("Scrapping date from ", start_date, "to ", end_date)
+    driver.find_elements_by_class_name("sys-event-hook.sys-fi-mark.hasDatepicker")[2].send_keys(start_date.strftime('%Y-%m-%d'))
+    driver.find_elements_by_class_name("sys-event-hook.sys-fi-mark.hasDatepicker")[3].send_keys(end_date.strftime('%Y-%m-%d'))
+    wait_for_timer(driver)
+
+    # read total_records from left bottom corner
+    total_records = driver.find_element_by_class_name("sys-datatable-info-left").text
+    total_records = int(re.sub(r'[^0-9]*', "", total_records))
+    if total_records == 0:
+        print("No records found")
+        driver.quit()
+        #return
+    elif total_records <= total_records_in_db:
+        print('Skipping range %s : %s because total_records[%s] <= total_records_in_db[%s]' % (start_date, end_date, total_records, total_records_in_db))
+        driver.quit()
+        #return
+    elif total_records == total_records_before_filter:
+        # handle unresponsive gisaid
+        raise Exception('Number of records didn\'t changed after filtering by date')
+    return total_records
+
