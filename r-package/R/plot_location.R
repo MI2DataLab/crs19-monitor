@@ -23,6 +23,9 @@ plot_location_count <- function(df,
   tab <- table(df$week_start, df$LocationClean, df$is_alarm)
   tab_df <- data.frame(as.table(tab))
 
+  rm('df')
+  rm('tab')
+
   p <- ggplot(tab_df, aes(ymd(Var1), y = Freq, fill = Var3)) +
     geom_col() +
     scale_fill_manual(values = c("grey", "red3")) +
@@ -70,6 +73,9 @@ plot_location_proportion <- function(df,
   tab[,,2] <- tab[,,2] / normalizer
   tab_df <- data.frame(as.table(tab))
   tab_df$Var2 <- factor(tab_df$Var2, levels = l)
+
+  rm('df')
+  rm('tab')
 
   p <- ggplot(tab_df, aes(ymd(Var1), y = Freq, fill = Var3)) +
     geom_col() +

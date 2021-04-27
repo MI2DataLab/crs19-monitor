@@ -9,6 +9,7 @@ plot_metadata_dates <- function(df,
                                 title = "") {
 
   tdf <- df %>% select(collection_date, submission_date, clade_small) 
+  rm('df')
 
   p <- ggplot(tdf, aes(x = ymd(collection_date),
                   y = ymd(submission_date),

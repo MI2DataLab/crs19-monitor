@@ -17,6 +17,9 @@ plot_clade_facet <- function(df,
     n = max(variant)
   )
 
+  rm('df')
+  rm('tab')
+
   p <- ggplot(tab_df, aes(ymd(date), ymax = n, ymin = 0, fill = grepl(variant, pattern = alarm_pattern))) +
     pammtools::geom_stepribbon() +
     geom_text(data = counts,
@@ -60,6 +63,9 @@ plot_clade_cumulative <- function(df,
     n = max(variant)
   )
   counts <- counts[counts$variant %in% alarm_clade,]
+
+  rm('df')
+  rm('tab')
 
   p <- ggplot(tab_df, aes(ymd(date), y = n, color = variant %in% alarm_clade, group = variant)) +
     geom_step() +

@@ -58,6 +58,10 @@ plot_map <- function(df,
   map_metadata_right <- map$map_metadata %>%
                           left_join(t_map_metadata_right, by = "name") %>%
                           drop_na() 
+  rm('df')
+  rm('tab')
+  rm('tab_df')
+  rm('t_dat_map')
 
   pl_map_1 <- ggplot(map_cord) +
     geom_polygon(aes(X, Y, group = id), color = "black", fill = "white") +
