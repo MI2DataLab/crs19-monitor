@@ -17,6 +17,9 @@ plot_variant_col_fill <- function(df,
   tab_df <- tab_df[tab_df$variant %in% names(palette),]
   tab_df <- tab_df[ymd(tab_df$date) > ymd(lineage_date) %m-% months(no_months_plots),]
 
+  rm('df')
+  rm('tab')
+
   p <- ggplot(tab_df, aes(ymd(date) + days(3), y = n, fill = variant)) +
     geom_col(position = "fill", color = "white") +
     coord_cartesian(xlim = c(ymd(lineage_date) %m-% months(no_months_plots), ymd(lineage_date)), ylim = c(0, 1)) +
@@ -50,6 +53,9 @@ plot_variant_col_stack <- function(df,
 
   tab_df <- tab_df[tab_df$variant %in% names(palette),]
   tab_df <- tab_df[ymd(tab_df$date) > ymd(lineage_date) %m-% months(no_months_plots),]
+
+  rm('df')
+  rm('tab')
 
   p <- ggplot(tab_df, aes(ymd(date) + days(3), y = n, fill = variant)) +
     geom_col(position = "stack", color = "white") +
@@ -90,6 +96,9 @@ plot_variant_area <- function(df,
 
   tab_df <- tab_df[tab_df$variant %in% names(palette),]
   tab_df <- tab_df[ymd(tab_df$date) > ymd(lineage_date) %m-% months(no_months_plots),]
+
+  rm('df')
+  rm('tab')
 
   p <- ggplot(tab_df, aes(ymd(date), y = n, fill = variant)) +
     geom_area(position = "fill", color = "white") +
@@ -138,6 +147,10 @@ plot_variant_point_smooth <- function(df,
   df_point <- na.omit(tab_df[tab_df$n > 0 & tab_df$n < 1,])
   df_smooth <- tab_df[(tab_df$variant %in% smooth_variants) &
                       (ymd(tab_df$date) > ymd(lineage_date) %m-% months(2)),]
+
+  rm('df')
+  rm('tab')
+  rm('tab_df')
 
   p <- ggplot(df_point, aes(ymd(date), y = n, color = variant)) +
     geom_point() +

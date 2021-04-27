@@ -17,6 +17,9 @@ plot_pango_facet <- function(df,
     n = max(variant)
   )
 
+  rm('df')
+  rm('tab')
+
   p <- ggplot(tab_df, aes(ymd(date), ymax = n, ymin = 0, fill = variant %in% alarm_pango)) +
     pammtools::geom_stepribbon() +
     geom_text(data = counts,
@@ -60,6 +63,9 @@ plot_pango_cumulative <- function(df,
     n = max(variant)
   )
   counts <- counts[counts$variant %in% alarm_pango,]
+
+  rm('df')
+  rm('tab')
 
   p <- ggplot(tab_df, aes(ymd(date), y = n, color = variant %in% alarm_pango, group = variant)) +
     geom_step() +
