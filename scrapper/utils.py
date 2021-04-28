@@ -279,6 +279,33 @@ def update_clade(driver, cur):
     except:
         pass
     clades_selector.send_keys("all")
+    
+def update_variants(driver, cur):
+    # get variants list
+    variants = driver.find_elements_by_class_name("sys-event-hook.sys-fi-mark")[11].text.split('\n')
+
+    print("Found variants: ", variants)
+
+    for v in variants:
+        variants_selector = driver.find_elements_by_xpath("//select[@class='sys-event-hook sys-fi-mark']")[1]
+        try:
+            variants_selector.clear()
+        except:
+            pass
+        variants_selector.send_keys(v)
+        wait_for_timer(driver)
+
+        #get list of ids
+        ids = get_accesion_ids(driver)
+        print("found %s ids for variant %s" %(len(ids), v))
+        # update database
+        for accession_id in ids:
+            cur.execute("UPDATE metadata SET variant=? WHERE accession_id=?", (v, accession_id))
+
+            con.commit()
+    variants_selector = driver.find_elements_by_xpath("//select[@class='sys-event-hook sys-fi-mark']")[1]
+    variants_selector.find_element_by_xpath("//option[@selected='']").click()
+    return
 
 def update_substitusions(driver, cur):
     subs = get_substitusions(driver)

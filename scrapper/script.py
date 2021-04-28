@@ -423,6 +423,7 @@ def scrap_variants(region, db_path, start_date, end_date):
 
         update_clade(driver, cur)
         update_substitusions(driver, cur)
+        update_variants(driver, cur)
 
         driver.quit()
         con.close()
