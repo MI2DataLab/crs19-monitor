@@ -29,6 +29,7 @@ def init_db(db_path):
                           age INT NULL,
                           substitutions VARCHAR(64) NULL,
                           clade VARCHAR(32) NULL,
+                          variant VARCHAR(32) NULL,
                           is_meta_loaded BIT NOT NULL DEFAULT 0,
                           is_variant_loaded BIT NOT NULL DEFAULT 0
     )""")
