@@ -13,9 +13,10 @@ LINEAGE_DATE_CLEAN <- gsub('/', '-', LINEAGE_DATE)
 OUTPUT_DATE_PATH <- paste0(OUTPUT_PATH, '/', LINEAGE_DATE_CLEAN)
 LANGUAGES <- c('pl', 'en')
 
+# https://covariants.org/shared-mutations
 ALARM_MUTATION <- "N501Y"
 ALARM_PATTERN <- "501Y"
-ALARM_PANGO <- c("B.1.1.7", "B.1.351", "P.1")
+ALARM_PANGO <- c("B.1.1.7", "B.1.351", "P.1", "P.2", "B.1.526", "B.1.525", "B.1.617")
 ALARM_CLADE <- c("20I/501Y.V1","20H/501Y.V2", "20J/501Y.V3")
 MAX_REGIONS <- 23
 NO_MONTHS_PLOTS <- 4
