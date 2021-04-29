@@ -5,7 +5,7 @@ import re
 from config import site_dist, old_sites_to_keep
 from datetime import datetime, timedelta
 
-last_date_to_save = (datetime.now() - timedelta(days=old_sites_to_keep)).strftime("%Y-%m-%d")
+last_date_to_save = (datetime.now() - timedelta(days=old_sites_to_keep - 1)).strftime("%Y-%m-%d")
 
 paths = glob.glob(site_dist + '/*')
 subdirs = [os.path.basename(f) for f in paths if os.path.isdir(f)]
