@@ -12,6 +12,7 @@ tmp_dir = parent_path + '/tmp'
 remotes = []
 rsync_remotes = ['europe-monitor-site@dementor:/monitor/'] if 'production' in parent_path else []
 backups_number = 3
+old_sites_to_keep = 4
 
 gisaid_fasta_dir = data_dir + '/gisaid_fasta'
 clades_output_dir = data_dir + '/clades'
