@@ -44,7 +44,7 @@ for part in tqdm(parts):
         sys.exit(out >> 8)
     with open(pangolin_out_file_name, 'r') as f:
         part_output_lines = f.readlines()
-        if len(output_lines) == 0: # Add header only one time
+        if len(output_lines) > 0: # Add header only one time
             part_output_lines = part_output_lines[1:]
         output_lines = output_lines + part_output_lines
 
