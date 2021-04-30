@@ -1,11 +1,18 @@
-import time, os, sqlite3
-import lzma
-import pandas as pd
 from io import StringIO
-from biotite.sequence.io.fasta import FastaFile
+import time
+import os
+import sys
+import lzma
+import sqlite3
 import tarfile
 import operator
-import re
+import traceback
+import datetime
+import pandas as pd
+from biotite.sequence.io.fasta import FastaFile
+from selenium import webdriver
+from secret import elogin, epass  # file secret.py with credentials
+from input_utils import wait_for_timer, set_region
 
 
 def init_db(db_path):
@@ -30,31 +37,89 @@ def init_db(db_path):
                           substitutions VARCHAR(64) NULL,
                           clade VARCHAR(32) NULL,
                           variant VARCHAR(32) NULL,
+                          gisaid_pango VARCHAR(32) NULL,
                           is_meta_loaded BIT NOT NULL DEFAULT 0,
-                          is_variant_loaded BIT NOT NULL DEFAULT 0
+                          is_variant_loaded BIT NOT NULL DEFAULT 0,
+                          is_pango_loaded INT NOT NULL DEFAULT 0
     )""")
     con.commit()
 
 
-def find_and_switch_to_iframe(driver):
-    print("Switching to iframe")
-    wait_for_timer(driver)
-    iframe = driver.find_element_by_class_name("sys-overlay-style")
-    driver.switch_to.frame(iframe)
-    time.sleep(1)
-    wait_for_timer(driver)
-    return
+def repeater(function, *args, **kwargs):
+    """
+    Loop scrapping
+    """
+    repeats = 15
+    for i in range(repeats):
+        try:
+            done = function(*args, **kwargs)
+            return done
+        except Exception as e:
+            exc_info = sys.exc_info()
+            if i == repeats - 1:
+                raise e
+            else:
+                traceback.print_exception(*exc_info)
+            del exc_info
+            print('%s try failed' % (i,))
 
-def action_click(driver, element):
-    action = ActionChains(driver)
+
+def get_driver(log_dir, region = None, download_dir = None, headless = True):
+    """
+    Returns firefox driver logged to https://@epicov.org/epi3/ 
+    @param region - used to filtered by Location for example "Europe / Poland" 
+    """
+    print("Setting up driver")
+    url = "https://@epicov.org/epi3/"
+    
+    profile = webdriver.FirefoxProfile()
+    profile.set_preference("browser.download.folderList", 2)
+    profile.set_preference("browser.download.manager.useWindow", False)
+    if download_dir is not None:
+        profile.set_preference("browser.download.dir", download_dir)
+    profile.set_preference(
+        "browser.helperApps.neverAsk.saveToDisk", "application/octet-stream"
+    )
+    profile.set_preference(
+        "browser.helperApps.neverAsk.saveToDisk", "application/x-tar"
+    )
+
+    options = webdriver.firefox.options.Options()
+    # comment to allow firefox window
+    if headless:
+        options.add_argument("--headless")
+
+    driver = webdriver.Firefox(
+        executable_path="./geckodriver", firefox_profile=profile, options=options
+    )
     try:
-        action.move_to_element(element).perform()
-        element.click()
-    except ElementClickInterceptedException:
-        self.driver.execute_script(
-            "document.getElementById('sys_curtain').remove()")
-        action.move_to_element(element).perform()
-        element.click()
+        driver.get(url)
+        time.sleep(3)
+        wait_for_timer(driver)
+
+        print("Logging in as ", elogin)
+        # login
+        driver.find_element_by_id("elogin").send_keys(elogin)
+        driver.find_element_by_id("epassword").send_keys(epass)
+        driver.find_element_by_class_name("form_button_submit").click()
+        time.sleep(3)
+        wait_for_timer(driver)
+
+        # navigate to search
+        driver.find_elements_by_class_name("sys-actionbar-action")[1].click()
+        time.sleep(3)
+
+        if region is not None:
+            set_region(driver, region)
+
+        driver.execute_script("document.getElementById('sys_curtain').remove()")
+
+    except Exception as e:
+        save_log(log_dir, driver)
+        driver.quit()
+        raise e
+
+    return driver
     
 def get_number_of_files(dir : str):
     """
@@ -79,58 +144,6 @@ def extract_country(location: str):
     c = l[1].rstrip(" ").lstrip(" ")
     
     return c
-
-
-def get_elem_or_None(driver,class_name):
-    """
-    Returns element by class_name or None if it doesn't exist
-    """
-    try:
-        elem = driver.find_element_by_class_name(class_name)
-    except:
-        elem = None
-    return elem
-
-def get_elements_or_empty(driver,class_name):
-    """
-    Returns elements by class_name or [] if there is none
-    """
-    try:
-        elems = driver.find_elements_by_class_name(class_name)
-    except:
-        elems = []
-    return elems
-
-def is_spinning(driver, class_name):
-    """
-    Returns bool if element with class_name is visible
-    """
-    elems = get_elements_or_empty(driver, class_name)
-    for elem in elems:
-        if elem is not None and list(elem.rect.values()) != [0,0,0,0]:
-            return True
-    return False
-
-def wait_for_timer(driver):
-    """
-    Sleeps until "sys_timer_img" and "small_spinner" are visible
-    """
-    time.sleep(5)
-    while is_spinning(driver, "sys_timer_img") or is_spinning(driver, "small_spinner"):
-        time.sleep(1)
-        
-def set_region(driver, region):
-    """
-    Filters by given region
-    """
-    driver.find_element_by_class_name("sys-event-hook.sys-fi-mark.yui-ac-input").clear()
-    #wait_for_timer(driver)
-    
-    print("Setting region to ", region)
-    driver.find_element_by_class_name("sys-event-hook.sys-fi-mark.yui-ac-input").send_keys(region)
-    wait_for_timer(driver)
-    
-    return
 
 
 def fix_metadata_table(input_handle, output_handle, delim='\t'):
@@ -210,185 +223,8 @@ def load_from_tar(tar_file, output_fasta_path, missing_fasta_ids):
         fix_fasta_file(metadata, compressed_fasta, output_fasta_path, missing_fasta_ids)
         return metadata
 
-def get_accesion_ids(driver):
-    time.sleep(1)
-
-    wait_for_timer(driver)
-    checkbox = driver.find_elements_by_xpath("//input[starts-with(@type, 'checkbox')]")[5]
-    if checkbox.get_property('checked') is False:
-        print("Checkbox not checked, checking")
-        checkbox.click()
-        wait_for_timer(driver)
-    else:
-        print("Checkbox checked from last search, unchecking")
-        checkbox.click()
-        wait_for_timer(driver)
-        
-        print("Checkbox checking")
-        checkbox.click()
-        wait_for_timer(driver)
-    
-    total_records = driver.find_element_by_class_name("sys-datatable-info-left").text
-    total_records = int(re.sub(r'[^0-9]*', "", total_records))
-    
-    driver.find_element_by_xpath(("//button[contains(., 'Select')]")).click()
-    wait_for_timer(driver)
-
-    find_and_switch_to_iframe(driver)
-    readed_records = driver.find_element_by_class_name("sys-event-hook.sys-fi-mark.sys-form-fi-multiline").text.split(", ")
-    
-    if readed_records == ['']:
-        readed_records = []
-    
-    if len(readed_records) != total_records:
-        raise Exception("Readed records ({})!= Total records({})".format(len(readed_records), total_records))
-        
-    print("Switching to default_content")
-    driver.find_element_by_xpath(("//button[contains(., 'Back')]")).click()
-    wait_for_timer(driver)
-    driver.switch_to.default_content()
-    
-    return readed_records
-
-def update_clade(driver, cur):
-    # get clade list
-    clades = driver.find_elements_by_class_name("sys-event-hook.sys-fi-mark")[8].text.split('\n')
-    clades.remove('all')
-
-    print("Found clades: ", clades)
-
-    for clade in clades:
-        clades_selector = driver.find_element_by_xpath("//select[@class='sys-event-hook sys-fi-mark']")
-        try:
-            clades_selector.clear()
-        except:
-            pass
-        clades_selector.send_keys(clade)
-        wait_for_timer(driver)
-
-        #get list of ids
-        ids = get_accesion_ids(driver)
-        print("found %s ids for clade %s" %(len(ids), clade))
-        # update database
-        for accession_id in ids:
-            cur.execute("UPDATE metadata SET clade=? WHERE accession_id=?", (clade, accession_id))
-
-            con.commit()
-    clades_selector = driver.find_element_by_xpath("//select[@class='sys-event-hook sys-fi-mark']")
-    try:
-        clades_selector.clear()
-    except:
-        pass
-    clades_selector.send_keys("all")
-    
-def update_variants(driver, cur):
-    # get variants list
-    variants = driver.find_elements_by_class_name("sys-event-hook.sys-fi-mark")[11].text.split('\n')
-
-    print("Found variants: ", variants)
-
-    for v in variants:
-        variants_selector = driver.find_elements_by_xpath("//select[@class='sys-event-hook sys-fi-mark']")[1]
-        try:
-            variants_selector.clear()
-        except:
-            pass
-        variants_selector.send_keys(v)
-        wait_for_timer(driver)
-
-        #get list of ids
-        ids = get_accesion_ids(driver)
-        print("found %s ids for variant %s" %(len(ids), v))
-        # update database
-        for accession_id in ids:
-            cur.execute("UPDATE metadata SET variant=? WHERE accession_id=?", (v, accession_id))
-
-            con.commit()
-    variants_selector = driver.find_elements_by_xpath("//select[@class='sys-event-hook sys-fi-mark']")[1]
-    variants_selector.find_element_by_xpath("//option[@selected='']").click()
-    return
-
-def update_substitusions(driver, cur):
-    subs = get_substitusions(driver)
-    selector = driver.find_elements_by_xpath("//input[@class='sys-event-hook sys-fi-mark yui-ac-input']")[4]
-    
-    for sub in subs:
-        selector.clear()
-        wait_for_timer(driver)
-        selector.send_keys(sub)
-        wait_for_timer(driver)
-        #get list of ids
-        ids = get_accesion_ids(driver)
-    
-        print("found %s ids for substitusions %s" %(len(ids), sub))
-        
-        # update database
-        for accession_id in ids:
-            cur.execute("SELECT accession_id, substitutions FROM metadata WHERE accession_id=?", (id_,))
-            curr_id = cur.fetchall()[0]
-            curr_id_subs = curr_id[1]
-            if curr_id_subs is None:
-                merged_subs = sub
-            else:
-                merged_subs = curr_id_subs + "," + sub
-            
-            cur.execute("UPDATE metadata SET substitutions=?, is_variant_loaded=1  WHERE accession_id=?", (merged_subs, accession_id))
-    
-            con.commit()
-
-def get_substitusions(driver):
-    substitusions = driver.find_elements_by_class_name("sys-event-hook.sys-fi-mark.yui-ac-input")[4]
-    substitusions.clear() 
-    wait_for_timer(driver)
-    substitusions.click()
-    wait_for_timer(driver)
-    
-    cont_table_html = driver.find_elements_by_class_name("yui-ac-content")[4].get_attribute("innerHTML")
-    soup =   BeautifulSoup(cont_table_html)
-    subs = []
-    for elem in soup.findAll('li'):
-        if elem['style'] == 'display: none;':
-            continue
-        subs.append(elem.text)
-    
-    print("Substitusions found: %s" %subs)
-    return subs
-
-def get_search(driver, region, db_path, start_date, end_date, headless = True):
-    
-    set_region(driver, region)
-
-    con = sqlite3.connect(db_path)
-    cur = con.cursor()
-
-    cur.execute("SELECT COUNT(*) FROM metadata WHERE submission_date <= ? AND submission_date >= ?", (end_date, start_date))
-    total_records_in_db = cur.fetchone()[0]
-    con.commit()
-    con.close()
-        
-    # read total_records from left bottom corner
-    total_records_before_filter = driver.find_element_by_class_name("sys-datatable-info-left").text
-    total_records_before_filter = int(re.sub(r'[^0-9]*', "", total_records_before_filter))
-
-    # filter by date 
-    print("Scrapping date from ", start_date, "to ", end_date)
-    driver.find_elements_by_class_name("sys-event-hook.sys-fi-mark.hasDatepicker")[2].send_keys(start_date.strftime('%Y-%m-%d'))
-    driver.find_elements_by_class_name("sys-event-hook.sys-fi-mark.hasDatepicker")[3].send_keys(end_date.strftime('%Y-%m-%d'))
-    wait_for_timer(driver)
-
-    # read total_records from left bottom corner
-    total_records = driver.find_element_by_class_name("sys-datatable-info-left").text
-    total_records = int(re.sub(r'[^0-9]*', "", total_records))
-    if total_records == 0:
-        print("No records found")
-        driver.quit()
-        #return
-    elif total_records <= total_records_in_db:
-        print('Skipping range %s : %s because total_records[%s] <= total_records_in_db[%s]' % (start_date, end_date, total_records, total_records_in_db))
-        driver.quit()
-        #return
-    elif total_records == total_records_before_filter:
-        # handle unresponsive gisaid
-        raise Exception('Number of records didn\'t changed after filtering by date')
-    return total_records
-
+def save_log(log_dir, driver):
+    name = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S.%f")
+    driver.save_screenshot(log_dir + '/' + name + ".png")
+    with open(log_dir + '/' + name + '.html', 'w') as html_file:
+        html_file.write(driver.page_source)

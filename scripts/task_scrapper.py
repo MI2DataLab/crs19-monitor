@@ -2,7 +2,7 @@ import os
 import time
 import sys
 import shutil
-from config import conda_sh_path, repo_path, gisaid_fasta_dir, db_path, tmp_dir, region, start_date, max_scrapping_days, scrapper_logs_dir
+from config import conda_sh_path, repo_path, gisaid_fasta_dir, db_path, tmp_dir, region, start_date, max_scrapping_days, scrapper_logs_dir, pango_merged_file
 
 region = os.environ.get('REGION') or region
 
@@ -27,6 +27,7 @@ os.environ["MAX_DATE_RANGE"] = str(max_scrapping_days)
 os.environ["MINIMUM_START_DATE"] = start_date
 os.environ["TMP_DIR"] = run_tmp_dir
 os.environ["LOG_DIR"] = scrapper_logs_dir
+os.environ["PANGO_FILE"] = pango_merged_file
 
 out = os.system('bash -c "source ' + conda_sh_path + ' && cd ' + work_dir + ' && conda activate crs19 && python script.py"')
 if out == 0:
