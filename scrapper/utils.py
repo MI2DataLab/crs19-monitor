@@ -1,10 +1,13 @@
-import time, os, sqlite3
-import lzma
-import pandas as pd
 from io import StringIO
-from biotite.sequence.io.fasta import FastaFile
+import os
+import sys
+import lzma
+import sqlite3
 import tarfile
 import operator
+import traceback
+import pandas as pd
+from biotite.sequence.io.fasta import FastaFile
 
 
 def init_db(db_path):
@@ -14,10 +17,10 @@ def init_db(db_path):
     con = sqlite3.connect(db_path)
     cur = con.cursor()
     cur.execute("""CREATE TABLE IF NOT EXISTS metadata (
-                          accession_id CHAR(16) PRIMARY KEY NOT NULL, 
+                          accession_id CHAR(16) PRIMARY KEY NOT NULL,
                           fasta_file VARCHAR(16) NULL,
                           passage VARCHAR(32) NULL,
-                          submission_date DATE NOT NULL, 
+                          submission_date DATE NOT NULL,
                           collection_date DATE NULL,
                           host VARCHAR(32) NULL,
                           location VARCHAR(128) NULL,
@@ -26,33 +29,37 @@ def init_db(db_path):
                           country VARCHAR(32) NULL,
                           sex VARCHAR(32) NULL,
                           age INT NULL,
+                          substitutions VARCHAR(64) NULL,
+                          clade VARCHAR(32) NULL,
+                          variant VARCHAR(32) NULL,
+                          gisaid_pango VARCHAR(32) NULL,
                           is_meta_loaded BIT NOT NULL DEFAULT 0,
-                          is_variant_loaded BIT NOT NULL DEFAULT 0
+                          is_variant_loaded BIT NOT NULL DEFAULT 0,
+                          is_pango_loaded INT NOT NULL DEFAULT 0
     )""")
     con.commit()
 
 
-def find_and_switch_to_iframe(driver):
-    print("Switching to iframe")
-    wait_for_timer(driver)
-    iframe = driver.find_element_by_class_name("sys-overlay-style")
-    driver.switch_to.frame(iframe)
-    time.sleep(1)
-    wait_for_timer(driver)
-    return
+def repeater(function, *args, **kwargs):
+    """
+    Loop scrapping
+    """
+    repeats = 15
+    for i in range(repeats):
+        try:
+            done = function(*args, **kwargs)
+            return done
+        except Exception as e:
+            exc_info = sys.exc_info()
+            if i == repeats - 1:
+                raise e
+            else:
+                traceback.print_exception(*exc_info)
+            del exc_info
+            print('%s try failed' % (i,))
 
-def action_click(driver, element):
-    action = ActionChains(driver)
-    try:
-        action.move_to_element(element).perform()
-        element.click()
-    except ElementClickInterceptedException:
-        self.driver.execute_script(
-            "document.getElementById('sys_curtain').remove()")
-        action.move_to_element(element).perform()
-        element.click()
-    
-def get_number_of_files(dir : str):
+
+def get_number_of_files(dir: str):
     """
     Returns number of files in dir
     Excludes .part files
@@ -64,6 +71,7 @@ def get_number_of_files(dir : str):
         n_files = 0
     return n_files
 
+
 def extract_country(location: str):
     """
     Returns country from location string
@@ -71,62 +79,10 @@ def extract_country(location: str):
     l = location.split("/")
     if len(l) < 2:
         return None
-    
+
     c = l[1].rstrip(" ").lstrip(" ")
-    
+
     return c
-
-
-def get_elem_or_None(driver,class_name):
-    """
-    Returns element by class_name or None if it doesn't exist
-    """
-    try:
-        elem = driver.find_element_by_class_name(class_name)
-    except:
-        elem = None
-    return elem
-
-def get_elements_or_empty(driver,class_name):
-    """
-    Returns elements by class_name or [] if there is none
-    """
-    try:
-        elems = driver.find_elements_by_class_name(class_name)
-    except:
-        elems = []
-    return elems
-
-def is_spinning(driver, class_name):
-    """
-    Returns bool if element with class_name is visible
-    """
-    elems = get_elements_or_empty(driver, class_name)
-    for elem in elems:
-        if elem is not None and list(elem.rect.values()) != [0,0,0,0]:
-            return True
-    return False
-
-def wait_for_timer(driver):
-    """
-    Sleeps until "sys_timer_img" and "small_spinner" are visible
-    """
-    time.sleep(5)
-    while is_spinning(driver, "sys_timer_img") or is_spinning(driver, "small_spinner"):
-        time.sleep(1)
-        
-def set_region(driver, region):
-    """
-    Filters by given region
-    """
-    driver.find_element_by_class_name("sys-event-hook.sys-fi-mark.yui-ac-input").clear()
-    #wait_for_timer(driver)
-    
-    print("Setting region to ", region)
-    driver.find_element_by_class_name("sys-event-hook.sys-fi-mark.yui-ac-input").send_keys(region)
-    wait_for_timer(driver)
-    
-    return
 
 
 def fix_metadata_table(input_handle, output_handle, delim='\t'):
@@ -149,13 +105,15 @@ def fix_metadata_table(input_handle, output_handle, delim='\t'):
         fixed.append(new_line)
     fixed_lines = [delim.join(row) + '\n' for row in fixed]
     output_handle.writelines(fixed_lines)
-    
+
+
 def load_metadata_table(compressed_metadata):
     with StringIO() as fixed_metadata_handle:
         with lzma.open(compressed_metadata, 'rt') as raw_metadata_handle:
             fix_metadata_table(raw_metadata_handle, fixed_metadata_handle)
             fixed_metadata_handle.seek(0)
-        return pd.read_csv(fixed_metadata_handle, sep="\t", quoting=3) # 3 = disabled
+        return pd.read_csv(fixed_metadata_handle, sep="\t", quoting=3)  # 3 = disabled
+
 
 def fix_fasta_file(metadata, input_fasta_path, output_fasta_path, missing_fasta_ids):
     if len(missing_fasta_ids) == 0:
@@ -190,6 +148,7 @@ def fix_fasta_file(metadata, input_fasta_path, output_fasta_path, missing_fasta_
             new_key = '|'.join([row['strain'], accession_id, str(row['date'])])
             output_fasta[new_key] = full_fasta[accession_id]
     output_fasta.write(output_fasta_path)
+
 
 def load_from_tar(tar_file, output_fasta_path, missing_fasta_ids):
     with tarfile.open(tar_file) as tar_handle:

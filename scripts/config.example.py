@@ -1,6 +1,11 @@
 from pathlib import Path
 
-conda_sh_path = "/home/crs19monitor/miniconda3/etc/profile.d/conda.sh"
+conda_sh_path = "/home/user/miniconda3/etc/profile.d/conda.sh"
+region = 'Europe'
+start_date = '2020-01-29'
+max_scrapping_days = 6
+scrapper_login = ""
+scrapper_pass = ""
 parent_path = str(Path(__file__).absolute().parents[2])
 repo_path = parent_path + "/repo"
 data_dir = parent_path + "/data"
@@ -10,7 +15,8 @@ keys_dir = parent_path + "/keys"
 tmp_dir = parent_path + '/tmp'
 # List of remotes (name,ssh key,cname)
 remotes = []
-rsync_remotes = ['europe-monitor-site@dementor:/monitor/'] if 'production' in parent_path else []
+# List of rsync remotes 'user@server:/path/'
+rsync_remotes = []
 backups_number = 3
 old_sites_to_keep = 4
 
@@ -22,4 +28,5 @@ pango_merged_file = data_dir + '/pango.csv'
 mutation_output_dir = data_dir + '/mutation'
 mutation_merged_file = data_dir + '/mutation.csv'
 unpacked_fasta_dir = tmp_dir + '/unpacked_fasta'
+scrapper_logs_dir = tmp_dir + '/scrapper_logs'
 db_path = data_dir + '/sequences.sqlite'
