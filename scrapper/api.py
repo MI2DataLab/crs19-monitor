@@ -88,6 +88,14 @@ class Api:
         except:
             self.print_log('Failed to quit driver')
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if exc_value is not None:
+            self.save_snapshot()
+        self.close()
+
     """
     API methods
     """
@@ -147,8 +155,12 @@ class Api:
         return total_records
 
     def get_page_table(self):
+        pre_num = self.get_page_number()
         page = self.driver.find_element_by_class_name("yui-dt-bd").get_attribute("innerHTML")
         df = pd.read_html(page)[0]
+        post_num = self.get_page_number()
+        if pre_num != post_num:
+            raise Exception('Page has changed during scrapping %s => %s' % (pre_num, post_num))
         # drop column of checkboxes and symbol
         df = df.drop(['Unnamed: 0', 'Unnamed: 6'], axis=1)
         return df
@@ -247,6 +259,31 @@ class Api:
             raise Exception('Not supported field')
         self.wait_for_timer()
 
+    def get_page_number(self):
+        # 4 retries if page num is not rendered
+        for i in range(5):
+            try:
+                return int(self.driver.find_element_by_class_name("yui-pg-current-page.yui-pg-page").text)
+            except:
+                time.sleep(0.1 * (i + 1))
+        raise Exception('Failed to read page number')
+
+    def is_last_page(self):
+        return 'href' not in self.driver.find_element_by_class_name("yui-pg-next").get_attribute("outerHTML")
+
+    def go_to_next_page(self):
+        pre_num = self.get_page_number()
+        self.driver.find_element_by_class_name("yui-pg-next").click()
+        self._wait_for_page_change(pre_num, pre_num + 1)
+
+    def go_to_page(self, num):
+        pre_num = self.get_page_number()
+        button_num = 0 if self.get_page_number() == 2 else 1
+        self.driver.execute_script('document.getElementsByClassName("yui-pg-page")[' + str(button_num) + '].setAttribute("page", %s)' % (num,))
+        time.sleep(1)
+        self.driver.find_elements_by_class_name("yui-pg-page")[button_num].click()
+        self._wait_for_page_change(pre_num, num)
+
     """
     Utils methods
     """
@@ -323,3 +360,16 @@ class Api:
         if field == 'substitutions':
             return self.driver.find_elements_by_xpath("//input[@class='sys-event-hook sys-fi-mark yui-ac-input']")[4]
         raise Exception('Not supported field %s' % field)
+
+    def _wait_for_page_change(self, pre_num, expected_num):
+        # sleep until gisaid changes next-page attribute and go to next page
+        page_loading_counter = 0
+        while pre_num == self.get_page_number():
+            time.sleep(0.5)
+            page_loading_counter += 1
+            if page_loading_counter == 120:
+                raise Exception("Scrapping same page twice for 60s")
+
+        post_num = self.get_page_number()
+        if post_num != expected_num:
+            raise Exception("Page has changed to unexpected number %s => %s (expected: %s)" % (pre_num, post_num, expected_num))

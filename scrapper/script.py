@@ -17,10 +17,15 @@ if __name__ == "__main__":
     TMP_DIR = os.environ['TMP_DIR']
     LOG_DIR = os.environ['LOG_DIR']
     PANGO_FILE = os.environ['PANGO_FILE']
+    credentials = {
+        'login': os.environ['LOGIN'], 'pass': os.environ['PASS']
+    }
+    # clear env
+    os.environ['login'] = os.environ['pass'] = ''
 
     init_db(DB_PATH)
     if not os.environ.get('SKIP_METATABLE'):
-        manage_table_scrapping(DB_PATH, MINIMUM_START_DATE, MAX_DATE_RANGE, ROOT_REGION, LOG_DIR)
+        manage_table_scrapping(DB_PATH, MINIMUM_START_DATE, MAX_DATE_RANGE, ROOT_REGION, LOG_DIR, credentials)
     if not os.environ.get('SKIP_FASTA'):
         manage_fasta_scrapping(DB_PATH, FASTA_FILES_DIR, TMP_DIR, LOG_DIR)
     if not os.environ.get('SKIP_VARIANTS'):
