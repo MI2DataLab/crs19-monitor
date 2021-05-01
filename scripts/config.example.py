@@ -18,6 +18,7 @@ remotes = []
 # List of rsync remotes 'user@server:/path/'
 rsync_remotes = []
 backups_number = 3
+old_sites_to_keep = 4
 
 gisaid_fasta_dir = data_dir + '/gisaid_fasta'
 clades_output_dir = data_dir + '/clades'

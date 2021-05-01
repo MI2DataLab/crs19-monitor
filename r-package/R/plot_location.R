@@ -23,6 +23,9 @@ plot_location_count <- function(df,
   tab <- table(df$week_start, df$LocationClean, df$is_alarm)
   tab_df <- data.frame(as.table(tab))
 
+  rm('df')
+  rm('tab')
+
   p <- ggplot(tab_df, aes(ymd(Var1), y = Freq, fill = Var3)) +
     geom_col() +
     scale_fill_manual(values = c("grey", "red3")) +
@@ -35,6 +38,7 @@ plot_location_count <- function(df,
     theme(legend.position = "none")
 
   attr(p, "n_unique_regions") <- n_unique_regions
+  p$plot_env <- rlang::new_environment()
   p
 }
 
@@ -70,7 +74,10 @@ plot_location_proportion <- function(df,
   tab_df <- data.frame(as.table(tab))
   tab_df$Var2 <- factor(tab_df$Var2, levels = l)
 
-  ggplot(tab_df, aes(ymd(Var1), y = Freq, fill = Var3)) +
+  rm('df')
+  rm('tab')
+
+  p <- ggplot(tab_df, aes(ymd(Var1), y = Freq, fill = Var3)) +
     geom_col() +
     scale_fill_manual(values = c("grey", "red3")) +
     scale_y_continuous("", labels = scales::percent, expand = c(0, 0)) +
@@ -80,4 +87,7 @@ plot_location_proportion <- function(df,
     theme_minimal(base_family = "Arial") +
     ggtitle(title) +
     theme(legend.position = "none")
+
+  p$plot_env <- rlang::new_environment()
+  p
 }

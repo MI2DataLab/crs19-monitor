@@ -11,7 +11,7 @@ for d in [data_dir, backup_dir, site_dist]:
 
 filename = datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + '.tar.gz'
 
-out = os.system('bash -c "tar -cf - --exclude=\'.git\' --exclude=\'*.rda\' ' + data_dir + ' ' + site_dist + ' |gzip > ' + backup_dir + '/' + filename + '"')
+out = os.system('bash -c "tar -cf - --exclude=\'.git\' ' + data_dir + ' ' + site_dist + ' |gzip > ' + backup_dir + '/' + filename + '"')
 if out != 0:
     sys.exit(out >> 8)
 
