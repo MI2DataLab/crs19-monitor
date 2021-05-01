@@ -260,7 +260,7 @@ class Api:
         """
         Sets filter for given field using visible value.
         This function does not check if number of records changed
-        @param field - one of ['clades', 'variants', 'substitutions', 'lineages']
+        @param field - one of ['clades', 'variants', 'substitutions', 'lineages', 'accession_ids']
         """
         selector = self._get_filter_selector(field)
 
@@ -268,7 +268,7 @@ class Api:
         if field in ['clades', 'variants']:
             selector.select_by_visible_text(name)
         # Second group - works like text input
-        elif field in ['substitutions', 'lineages']:
+        elif field in ['substitutions', 'lineages', 'accession_ids']:
             selector.clear()
             self.wait_for_timer()
             selector.send_keys(name)
@@ -316,6 +316,24 @@ class Api:
         self.driver.find_elements_by_class_name("yui-pg-page")[button_num].click()
         self._wait_for_page_change(pre_num, num)
 
+    def get_pango(self, row_id):
+        table = self.driver.find_element_by_class_name("yui-dt-data")
+        row = table.find_elements_by_tag_name("tr")[row_id]
+        row.find_elements_by_tag_name("td")[2].click()
+        
+        self.wait_for_timer()
+        if self._is_captcha_present():
+            raise Exception("Captcha")
+
+        self._find_and_switch_to_iframe()
+        pango = self.driver.find_elements_by_xpath("//b[contains(text(),'Pango Lineage')]/../following-sibling::td")[0].text
+        
+        self.driver.find_element_by_xpath("//button[contains(text(),'Back')]").click()
+        self.wait_for_timer()
+        self.driver.switch_to.default_content()
+
+        return pango
+        
     """
     Utils methods
     """
@@ -393,6 +411,8 @@ class Api:
             return self.driver.find_elements_by_xpath("//input[@class='sys-event-hook sys-fi-mark yui-ac-input']")[4]
         if field == 'lineages':
             return self.driver.find_elements_by_class_name("sys-event-hook.sys-fi-mark.yui-ac-input")[3]
+        if field == 'accession_ids':
+            return self.driver.find_element_by_xpath("//tr//div[contains(text(), 'Accession ID')]/ancestor::tr/ancestor::tr//input[@type = 'text']")
         raise Exception('Not supported field %s' % field)
 
     def _wait_for_page_change(self, pre_num, expected_num):
@@ -407,3 +427,8 @@ class Api:
         post_num = self.get_page_number()
         if post_num != expected_num:
             raise Exception("Page has changed to unexpected number %s => %s (expected: %s)" % (pre_num, post_num, expected_num))
+
+    def _is_captcha_present(self):
+        cap = "Prove that you are not a robot:"
+        elems = self.driver.find_elements_by_xpath("//*[contains(text(),'" + cap + "')]")
+        return len(elems) == 0
