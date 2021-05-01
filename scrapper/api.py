@@ -5,7 +5,8 @@ import time
 import pandas as pd
 from bs4 import BeautifulSoup
 from selenium import webdriver
-from selenium.common.exceptions import ElementClickInterceptedException
+from selenium.common.exceptions import (ElementClickInterceptedException,
+                                        NoSuchWindowException)
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support.select import Select
 
@@ -209,6 +210,37 @@ class Api:
         self.driver.switch_to.default_content()
 
         return readed_records
+
+    def select_accession_ids(self, ids):
+        ids_str = ",".join(ids)
+        self.driver.find_element_by_xpath(("//button[contains(., 'Select')]")).click()
+        self.wait_for_timer()
+        self._find_and_switch_to_iframe()
+        self.driver.find_element_by_class_name("sys-event-hook.sys-fi-mark.sys-form-fi-multiline").send_keys(ids_str)
+        self.wait_for_timer()
+        self.driver.find_element_by_xpath(("//button[contains(., 'OK')]")).click()
+        time.sleep(3)
+        # TODO : this chunk should be more safe
+        try:
+            buttons = self.driver.find_elements_by_class_name("sys-form-button")
+            if len(buttons) == 4:
+                # message dialog
+                self.driver.find_element_by_xpath(("//button[contains(., 'OK')]")).click()
+                time.sleep(10)
+                self.driver.switch_to.default_content()
+        except NoSuchWindowException:
+            self.driver.switch_to.default_content()
+        self.wait_for_timer()
+
+    def start_downloading_augur(self):
+        self.driver.find_element_by_xpath(("//button[contains(., 'Download')]")).click()
+        self._find_and_switch_to_iframe()
+
+        self.driver.find_element_by_xpath(("//input[@value='augur_input']")).click()
+        self.wait_for_timer()
+
+        self.driver.find_element_by_xpath(("//button[contains(., 'Download')]")).click()
+        self.wait_for_timer()
 
     def get_filter_options(self, field):
         """
