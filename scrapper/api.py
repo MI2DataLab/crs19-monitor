@@ -24,7 +24,7 @@ class Api:
     """
     def print_log(self, *args, **kwargs):
         if self.verbose:
-            print(*args, **kwargs)
+            print(*args, **kwargs, flush=True)
     def save_snapshot(self):
         name = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S.%f")
         self.driver.save_screenshot(self.log_dir + '/' + name + ".png")

@@ -1,11 +1,11 @@
-import sqlite3
 import datetime
-import time
+import sqlite3
+
 import numpy as np
-from utils import repeater, get_driver, save_log
-from input_utils import set_region, set_date, wait_for_timer, get_accesion_ids, get_total_records
-from bs4 import BeautifulSoup
-from selenium.webdriver.support.select import Select
+
+from api import Api
+from utils import repeater
+
 
 class ScrappingVariantsHistory:
     def __init__(self):
@@ -19,7 +19,8 @@ class ScrappingVariantsHistory:
             self.done[category] = []
         return name in self.done[category]
 
-def manage_variants_scrapping(db_path, max_date_range, region, log_dir):
+
+def manage_variants_scrapping(db_path, max_date_range, region, log_dir, credentials):
     """
     Handles date ranges for variant scrapping
     """
@@ -36,124 +37,105 @@ def manage_variants_scrapping(db_path, max_date_range, region, log_dir):
 
     start_date = datetime.datetime.strptime(start_date, '%Y-%m-%d').date()
     history = ScrappingVariantsHistory()
-    end_date = min(datetime.date.today(), start_date + datetime.timedelta(days = max_date_range))
+    end_date = min(datetime.date.today(), start_date + datetime.timedelta(days=max_date_range))
 
-    repeater(scrap_variants, region, db_path, start_date, end_date, history, log_dir)
+    repeater(scrap_variants, region, db_path, start_date, end_date, history, log_dir, credentials)
 
-def scrap_variants(region, db_path, start_date, end_date, history, log_dir):
+
+def scrap_variants(region, db_path, start_date, end_date, history, log_dir, credentials):
     if end_date < start_date:
-        print('Skipping, invalid date range')
         return
-    try:
-        driver = get_driver(log_dir)
-        set_region(driver, region)
-        set_date(driver, start_date, end_date)
+    with Api(credentials, log_dir) as api:
+        api.set_region(region)
+        api.set_date(start_date, end_date)
 
         con = sqlite3.connect(db_path)
         cur = con.cursor()
-        total_records = get_total_records(driver)
+        total_records = api.get_total_records()
 
-        repeater(update_clade, driver, cur, con, history)
-        assert get_total_records(driver) >= total_records
+        repeater(update_clade, api, cur, con, history)
+        assert api.get_total_records() >= total_records
 
-        repeater(update_substitusions, driver, cur, con, history)
-        assert get_total_records(driver) >= total_records
+        repeater(update_substitutions, api, cur, con, history)
+        assert api.get_total_records() >= total_records
 
-        repeater(update_variants, driver, cur, con, history)
+        repeater(update_variants, api, cur, con, history)
 
         cur.execute('UPDATE metadata SET is_variant_loaded = 1 WHERE submission_date >= ? and submission_date <= ?', (start_date, end_date))
         con.commit()
         con.close()
 
-        driver.quit()
-    except Exception as e:
-        save_log(log_dir, driver)
-        driver.quit()
-        raise e
 
-def update_clade(driver, cur, con, history):
+def update_clade(api, cur, con, history):
     # get clade list
-    clades = driver.find_elements_by_class_name("sys-event-hook.sys-fi-mark")[8].text.split('\n')
+    clades = api.get_filter_options('clades')
     clades.remove('all')
-
-    print("Found clades: ", clades)
+    api.print_log("Found clades: %s" % clades)
 
     for clade in clades:
         if history.is_done('clade', clade):
             continue
-        clades_selector = Select(driver.find_element_by_xpath("//select[@class='sys-event-hook sys-fi-mark']"))
-        clades_selector.select_by_visible_text(clade)
-        wait_for_timer(driver)
+        api.filter_by_name('clades', clade)
 
-        total_records = get_total_records(driver)
-        if total_records == 0:
-            print('Found 0 records, skipping')
+        if api.get_total_records() == 0:
+            api.print_log('Found 0 records, skipping')
             continue
 
-        #get list of ids
-        ids = get_accesion_ids(driver)
-        print("found %s ids for clade %s" % (len(ids), clade))
+        # get list of ids
+        ids = api.get_accesion_ids()
+        api.print_log("Found %s ids for clade %s" % (len(ids), clade))
+
         # update database
         for accession_id in ids:
             cur.execute("UPDATE metadata SET clade=? WHERE accession_id=?", (clade, accession_id))
         con.commit()
         history.set_done('clade', clade)
-    clades_selector = Select(driver.find_element_by_xpath("//select[@class='sys-event-hook sys-fi-mark']"))
-    clades_selector.select_by_visible_text('all')
-    wait_for_timer(driver)
-    
-def update_variants(driver, cur, con, history):
-    # get variants list
-    variants = driver.find_elements_by_class_name("sys-event-hook.sys-fi-mark")[11].text.split('\n')
+    api.filter_by_name('clades', 'all')
 
-    print("Found variants: ", variants)
+
+def update_variants(api, cur, con, history):
+    # get variants list
+    variants = api.get_filter_options('variants')
+    api.print_log("Found variants: ", variants)
 
     for v in variants:
         if history.is_done('variant', v):
             continue
-        variants_selector = Select(driver.find_elements_by_xpath("//select[@class='sys-event-hook sys-fi-mark']")[1])
-        variants_selector.select_by_visible_text(v)
-        wait_for_timer(driver)
+        api.filter_by_name('variants', v)
 
-        total_records = get_total_records(driver)
-        if total_records == 0:
-            print('Found 0 records, skipping')
+        if api.get_total_records() == 0:
+            api.print_log('Found 0 records, skipping')
             continue
 
-        #get list of ids
-        ids = get_accesion_ids(driver)
-        print("found %s ids for variant %s" % (len(ids), v))
+        # get list of ids
+        ids = api.get_accesion_ids()
+        api.print_log("Found %s ids for variant %s" % (len(ids), v))
+
         # update database
         for accession_id in ids:
             cur.execute("UPDATE metadata SET variant=? WHERE accession_id=?", (v, accession_id))
         con.commit()
         history.set_done('variant', v)
-    variants_selector = Select(driver.find_elements_by_xpath("//select[@class='sys-event-hook sys-fi-mark']")[1])
-    variants_selector.select_by_index(0)
-    return
+    api.filter_by_index('variants', 0)
 
-def update_substitusions(driver, cur, con, history):
-    subs = get_substitusions(driver)
-    selector = driver.find_elements_by_xpath("//input[@class='sys-event-hook sys-fi-mark yui-ac-input']")[4]
-    
+
+def update_substitutions(api, cur, con, history):
+    subs = api.get_filter_options('substitutions')
+    api.print_log("Found substitutions: ", subs)
+
     for sub in subs:
         if history.is_done('substitutions', sub):
             continue
-        selector.clear()
-        wait_for_timer(driver)
-        selector.send_keys(sub)
-        wait_for_timer(driver)
+        api.filter_by_name('substitutions', sub)
 
-        total_records = get_total_records(driver)
-        if total_records == 0:
-            print('Found 0 records, skipping')
+        if api.get_total_records() == 0:
+            api.print_log('Found 0 records, skipping')
             continue
 
         # get list of ids
-        ids = get_accesion_ids(driver)
-    
-        print("found %s ids for substitusions %s" % (len(ids), sub))
-        
+        ids = api.get_accesion_ids()
+        api.print_log("Found %s ids for substitution %s" % (len(ids), sub))
+
         # update database
         for accession_id in ids:
             cur.execute("SELECT accession_id, substitutions FROM metadata WHERE accession_id=?", (accession_id,))
@@ -164,23 +146,4 @@ def update_substitusions(driver, cur, con, history):
             cur.execute("UPDATE metadata SET substitutions=? WHERE accession_id=?", (','.join(subs_list), accession_id))
         con.commit()
         history.set_done('substitutions', sub)
-    selector.clear()
-    wait_for_timer(driver)
-
-def get_substitusions(driver):
-    substitusions = driver.find_elements_by_class_name("sys-event-hook.sys-fi-mark.yui-ac-input")[4]
-    substitusions.clear() 
-    wait_for_timer(driver)
-    substitusions.click()
-    wait_for_timer(driver)
-    
-    cont_table_html = driver.find_elements_by_class_name("yui-ac-content")[4].get_attribute("innerHTML")
-    soup = BeautifulSoup(cont_table_html, features="lxml")
-    subs = []
-    for elem in soup.findAll('li'):
-        if elem['style'] == 'display: none;':
-            continue
-        subs.append(elem.text)
-    
-    print("Substitusions found: %s" % subs)
-    return subs
+    api.filter_by_name('substitutions', '')

@@ -31,4 +31,4 @@ if __name__ == "__main__":
     if not os.environ.get('SKIP_FASTA'):
         manage_fasta_scrapping(DB_PATH, FASTA_FILES_DIR, TMP_DIR, LOG_DIR, credentials)
     if not os.environ.get('SKIP_VARIANTS'):
-        manage_variants_scrapping(DB_PATH, MAX_DATE_RANGE, ROOT_REGION, LOG_DIR)
+        manage_variants_scrapping(DB_PATH, MAX_DATE_RANGE, ROOT_REGION, LOG_DIR, credentials)
