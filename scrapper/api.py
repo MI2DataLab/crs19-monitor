@@ -11,6 +11,10 @@ from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support.select import Select
 
 
+class CaptchaException(Exception):
+    pass
+
+
 class Api:
     """
     Wrapper for GISAID search page
@@ -320,20 +324,20 @@ class Api:
         table = self.driver.find_element_by_class_name("yui-dt-data")
         row = table.find_elements_by_tag_name("tr")[row_id]
         row.find_elements_by_tag_name("td")[2].click()
-        
+
         self.wait_for_timer()
         if self._is_captcha_present():
-            raise Exception("Captcha")
+            raise CaptchaException("Captcha")
 
         self._find_and_switch_to_iframe()
         pango = self.driver.find_elements_by_xpath("//b[contains(text(),'Pango Lineage')]/../following-sibling::td")[0].text
-        
+
         self.driver.find_element_by_xpath("//button[contains(text(),'Back')]").click()
         self.wait_for_timer()
         self.driver.switch_to.default_content()
 
         return pango
-        
+
     """
     Utils methods
     """
@@ -431,4 +435,4 @@ class Api:
     def _is_captcha_present(self):
         cap = "Prove that you are not a robot:"
         elems = self.driver.find_elements_by_xpath("//*[contains(text(),'" + cap + "')]")
-        return len(elems) == 0
+        return len(elems) > 0
