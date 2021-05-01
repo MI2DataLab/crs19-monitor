@@ -260,7 +260,7 @@ class Api:
         """
         Sets filter for given field using visible value.
         This function does not check if number of records changed
-        @param field - one of ['clades', 'variants', 'substitutions']
+        @param field - one of ['clades', 'variants', 'substitutions', 'lineages']
         """
         selector = self._get_filter_selector(field)
 
@@ -268,7 +268,7 @@ class Api:
         if field in ['clades', 'variants']:
             selector.select_by_visible_text(name)
         # Second group - works like text input
-        elif field in ['substitutions']:
+        elif field in ['substitutions', 'lineages']:
             selector.clear()
             self.wait_for_timer()
             selector.send_keys(name)
@@ -280,7 +280,7 @@ class Api:
         """
         Sets filter for given field using index.
         This function does not check if number of records changed
-        @param field - one of ['clades', 'variants', 'substitutions']
+        @param field - one of ['clades', 'variants']
         """
         selector = self._get_filter_selector(field)
 
@@ -391,6 +391,8 @@ class Api:
             return Select(self.driver.find_elements_by_xpath("//select[@class='sys-event-hook sys-fi-mark']")[1])
         if field == 'substitutions':
             return self.driver.find_elements_by_xpath("//input[@class='sys-event-hook sys-fi-mark yui-ac-input']")[4]
+        if field == 'lineages':
+            return self.driver.find_elements_by_class_name("sys-event-hook.sys-fi-mark.yui-ac-input")[3]
         raise Exception('Not supported field %s' % field)
 
     def _wait_for_page_change(self, pre_num, expected_num):

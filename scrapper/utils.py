@@ -1,5 +1,4 @@
 from io import StringIO
-import time
 import os
 import sys
 import lzma
@@ -7,12 +6,8 @@ import sqlite3
 import tarfile
 import operator
 import traceback
-import datetime
 import pandas as pd
 from biotite.sequence.io.fasta import FastaFile
-from selenium import webdriver
-from secret import elogin, epass  # file secret.py with credentials
-from input_utils import wait_for_timer, set_region
 
 
 def init_db(db_path):
@@ -22,10 +17,10 @@ def init_db(db_path):
     con = sqlite3.connect(db_path)
     cur = con.cursor()
     cur.execute("""CREATE TABLE IF NOT EXISTS metadata (
-                          accession_id CHAR(16) PRIMARY KEY NOT NULL, 
+                          accession_id CHAR(16) PRIMARY KEY NOT NULL,
                           fasta_file VARCHAR(16) NULL,
                           passage VARCHAR(32) NULL,
-                          submission_date DATE NOT NULL, 
+                          submission_date DATE NOT NULL,
                           collection_date DATE NULL,
                           host VARCHAR(32) NULL,
                           location VARCHAR(128) NULL,
@@ -64,64 +59,7 @@ def repeater(function, *args, **kwargs):
             print('%s try failed' % (i,))
 
 
-def get_driver(log_dir, region = None, download_dir = None, headless = True):
-    """
-    Returns firefox driver logged to https://@epicov.org/epi3/ 
-    @param region - used to filtered by Location for example "Europe / Poland" 
-    """
-    print("Setting up driver")
-    url = "https://@epicov.org/epi3/"
-    
-    profile = webdriver.FirefoxProfile()
-    profile.set_preference("browser.download.folderList", 2)
-    profile.set_preference("browser.download.manager.useWindow", False)
-    if download_dir is not None:
-        profile.set_preference("browser.download.dir", download_dir)
-    profile.set_preference(
-        "browser.helperApps.neverAsk.saveToDisk", "application/octet-stream"
-    )
-    profile.set_preference(
-        "browser.helperApps.neverAsk.saveToDisk", "application/x-tar"
-    )
-
-    options = webdriver.firefox.options.Options()
-    # comment to allow firefox window
-    if headless:
-        options.add_argument("--headless")
-
-    driver = webdriver.Firefox(
-        executable_path="./geckodriver", firefox_profile=profile, options=options
-    )
-    try:
-        driver.get(url)
-        time.sleep(3)
-        wait_for_timer(driver)
-
-        print("Logging in as ", elogin)
-        # login
-        driver.find_element_by_id("elogin").send_keys(elogin)
-        driver.find_element_by_id("epassword").send_keys(epass)
-        driver.find_element_by_class_name("form_button_submit").click()
-        time.sleep(3)
-        wait_for_timer(driver)
-
-        # navigate to search
-        driver.find_elements_by_class_name("sys-actionbar-action")[1].click()
-        time.sleep(3)
-
-        if region is not None:
-            set_region(driver, region)
-
-        driver.execute_script("document.getElementById('sys_curtain').remove()")
-
-    except Exception as e:
-        save_log(log_dir, driver)
-        driver.quit()
-        raise e
-
-    return driver
-    
-def get_number_of_files(dir : str):
+def get_number_of_files(dir: str):
     """
     Returns number of files in dir
     Excludes .part files
@@ -133,6 +71,7 @@ def get_number_of_files(dir : str):
         n_files = 0
     return n_files
 
+
 def extract_country(location: str):
     """
     Returns country from location string
@@ -140,9 +79,9 @@ def extract_country(location: str):
     l = location.split("/")
     if len(l) < 2:
         return None
-    
+
     c = l[1].rstrip(" ").lstrip(" ")
-    
+
     return c
 
 
@@ -166,13 +105,15 @@ def fix_metadata_table(input_handle, output_handle, delim='\t'):
         fixed.append(new_line)
     fixed_lines = [delim.join(row) + '\n' for row in fixed]
     output_handle.writelines(fixed_lines)
-    
+
+
 def load_metadata_table(compressed_metadata):
     with StringIO() as fixed_metadata_handle:
         with lzma.open(compressed_metadata, 'rt') as raw_metadata_handle:
             fix_metadata_table(raw_metadata_handle, fixed_metadata_handle)
             fixed_metadata_handle.seek(0)
-        return pd.read_csv(fixed_metadata_handle, sep="\t", quoting=3) # 3 = disabled
+        return pd.read_csv(fixed_metadata_handle, sep="\t", quoting=3)  # 3 = disabled
+
 
 def fix_fasta_file(metadata, input_fasta_path, output_fasta_path, missing_fasta_ids):
     if len(missing_fasta_ids) == 0:
@@ -208,6 +149,7 @@ def fix_fasta_file(metadata, input_fasta_path, output_fasta_path, missing_fasta_
             output_fasta[new_key] = full_fasta[accession_id]
     output_fasta.write(output_fasta_path)
 
+
 def load_from_tar(tar_file, output_fasta_path, missing_fasta_ids):
     with tarfile.open(tar_file) as tar_handle:
         members = tar_handle.getmembers()
@@ -222,9 +164,3 @@ def load_from_tar(tar_file, output_fasta_path, missing_fasta_ids):
         metadata = load_metadata_table(compressed_metadata)
         fix_fasta_file(metadata, compressed_fasta, output_fasta_path, missing_fasta_ids)
         return metadata
-
-def save_log(log_dir, driver):
-    name = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S.%f")
-    driver.save_screenshot(log_dir + '/' + name + ".png")
-    with open(log_dir + '/' + name + '.html', 'w') as html_file:
-        html_file.write(driver.page_source)
