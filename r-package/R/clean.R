@@ -37,9 +37,10 @@ clean_lineage <- function(df, alarm_pango, other_level = "Other") {
   df$sample <- gsub(sample, pattern = " ", replacement = "")
 
   lineage <- fct_infreq(df$Lineage)
+  alarm_count <- sum(levels(lineage) %in% alarm_pango)
   df$pango_small <- fct_other(
     lineage,
-    keep = unique(c(head(levels(lineage), 7), alarm_pango)),
+    keep = unique(c(head(levels(lineage), (3*5)-alarm_count-1), alarm_pango)),
     other_level = other_level
   )
   df$pango_medium <- fct_other(
@@ -54,7 +55,7 @@ clean_lineage <- function(df, alarm_pango, other_level = "Other") {
 
 #' @param df `nextclade` data.frame
 #' @export
-clean_nextclade <- function(df, alarm_mutation, alarm_pattern, other_level = "Other") {
+clean_nextclade <- function(df, alarm_clade, alarm_mutation, alarm_pattern, other_level = "Other") {
 
   df$date <- sapply(
     strsplit(df$seqName, split = "|", fixed = TRUE),
@@ -65,9 +66,10 @@ clean_nextclade <- function(df, alarm_mutation, alarm_pattern, other_level = "Ot
   df$sample <- gsub(sample, pattern = " ", replacement = "")
 
   clade <- fct_infreq(df$clade)
-  df$clade_small <- fct_lump(
+  alarm_count <- sum(levels(clade) %in% alarm_clade)
+  df$clade_small <- fct_other(
     clade,
-    n = 12,
+    keep = unique(c(head(levels(clade), (2*6)-alarm_count-1), alarm_clade)),
     other_level = other_level
   )
   df$clade_medium <- clade

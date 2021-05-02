@@ -126,6 +126,7 @@ for (region in regions) {
 
     nextclade_input <- covar::clean_nextclade(
       df = nextclade_subset,
+      alarm_clade = ALARM_CLADE,
       alarm_mutation = ALARM_MUTATION,
       alarm_pattern = ALARM_PATTERN,
       other_level = description_input["other_level", "names"]
