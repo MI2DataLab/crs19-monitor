@@ -51,7 +51,8 @@ class Api:
         profile.set_preference("browser.download.folderList", 2)
         profile.set_preference("browser.download.manager.useWindow", False)
         profile.set_preference("browser.download.dir", download_dir)
-        profile.set_preference("browser.helperApps.neverAsk.saveToDisk", "application/x-tar")
+        mimetypes = ['application/octet-stream', 'application/x-tar']
+        profile.set_preference("browser.helperApps.neverAsk.saveToDisk", ','.join(mimetypes))
 
         options = webdriver.firefox.options.Options()
         # comment to allow firefox window
@@ -242,6 +243,13 @@ class Api:
 
         self.driver.find_element_by_xpath(("//input[@value='augur_input']")).click()
         self.wait_for_timer()
+
+        self.driver.find_element_by_xpath(("//button[contains(., 'Download')]")).click()
+        self.wait_for_timer()
+
+    def start_downloading_fasta(self):
+        self.driver.find_element_by_xpath(("//button[contains(., 'Download')]")).click()
+        self._find_and_switch_to_iframe()
 
         self.driver.find_element_by_xpath(("//button[contains(., 'Download')]")).click()
         self.wait_for_timer()
