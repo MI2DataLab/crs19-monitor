@@ -71,9 +71,12 @@ clean_nextclade <- function(df, alarm_clade, alarm_mutation, alarm_pattern, othe
   is_alarm <- levels(clade) %in% alarm_clade
   alarm_count <- sum(is_alarm)
   not_alarm_clade <- levels(clade)[!is_alarm]
+  print(not_alarm_clade)
+  to_keep <- unique(c(head(levels(not_alarm_clade), (2*6)-alarm_count-1), alarm_clade))
+  cat(to_keep)
   df$clade_small <- fct_other(
     clade,
-    keep = unique(c(head(levels(not_alarm_clade), (2*6)-alarm_count-1), alarm_clade)),
+    keep = to_keep,
     other_level = other_level
   )
   df$clade_medium <- clade
