@@ -14,7 +14,7 @@ plot_pango_facet <- function(df,
     variant = factor(names(variant), levels = names(variant)),
     label = variant,
     date = as.character(ymd(lineage_date) %m-% months(NO_MONTHS_PLOTS)),
-    n = max(variant)
+    n = variant
   )
 
   rm('df')
