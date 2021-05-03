@@ -336,10 +336,14 @@ for (region in regions) {
     ggplot2::ggsave(plot = plots[['pl_var_4']], file = paste0(dir_prefix, "liczba_warianty_4.svg"), width = 8, height = 3)
     ggplot2::ggsave(plot = plots[['pl_var_5']], file = paste0(dir_prefix, "liczba_warianty_5.png"), width = 8, height = 5)
 
-    ggplot2::ggsave(plot = plots[['pl_var_all_1']], file = paste0(dir_prefix, "udzial_warianty_1.svg"), width = 5.5, height = 3.5)
-    ggplot2::ggsave(plot = plots[['pl_var_all_2']], file = paste0(dir_prefix, "udzial_warianty_2.svg"), width = 5.5, height = 3.5)
-    ggplot2::ggsave(plot = plots[['pl_var_all_3']], file = paste0(dir_prefix, "udzial_warianty_3.svg"), width = 5.5, height = 3.5)
-    ggplot2::ggsave(plot = plots[['pl_var_all_4']], file = paste0(dir_prefix, "udzial_warianty_4.svg"), width = 5.5, height = 3.5)
+    # w <- 5.5
+    # h <- 3.5
+    tw <- 4
+    th <- 2.5
+    ggplot2::ggsave(plot = plots[['pl_var_all_1']], file = paste0(dir_prefix, "udzial_warianty_1.svg"), width = tw, height = th)
+    ggplot2::ggsave(plot = plots[['pl_var_all_2']], file = paste0(dir_prefix, "udzial_warianty_2.svg"), width = tw, height = th)
+    ggplot2::ggsave(plot = plots[['pl_var_all_3']], file = paste0(dir_prefix, "udzial_warianty_3.svg"), width = tw, height = th)
+    ggplot2::ggsave(plot = plots[['pl_var_all_4']], file = paste0(dir_prefix, "udzial_warianty_4.svg"), width = tw, height = th)
 
     if ('pl_map' %in% names(plots)) {
       ggplot2::ggsave(plot = plots[['pl_map']], file = paste0(dir_prefix, "mapa_mutacje.svg"), width = 10, height = 5)
