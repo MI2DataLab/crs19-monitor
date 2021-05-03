@@ -33,7 +33,7 @@ plot_pango_facet <- function(df,
     scale_x_date("", date_breaks = "1 month", date_labels = "%m",
                  limits = c(ymd(lineage_date) %m-% months(no_months_plots), ymd(lineage_date))) +
     #  scale_x_date("", date_breaks = "2 months", date_labels = "%m") +
-    facet_wrap(~variant, ncol = 5) +
+    facet_wrap(~variant, ncol = 5, scales = "free_y") +
     theme_minimal(base_family = "Arial") +
     scale_y_continuous("", expand = c(0, 0)) +
     ggtitle(title) +
