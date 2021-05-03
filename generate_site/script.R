@@ -1,4 +1,5 @@
 cat('---- START \n')
+try(devtools::uninstall("covar"), silent = TRUE)
 devtools::install_local('../r-package/', force=TRUE)
 
 # ----- GLOBAL VARS ----- #
