@@ -42,7 +42,7 @@ plot_clade_facet <- function(df,
       labels = scales::trans_format("log10", scales::math_format(10^.x)),
       name = "", expand = c(0, 0), n.breaks = 4) +
     ggtitle(title) +
-    theme(legend.position = "none")
+    theme(legend.position = "none", plot.margin = unit(c(5.5, 5.5, 2, 5.5), "pt"))
 
   p$plot_env <- rlang::new_environment()
   p
@@ -92,7 +92,7 @@ plot_clade_cumulative <- function(df,
       labels = scales::trans_format("log10", scales::math_format(10^.x)),
       name = "", expand = c(0, 0), n.breaks = 4) +
     ggtitle(title) +
-    theme(legend.position = "none")
+    theme(legend.position = "none", plot.margin = unit(c(5.5, 5.5, 2, 5.5), "pt"))
   
   p$plot_env <- rlang::new_environment()
   p

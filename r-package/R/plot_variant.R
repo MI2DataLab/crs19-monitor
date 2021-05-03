@@ -162,10 +162,15 @@ plot_variant_point_smooth <- function(df,
   rm('tab_df')
 
   p <- ggplot(df_point, aes(ymd(date), y = n, color = variant)) +
-    geom_point() +
+    geom_point(size = 0.75) +
     scale_x_date("", date_breaks = "1 month", date_labels = "%m",
                  limits = c(ymd(lineage_date) %m-% months(no_months_plots), ymd(lineage_date))) +
-    geom_smooth(data = df_smooth, se = FALSE, span = 1, method = 'loess', formula = y ~ x) +
+    geom_smooth(data = df_smooth, 
+                se = FALSE, 
+                span = 1, 
+                method = 'loess', 
+                formula = y ~ x,
+                size = 0.75) +
     scale_y_continuous("", expand = c(0, 0),
                        breaks = c(0.01, 0.1, 0.25, 0.5, 0.75, 0.9, 0.99), limits = c(0, 1)) +
     scale_color_manual("", values = palette) +

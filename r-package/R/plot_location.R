@@ -42,7 +42,7 @@ plot_location_count <- function(df,
     theme_minimal(base_family = "Arial") +
     scale_y_continuous("", expand = c(0, 0)) +
     ggtitle(title) +
-    theme(legend.position = "none")
+    theme(legend.position = "none", plot.margin = unit(c(5.5, 5.5, 2, 5.5), "pt"))
 
   attr(p, "n_unique_regions") <- n_unique_regions
   p$plot_env <- rlang::new_environment()
@@ -101,7 +101,7 @@ plot_location_proportion <- function(df,
     facet_wrap(~Var2, ncol = 5) +
     theme_minimal(base_family = "Arial") +
     ggtitle(title) +
-    theme(legend.position = "none")
+    theme(legend.position = "none", plot.margin = unit(c(5.5, 5.5, 2, 5.5), "pt"))
 
   p$plot_env <- rlang::new_environment()
   p
