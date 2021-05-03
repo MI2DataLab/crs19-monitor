@@ -1,6 +1,16 @@
+# covar 1.1.0
+
+* transform `y` to log scale
+* fix clade and pango variants in facets
+* fix location sorting in facets
+* set smaller padding in `html` files (`15px -> 7.5px`)
+* make facet plots higher (`3 -> 5`)
+* normalize the size of variants plots (also smaller legend, title)
+* decrease bottom margins where there is no `xlabel` (`5.5pt -> 2pt`)
+
 # covar 1.0.1
 
-* fix heavy `gg_objects.rda` - filter columns before passing the data to `ggplot()`
+* fix heavy `gg_objects.rda` - filter columns before passing the data to `ggplot()`, also remove the objects from function environment
 
 # covar 1.0.0
 
