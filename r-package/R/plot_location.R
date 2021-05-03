@@ -12,7 +12,7 @@ plot_location_count <- function(df,
   
   tab_df %>% group_by(Var2) %>%
     summarise(count = sum(Freq)) %>%
-    arrange(-n) %>%
+    arrange(-count) %>%
     head(max_regions) %>% 
     select(Var2) %>%
     unlist() %>%
@@ -64,7 +64,7 @@ plot_location_proportion <- function(df,
 
   tab_df %>% group_by(Var2) %>%
     summarise(count = sum(Freq)) %>%
-    arrange(-n) %>%
+    arrange(-count) %>%
     head(max_regions) %>% 
     select(Var2) %>%
     unlist() %>%
