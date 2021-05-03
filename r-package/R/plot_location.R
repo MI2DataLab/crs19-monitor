@@ -8,8 +8,9 @@ plot_location_count <- function(df,
                                 title = "") {
 
   tab <- table(df$week_start, df$LocationClean, df$is_alarm)
-  tab_df <- data.frame(as.table(tab))
-  
+  tab_df <- data.frame(as.table(tab)) %>% 
+    filter(ymd(Var1) >= ymd(lineage_date) %m-% months(no_months_plots))
+
   tab_df %>% group_by(Var2) %>%
     summarise(count = sum(Freq)) %>%
     arrange(-count) %>%
@@ -41,7 +42,7 @@ plot_location_count <- function(df,
     facet_wrap(~Var2, ncol = 5, scales = "free_y") +
     theme_minimal(base_family = "Arial") +
     scale_y_continuous("", expand = c(0, 0)) +
-    ggtitle(title) +
+    ggtitle(title) + labs(x = NULL, y = NULL) + 
     theme(legend.position = "none", plot.margin = margin(4, 4, 0, 4))
 
   attr(p, "n_unique_regions") <- n_unique_regions
@@ -60,7 +61,8 @@ plot_location_proportion <- function(df,
                                      title = "") {
 
   tab <- table(df$week_start, df$LocationClean, df$is_alarm)
-  tab_df <- data.frame(as.table(tab))
+  tab_df <- data.frame(as.table(tab)) %>% 
+    filter(ymd(Var1) >= ymd(lineage_date) %m-% months(no_months_plots))
 
   tab_df %>% group_by(Var2) %>%
     summarise(count = sum(Freq)) %>%
@@ -100,7 +102,7 @@ plot_location_proportion <- function(df,
                  limits = c(ymd(lineage_date) %m-% months(no_months_plots), ymd(lineage_date))) +
     facet_wrap(~Var2, ncol = 5) +
     theme_minimal(base_family = "Arial") +
-    ggtitle(title) +
+    ggtitle(title) + labs(x = NULL, y = NULL) + 
     theme(legend.position = "none", plot.margin = margin(4, 4, 0, 4))
 
   p$plot_env <- rlang::new_environment()

@@ -337,10 +337,9 @@ for (region in regions) {
     ggplot2::ggsave(plot = plots[['pl_var_4']], file = paste0(dir_prefix, "liczba_warianty_4.svg"), width = 8, height = 3)
     ggplot2::ggsave(plot = plots[['pl_var_5']], file = paste0(dir_prefix, "liczba_warianty_5.png"), width = 8, height = 5)
 
-    # w <- 5.5
-    # h <- 3.5
-    tw <- 4
-    th <- 2.5
+    # pre v1.1.0 it was 5.5/3.5
+    tw <- 4 
+    th <- 2.5 
     ggplot2::ggsave(plot = plots[['pl_var_all_1']], file = paste0(dir_prefix, "udzial_warianty_1.svg"), width = tw, height = th)
     ggplot2::ggsave(plot = plots[['pl_var_all_2']], file = paste0(dir_prefix, "udzial_warianty_2.svg"), width = tw, height = th)
     ggplot2::ggsave(plot = plots[['pl_var_all_3']], file = paste0(dir_prefix, "udzial_warianty_3.svg"), width = tw, height = th)

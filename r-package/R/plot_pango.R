@@ -41,7 +41,7 @@ plot_pango_facet <- function(df,
       breaks = scales::trans_breaks("log10", function(x) 10^x),
       labels = scales::trans_format("log10", scales::math_format(10^.x)),
       name = "", expand = c(0, 0), n.breaks = 4) +
-    ggtitle(title) +
+    ggtitle(title) + labs(x = NULL, y = NULL) + 
     theme(legend.position = "none", plot.margin = margin(4, 4, 0, 4))
 
   p$plot_env <- rlang::new_environment()
@@ -63,9 +63,7 @@ plot_pango_cumulative <- function(df,
   variant <- tab[nrow(tab),]
   counts <- data.frame(
     variant = factor(names(variant), levels = names(variant)),
-    label = variant,
-    date = "2020/03/01",
-    n = max(variant)
+    label = variant
   )
   counts <- counts[counts$variant %in% alarm_pango,]
 
@@ -91,7 +89,7 @@ plot_pango_cumulative <- function(df,
       breaks = scales::trans_breaks("log10", function(x) 10^x),
       labels = scales::trans_format("log10", scales::math_format(10^.x)),
       name = "", expand = c(0, 0), n.breaks = 4) +
-    ggtitle(title) +
+    ggtitle(title) + labs(x = NULL, y = NULL) + 
     theme(legend.position = "none", plot.margin = unit(c(5.5, 5.5, 2, 5.5), "pt"))
 
   p$plot_env <- rlang::new_environment()

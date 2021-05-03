@@ -12,7 +12,7 @@ plot_sequence_count <- function(df,
     theme_minimal(base_family = "Arial") +
     scale_x_date("", date_breaks = "2 months", date_labels = "%m") +
     scale_y_continuous("", expand = c(0, 0)) +
-    ggtitle(title) +
+    ggtitle(title) + labs(x = NULL, y = NULL) + 
     theme(plot.margin = margin(4, 4, 0, 4))
 
   p$plot_env <- rlang::new_environment()
@@ -36,7 +36,7 @@ plot_sequence_cumulative <- function(df,
     theme_minimal(base_family = "Arial") +
     scale_x_date("", date_breaks = "2 months", date_labels = "%m") +
     scale_y_continuous("", expand = c(0, 0)) +
-    ggtitle(title) +
+    ggtitle(title) + labs(x = NULL, y = NULL) + 
     theme(plot.margin = margin(4, 4, 0, 4))
 
   p$plot_env <- rlang::new_environment()

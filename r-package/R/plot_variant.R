@@ -26,7 +26,7 @@ plot_variant_col_fill <- function(df,
     scale_x_date("", date_breaks = "1 month", date_labels = "%m",
                  limits = c(ymd(lineage_date) %m-% months(no_months_plots), ymd(lineage_date))) +
     scale_fill_manual("", values = palette) +
-    ggtitle(title) +
+    ggtitle(title) + labs(x = NULL, y = NULL) + 
     theme_minimal(base_family = "Arial") +
     theme(legend.key.size = unit(0.4, 'cm'),
           legend.text = element_text(size=7),
@@ -67,7 +67,7 @@ plot_variant_col_stack <- function(df,
     scale_x_date("", date_breaks = "1 month", date_labels = "%m",
                  limits = c(ymd(lineage_date) %m-% months(no_months_plots), ymd(lineage_date))) +
     scale_fill_manual("", values = palette) +
-    ggtitle(title) +
+    ggtitle(title) + labs(x = NULL, y = NULL) + 
     theme_minimal(base_family = "Arial") +
     theme(legend.key.size = unit(0.4, 'cm'),
           legend.text = element_text(size=7),
@@ -114,7 +114,7 @@ plot_variant_area <- function(df,
     scale_x_date("", date_breaks = "1 month", date_labels = "%m",
                  limits = c(ymd(lineage_date) %m-% months(no_months_plots), ymd(lineage_date))) +
     scale_fill_manual("", values = palette) +
-    ggtitle(title) +
+    ggtitle(title) + labs(x = NULL, y = NULL) + 
     theme_minimal(base_family = "Arial") +
     theme(legend.key.size = unit(0.4, 'cm'),
           legend.text = element_text(size=7),
@@ -177,7 +177,7 @@ plot_variant_point_smooth <- function(df,
     scale_y_continuous("", expand = c(0, 0),
                        breaks = c(0.01, 0.1, 0.25, 0.5, 0.75, 0.9, 0.99), limits = c(0, 1)) +
     scale_color_manual("", values = palette) +
-    ggtitle(title) +
+    ggtitle(title) + labs(x = NULL, y = NULL) + 
     theme_minimal(base_family = "Arial") +
     theme(legend.key.size = unit(0.4, 'cm'),
           legend.text = element_text(size=7),
