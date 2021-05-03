@@ -31,7 +31,7 @@ plot_variant_col_fill <- function(df,
     theme(legend.key.size = unit(0.4, 'cm'),
           legend.text = element_text(size=7),
           plot.title = element_text(size = rel(1)),
-          plot.margin = unit(c(5.5, 5.5, 2, 5.5), "pt")) +
+          plot.margin = margin(4, 4, 0, 4)) +
     scale_y_continuous("", expand = c(0, 0), labels = scales::percent)
 
   p$plot_env <- rlang::new_environment()
@@ -72,7 +72,7 @@ plot_variant_col_stack <- function(df,
     theme(legend.key.size = unit(0.4, 'cm'),
           legend.text = element_text(size=7),
           plot.title = element_text(size = rel(1)),
-          plot.margin = unit(c(5.5, 5.5, 2, 5.5), "pt")) +
+          plot.margin = margin(4, 4, 0, 4)) +
     scale_y_continuous("", expand = c(0, 0))
 
   p$plot_env <- rlang::new_environment()
@@ -119,7 +119,7 @@ plot_variant_area <- function(df,
     theme(legend.key.size = unit(0.4, 'cm'),
           legend.text = element_text(size=7),
           plot.title = element_text(size = rel(1)),
-          plot.margin = unit(c(5.5, 5.5, 2, 5.5), "pt")) +
+          plot.margin = margin(4, 4, 0, 4)) +
     scale_y_continuous("", expand = c(0, 0), labels = scales::percent)
 
   p$plot_env <- rlang::new_environment()
@@ -182,7 +182,7 @@ plot_variant_point_smooth <- function(df,
     theme(legend.key.size = unit(0.4, 'cm'),
           legend.text = element_text(size=7),
           plot.title = element_text(size = rel(1)),
-          plot.margin = unit(c(5.5, 5.5, 2, 5.5), "pt")) +
+          plot.margin = margin(4, 4, 0, 4)) +
     coord_cartesian(xlim = c(ymd(lineage_date) %m-% months(no_months_plots), ymd(lineage_date)))
 
   p$plot_env <- rlang::new_environment()
