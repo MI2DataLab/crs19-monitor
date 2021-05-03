@@ -30,7 +30,7 @@ plot_variant_col_fill <- function(df,
     theme_minimal(base_family = "Arial") +
     theme(legend.key.size = unit(0.4, 'cm'),
           legend.text = element_text(size=7),
-          plot.title = element_text(size = rel(1.1))) +
+          plot.title = element_text(size = rel(1))) +
     scale_y_continuous("", expand = c(0, 0), labels = scales::percent)
 
   p$plot_env <- rlang::new_environment()
@@ -70,7 +70,7 @@ plot_variant_col_stack <- function(df,
     theme_minimal(base_family = "Arial") +
     theme(legend.key.size = unit(0.4, 'cm'),
           legend.text = element_text(size=7),
-          plot.title = element_text(size = rel(1.1))) +
+          plot.title = element_text(size = rel(1))) +
     scale_y_continuous("", expand = c(0, 0))
 
   p$plot_env <- rlang::new_environment()
