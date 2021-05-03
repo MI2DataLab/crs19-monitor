@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 last_date_to_save = (datetime.now() - timedelta(days=old_sites_to_keep - 1)).strftime("%Y-%m-%d")
 
 paths = glob.glob(site_dist + '/*')
-subdirs = [os.path.basename(f) for f in paths if os.path.isdir(f)]
+subdirs = [os.path.basename(f) for f in paths if os.path.isdir(f) and len(glob.glob(f + '/*')) > 0]
 dates = [d for d in subdirs if re.match(r"\d{4}-\d\d-\d\d", d)]
 to_clear = [d for d in dates if d < last_date_to_save]
 
