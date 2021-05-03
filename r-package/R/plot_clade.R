@@ -40,7 +40,7 @@ plot_clade_facet <- function(df,
     scale_y_log10(
       breaks = scales::trans_breaks("log10", function(x) 10^x),
       labels = scales::trans_format("log10", scales::math_format(10^.x)),
-      name = "", expand = c(0, 0)) +
+      name = "", expand = c(0, 0), n.breaks = 5) +
     ggtitle(title) +
     theme(legend.position = "none")
 
@@ -90,7 +90,7 @@ plot_clade_cumulative <- function(df,
     scale_y_log10(
       breaks = scales::trans_breaks("log10", function(x) 10^x),
       labels = scales::trans_format("log10", scales::math_format(10^.x)),
-      name = "", expand = c(0, 0)) +
+      name = "", expand = c(0, 0), n.breaks = 5) +
     ggtitle(title) +
     theme(legend.position = "none")
   
