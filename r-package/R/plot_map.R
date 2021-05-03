@@ -13,7 +13,15 @@ plot_map <- function(df,
 
   tab <- table(df$week_start, df$LocationClean, df$is_alarm)
   tab_df <- data.frame(as.table(tab))
-  selected_regions <- head(levels(tab_df$Var2), max_regions)
+  
+  tab_df %>% group_by(Var2) %>%
+    summarise(count = sum(Freq)) %>%
+    arrange(-count) %>%
+    head(max_regions) %>% 
+    select(Var2) %>%
+    unlist() %>%
+    as.character() -> selected_regions
+
   try({
     df$LocationClean <- fct_other(df$LocationClean,
                                   keep = selected_regions,
