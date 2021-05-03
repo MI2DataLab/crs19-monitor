@@ -42,12 +42,12 @@ clean_lineage <- function(df, alarm_pango, other_level = "Other") {
   not_alarm_pango <- levels(lineage)[!is_alarm]
   df$pango_small <- fct_other(
     lineage,
-    keep = unique(c(head(levels(not_alarm_pango), (3*5)-alarm_count-1), alarm_pango)),
+    keep = unique(c(head(not_alarm_pango, (3*5)-alarm_count-1), alarm_pango)),
     other_level = other_level
   )
   df$pango_medium <- fct_other(
     lineage,
-    keep = unique(c(head(levels(not_alarm_pango), 20), alarm_pango)),
+    keep = unique(c(head(not_alarm_pango, 20), alarm_pango)),
     other_level = other_level
   )
 
@@ -71,12 +71,9 @@ clean_nextclade <- function(df, alarm_clade, alarm_mutation, alarm_pattern, othe
   is_alarm <- levels(clade) %in% alarm_clade
   alarm_count <- sum(is_alarm)
   not_alarm_clade <- levels(clade)[!is_alarm]
-  cat(head(levels(not_alarm_clade), (2*6)-alarm_count-1))
-  cat(alarm_clade)
-  to_keep <- unique(c(head(levels(not_alarm_clade), (2*6)-alarm_count-1), alarm_clade))
   df$clade_small <- fct_other(
     clade,
-    keep = to_keep,
+    keep = unique(c(head(not_alarm_clade, (2*6)-alarm_count-1), alarm_clade)),
     other_level = other_level
   )
   df$clade_medium <- clade

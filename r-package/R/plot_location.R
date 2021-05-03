@@ -9,7 +9,7 @@ plot_location_count <- function(df,
 
   tab <- table(df$week_start, df$LocationClean, df$is_alarm)
   tab_df <- data.frame(as.table(tab))
-  cat(head(tab_df))
+  print(head(tab_df))
   selected_regions <- head(levels(tab_df$Var2), max_regions)
   n_unique_regions <- max(length(unique(selected_regions)), 1)
 
