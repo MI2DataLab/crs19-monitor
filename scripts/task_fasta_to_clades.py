@@ -35,5 +35,7 @@ for f in input_files:
         if out != 0:
             sys.exit(out >> 8)
 
-out = os.system('bash -c "awk \'(NR == 1) || (FNR > 1)\' ' + clades_output_dir + '/*.tsv' + ' > ' + clades_merged_file + '"')
+os.environ["CLADES_DIR"] = clades_output_dir
+os.environ['CLADES_MERGED_FILE'] = clades_merged_file
+out = os.system('bash -c "source ~/.bashrc && source ' + conda_sh_path + ' && cd ' + work_dir + ' && conda activate crs19 && python merge_results.py"')
 sys.exit(out >> 8)
