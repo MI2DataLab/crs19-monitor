@@ -53,13 +53,13 @@ def scrap_variants(region, db_path, start_date, end_date, history, log_dir, cred
         cur = con.cursor()
         total_records = api.get_total_records()
 
-        repeater(update_clade, api, cur, con, history)
+        update_clade(api, cur, con, history)
         assert api.get_total_records() >= total_records
 
-        repeater(update_substitutions, api, cur, con, history)
+        update_substitutions(api, cur, con, history)
         assert api.get_total_records() >= total_records
 
-        repeater(update_variants, api, cur, con, history)
+        update_variants(api, cur, con, history)
 
         cur.execute('UPDATE metadata SET is_variant_loaded = 1 WHERE submission_date >= ? and submission_date <= ?', (start_date, end_date))
         con.commit()
@@ -79,6 +79,7 @@ def update_clade(api, cur, con, history):
 
         if api.get_total_records() == 0:
             api.print_log('Found 0 records, skipping')
+            history.set_done('clade', clade)
             continue
 
         # get list of ids
@@ -105,6 +106,7 @@ def update_variants(api, cur, con, history):
 
         if api.get_total_records() == 0:
             api.print_log('Found 0 records, skipping')
+            history.set_done('variant', v)
             continue
 
         # get list of ids
@@ -130,6 +132,7 @@ def update_substitutions(api, cur, con, history):
 
         if api.get_total_records() == 0:
             api.print_log('Found 0 records, skipping')
+            history.set_done('substitutions', sub)
             continue
 
         # get list of ids
@@ -139,7 +142,10 @@ def update_substitutions(api, cur, con, history):
         # update database
         for accession_id in ids:
             cur.execute("SELECT accession_id, substitutions FROM metadata WHERE accession_id=?", (accession_id,))
-            curr_id = cur.fetchall()[0]
+            all_rows = cur.fetchall()
+            if len(all_rows) == 0:
+                continue
+            curr_id = all_rows[0]
             curr_id_subs = curr_id[1]
             subs_list = [sub] if curr_id_subs is None or curr_id_subs == '' else (curr_id_subs.split(',') + [sub])
             subs_list = np.unique(subs_list).tolist()
