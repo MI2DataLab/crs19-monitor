@@ -13,5 +13,5 @@ for file_name in files:
         dataframes.append(pd.read_csv(file_name, sep='\t'))
     except Exception as e:
         print('Failed reading %s' % file_name)
-merged = pd.concat(dataframes)
+merged = pd.concat(dataframes)[['seqName', 'clade']]
 merged.to_csv(output_file, sep='\t', index=False)
