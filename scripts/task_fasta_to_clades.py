@@ -1,8 +1,13 @@
 import os
 import glob
 import sys
-from config import gisaid_fasta_dir, clades_output_dir, clades_merged_file, repo_path, conda_sh_path
+from config import gisaid_fasta_dir, clades_output_dir, clades_merged_file, repo_path, conda_sh_path, nextclade_reference_dir
 from utils import unpack_fasta
+
+if os.environ.get('UPDATE_REFERENCE'):
+    out = os.system('svn checkout https://github.com/nextstrain/nextclade/trunk/data/sars-cov-2 ' + nextclade_reference_dir)
+    if out != 0:
+        sys.exit(out >> 8)
 
 work_dir = repo_path + '/fasta_to_clades'
 
@@ -24,10 +29,13 @@ for f in input_files:
         unpacked = unpack_fasta(timestamp)
         os.environ['OUTPUT'] = output_file
         os.environ["INPUT_FASTA"] = unpacked
+        os.environ['REFERENCE_DIR'] = nextclade_reference_dir
         out = os.system('bash -c "source ~/.bashrc && source ' + conda_sh_path + ' && cd ' + work_dir + ' && conda activate crs19 && python script.py"')
         os.unlink(unpacked)
         if out != 0:
             sys.exit(out >> 8)
 
-out = os.system('bash -c "awk \'(NR == 1) || (FNR > 1)\' ' + clades_output_dir + '/*.tsv' + ' > ' + clades_merged_file + '"')
+os.environ["CLADES_DIR"] = clades_output_dir
+os.environ['CLADES_MERGED_FILE'] = clades_merged_file
+out = os.system('bash -c "source ~/.bashrc && source ' + conda_sh_path + ' && cd ' + work_dir + ' && conda activate crs19 && python merge_results.py"')
 sys.exit(out >> 8)

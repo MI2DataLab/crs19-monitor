@@ -65,7 +65,7 @@ location_dict <- function() {
         , " Łódzkie ", " łódzkie "
         , "Iodzkie", "lodzkie"
         , " Iodzkie", " lodzkie"
-        , " Iodzkie ", " lodzkie "
+        , " Iodzkie "
         )
     , "Małopolskie" =
         c(
