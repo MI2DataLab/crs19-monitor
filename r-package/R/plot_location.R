@@ -8,9 +8,17 @@ plot_location_count <- function(df,
                                 title = "") {
 
   tab <- table(df$week_start, df$LocationClean, df$is_alarm)
-  tab_df <- data.frame(as.table(tab))
+  tab_df <- data.frame(as.table(tab)) %>% 
+    filter(ymd(Var1) >= ymd(lineage_date) %m-% months(no_months_plots))
 
-  selected_regions <- head(levels(tab_df$Var2), max_regions)
+  tab_df %>% group_by(Var2) %>%
+    summarise(count = sum(Freq)) %>%
+    arrange(-count) %>%
+    head(max_regions) %>% 
+    select(Var2) %>%
+    unlist() %>%
+    as.character() -> selected_regions
+
   n_unique_regions <- max(length(unique(selected_regions)), 1)
 
   try({
@@ -31,11 +39,11 @@ plot_location_count <- function(df,
     scale_fill_manual(values = c("grey", "red3")) +
     scale_x_date("", date_breaks = "1 month", date_labels = "%m",
                  limits = c(ymd(lineage_date) %m-% months(no_months_plots), ymd(lineage_date))) +
-    facet_wrap(~Var2, ncol = 5) +
+    facet_wrap(~Var2, ncol = 5, scales = "free_y") +
     theme_minimal(base_family = "Arial") +
     scale_y_continuous("", expand = c(0, 0)) +
-    ggtitle(title) +
-    theme(legend.position = "none")
+    ggtitle(title) + labs(x = NULL, y = NULL) + 
+    theme(legend.position = "none", plot.margin = margin(4, 4, 0, 4))
 
   attr(p, "n_unique_regions") <- n_unique_regions
   p$plot_env <- rlang::new_environment()
@@ -53,9 +61,18 @@ plot_location_proportion <- function(df,
                                      title = "") {
 
   tab <- table(df$week_start, df$LocationClean, df$is_alarm)
-  tab_df <- data.frame(as.table(tab))
+  tab_df <- data.frame(as.table(tab)) %>% 
+    filter(ymd(Var1) >= ymd(lineage_date) %m-% months(no_months_plots))
 
-  selected_regions <- head(levels(tab_df$Var2), max_regions)
+  tab_df %>% group_by(Var2) %>%
+    summarise(count = sum(Freq)) %>%
+    arrange(-count) %>%
+    head(max_regions) %>% 
+    select(Var2) %>%
+    unlist() %>%
+    as.character() -> selected_regions
+
+  n_unique_regions <- max(length(unique(selected_regions)), 1)
   try({
     df$LocationClean <- fct_other(df$LocationClean,
                                   keep = selected_regions,
@@ -85,8 +102,8 @@ plot_location_proportion <- function(df,
                  limits = c(ymd(lineage_date) %m-% months(no_months_plots), ymd(lineage_date))) +
     facet_wrap(~Var2, ncol = 5) +
     theme_minimal(base_family = "Arial") +
-    ggtitle(title) +
-    theme(legend.position = "none")
+    ggtitle(title) + labs(x = NULL, y = NULL) + 
+    theme(legend.position = "none", plot.margin = margin(4, 4, 0, 4))
 
   p$plot_env <- rlang::new_environment()
   p

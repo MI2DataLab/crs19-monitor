@@ -1,6 +1,6 @@
 Package: covar
 Title: Monitor of SARS-CoV-2 variants and mutations in Europe
-Version: 1.0.1
+Version: 1.1.0
 Authors@R: c(person("Hubert", "Baniecki", email = "hbaniecki@gmail.com",
                     role = c("aut", "cre")),
              person("Przemyslaw", "Biecek", role = c("aut")))

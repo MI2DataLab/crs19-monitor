@@ -1,4 +1,5 @@
 cat('---- START \n')
+try(devtools::uninstall("covar"), silent = TRUE)
 devtools::install_local('../r-package/', force=TRUE)
 
 # ----- GLOBAL VARS ----- #
@@ -18,7 +19,7 @@ ALARM_MUTATION <- "N501Y"
 ALARM_PATTERN <- "501Y"
 ALARM_PANGO <- c("B.1.1.7", "B.1.351", "P.1", "P.2", "B.1.427", "B.1.429", "B.1.526", "B.1.525", "B.1.617", "B.1.617.1", "B.1.617.2")
 ALARM_CLADE <- c("20I/501Y.V1","20H/501Y.V2", "20J/501Y.V3", "20B/S.484K", "20C/S.452R",  "20C/S.484K",  "20A/S.484K", "20A/S.154K", "20A/S.478K")
-MAX_REGIONS <- 23
+MAX_REGIONS <- 24
 NO_MONTHS_PLOTS <- 4
 NO_MONTHS_PLOTS_LONG <- 8
 PALETTE <- structure(
@@ -31,8 +32,8 @@ SMOOTH_VARIANTS <- c("20I/501Y.V1", "20A", "20B")
 
 # ----- READ DATA ----- #
 
-query <- "SELECT country FROM metadata GROUP BY country HAVING COUNT(*) > 200"
-metadata <- covar::read_sql(DB_PATH, query)
+query <- "SELECT country FROM metadata GROUP BY country HAVING COUNT(*) > 200 AND MAX(collection_date) > ?"
+metadata <- covar::read_sql(DB_PATH, query, bind=list(as.character(lubridate::`%m-%`(lubridate::ymd(LINEAGE_DATE_CLEAN),months(3)))))
 
 regions <- metadata$country
 # regions <- c('Poland', 'Czech Republic', 'Germany')
@@ -126,6 +127,7 @@ for (region in regions) {
 
     nextclade_input <- covar::clean_nextclade(
       df = nextclade_subset,
+      alarm_clade = ALARM_CLADE,
       alarm_mutation = ALARM_MUTATION,
       alarm_pattern = ALARM_PATTERN,
       other_level = description_input["other_level", "names"]
@@ -329,16 +331,19 @@ for (region in regions) {
     ggplot2::ggsave(plot = plots[['pl_loc_1']], file = paste0(dir_prefix, "liczba_loc_1.svg"), width = 8, height = th, limitsize = FALSE)
     ggplot2::ggsave(plot = plots[['pl_loc_2']], file = paste0(dir_prefix, "liczba_loc_2.svg"), width = 8, height = th, limitsize = FALSE)
 
-    ggplot2::ggsave(plot = plots[['pl_var_1']], file = paste0(dir_prefix, "liczba_warianty_1.svg"), width = 8, height = 3)
+    ggplot2::ggsave(plot = plots[['pl_var_1']], file = paste0(dir_prefix, "liczba_warianty_1.svg"), width = 8, height = 5)
     ggplot2::ggsave(plot = plots[['pl_var_2']], file = paste0(dir_prefix, "liczba_warianty_2.svg"), width = 8, height = 3)
-    ggplot2::ggsave(plot = plots[['pl_var_3']], file = paste0(dir_prefix, "liczba_warianty_3.svg"), width = 8, height = 3)
+    ggplot2::ggsave(plot = plots[['pl_var_3']], file = paste0(dir_prefix, "liczba_warianty_3.svg"), width = 8, height = 5)
     ggplot2::ggsave(plot = plots[['pl_var_4']], file = paste0(dir_prefix, "liczba_warianty_4.svg"), width = 8, height = 3)
     ggplot2::ggsave(plot = plots[['pl_var_5']], file = paste0(dir_prefix, "liczba_warianty_5.png"), width = 8, height = 5)
 
-    ggplot2::ggsave(plot = plots[['pl_var_all_1']], file = paste0(dir_prefix, "udzial_warianty_1.svg"), width = 5.5, height = 3.5)
-    ggplot2::ggsave(plot = plots[['pl_var_all_2']], file = paste0(dir_prefix, "udzial_warianty_2.svg"), width = 5.5, height = 3.5)
-    ggplot2::ggsave(plot = plots[['pl_var_all_3']], file = paste0(dir_prefix, "udzial_warianty_3.svg"), width = 5.5, height = 3.5)
-    ggplot2::ggsave(plot = plots[['pl_var_all_4']], file = paste0(dir_prefix, "udzial_warianty_4.svg"), width = 5.5, height = 3.5)
+    # pre v1.1.0 it was 5.5/3.5
+    tw <- 4 
+    th <- 2.5 
+    ggplot2::ggsave(plot = plots[['pl_var_all_1']], file = paste0(dir_prefix, "udzial_warianty_1.svg"), width = tw, height = th)
+    ggplot2::ggsave(plot = plots[['pl_var_all_2']], file = paste0(dir_prefix, "udzial_warianty_2.svg"), width = tw, height = th)
+    ggplot2::ggsave(plot = plots[['pl_var_all_3']], file = paste0(dir_prefix, "udzial_warianty_3.svg"), width = tw, height = th)
+    ggplot2::ggsave(plot = plots[['pl_var_all_4']], file = paste0(dir_prefix, "udzial_warianty_4.svg"), width = tw, height = th)
 
     if ('pl_map' %in% names(plots)) {
       ggplot2::ggsave(plot = plots[['pl_map']], file = paste0(dir_prefix, "mapa_mutacje.svg"), width = 10, height = 5)

@@ -15,6 +15,7 @@ plot_pango_facet <- function(df,
     label = variant,
     date = as.character(ymd(lineage_date) %m-% months(NO_MONTHS_PLOTS)),
     n = max(variant)
+    # n = variant
   )
 
   rm('df')
@@ -33,11 +34,15 @@ plot_pango_facet <- function(df,
     scale_x_date("", date_breaks = "1 month", date_labels = "%m",
                  limits = c(ymd(lineage_date) %m-% months(no_months_plots), ymd(lineage_date))) +
     #  scale_x_date("", date_breaks = "2 months", date_labels = "%m") +
+    # facet_wrap(~variant, ncol = 5, scales = "free_y") +
     facet_wrap(~variant, ncol = 5) +
     theme_minimal(base_family = "Arial") +
-    scale_y_continuous("", expand = c(0, 0)) +
-    ggtitle(title) +
-    theme(legend.position = "none")
+    scale_y_log10(
+      breaks = scales::trans_breaks("log10", function(x) 10^x),
+      labels = scales::trans_format("log10", scales::math_format(10^.x)),
+      name = "", expand = c(0, 0), n.breaks = 4) +
+    ggtitle(title) + labs(x = NULL, y = NULL) + 
+    theme(legend.position = "none", plot.margin = margin(4, 4, 0, 4))
 
   p$plot_env <- rlang::new_environment()
   p
@@ -58,9 +63,7 @@ plot_pango_cumulative <- function(df,
   variant <- tab[nrow(tab),]
   counts <- data.frame(
     variant = factor(names(variant), levels = names(variant)),
-    label = variant,
-    date = "2020/03/01",
-    n = max(variant)
+    label = variant
   )
   counts <- counts[counts$variant %in% alarm_pango,]
 
@@ -82,9 +85,12 @@ plot_pango_cumulative <- function(df,
     scale_x_date("", date_breaks = "2 weeks", date_labels = "%m/%d",
                  limits = c(ymd(lineage_date) %m-% months(no_months_plots_long), ymd(lineage_date))) +
     theme_minimal(base_family = "Arial") +
-    scale_y_continuous("", expand = c(0, 0)) +
-    ggtitle(title) +
-    theme(legend.position = "none")
+    scale_y_log10(
+      breaks = scales::trans_breaks("log10", function(x) 10^x),
+      labels = scales::trans_format("log10", scales::math_format(10^.x)),
+      name = "", expand = c(0, 0), n.breaks = 4) +
+    ggtitle(title) + labs(x = NULL, y = NULL) + 
+    theme(legend.position = "none", plot.margin = unit(c(5.5, 5.5, 2, 5.5), "pt"))
 
   p$plot_env <- rlang::new_environment()
   p

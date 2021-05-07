@@ -12,7 +12,8 @@ plot_sequence_count <- function(df,
     theme_minimal(base_family = "Arial") +
     scale_x_date("", date_breaks = "2 months", date_labels = "%m") +
     scale_y_continuous("", expand = c(0, 0)) +
-    ggtitle(title)
+    ggtitle(title) + labs(x = NULL, y = NULL) + 
+    theme(plot.margin = margin(4, 4, 0, 4))
 
   p$plot_env <- rlang::new_environment()
   p
@@ -30,11 +31,13 @@ plot_sequence_cumulative <- function(df,
   rm('df')
 
   p <- ggplot(tab_df, aes(x = ymd(Var1), ymin = 0, ymax = cumsum(Freq))) +
-    pammtools::geom_stepribbon() + geom_hline(yintercept = 0) +
+    pammtools::geom_stepribbon() +
+    geom_hline(yintercept = 0) +
     theme_minimal(base_family = "Arial") +
     scale_x_date("", date_breaks = "2 months", date_labels = "%m") +
     scale_y_continuous("", expand = c(0, 0)) +
-    ggtitle(title)
+    ggtitle(title) + labs(x = NULL, y = NULL) + 
+    theme(plot.margin = margin(4, 4, 0, 4))
 
   p$plot_env <- rlang::new_environment()
   p
