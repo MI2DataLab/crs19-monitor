@@ -32,8 +32,8 @@ SMOOTH_VARIANTS <- c("20I/501Y.V1", "20A", "20B")
 
 # ----- READ DATA ----- #
 
-query <- "SELECT country FROM metadata GROUP BY country HAVING COUNT(*) > 200"
-metadata <- covar::read_sql(DB_PATH, query)
+query <- "SELECT country FROM metadata GROUP BY country HAVING COUNT(*) > 200 AND MAX(collection_date) > ?"
+metadata <- covar::read_sql(DB_PATH, query, bind=list(as.character(lubridate::`%m-%`(lubridate::ymd(LINEAGE_DATE_CLEAN),months(3)))))
 
 regions <- metadata$country
 # regions <- c('Poland', 'Czech Republic', 'Germany')
