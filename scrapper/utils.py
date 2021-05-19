@@ -35,7 +35,8 @@ def init_db(db_path):
                           gisaid_pango VARCHAR(32) NULL,
                           is_meta_loaded BIT NOT NULL DEFAULT 0,
                           is_variant_loaded BIT NOT NULL DEFAULT 0,
-                          is_pango_loaded INT NOT NULL DEFAULT 0
+                          is_pango_loaded INT NOT NULL DEFAULT 0,
+                          last_meta_load_try DATE NOT NULL DEFAULT '1970-11-03'
     )""")
     con.commit()
 
