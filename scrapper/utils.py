@@ -27,6 +27,7 @@ def init_db(db_path):
                           originating_lab TEXT NULL,
                           submitting_lab TEXT NULL,
                           country VARCHAR(32) NULL,
+                          continent VARCHAR(32) NULL,
                           sex VARCHAR(32) NULL,
                           age INT NULL,
                           substitutions VARCHAR(64) NULL,
@@ -73,17 +74,15 @@ def get_number_of_files(dir: str):
     return n_files
 
 
-def extract_country(location: str):
+def extract_location(location: str, level=0):
     """
-    Returns country from location string
+    Returns location at given level from location string
     """
-    l = location.split("/")
-    if len(l) < 2:
+    locs = location.split("/")
+    if len(locs) <= level:
         return None
 
-    c = l[1].rstrip(" ").lstrip(" ")
-
-    return c
+    return locs[level].rstrip(" ").lstrip(" ")
 
 
 def fix_metadata_table(input_handle, output_handle, delim='\t'):
