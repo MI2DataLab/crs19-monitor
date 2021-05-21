@@ -118,6 +118,9 @@ class Api:
         """
         Filters by given region
         """
+        if region == '':
+            self.print_log('Skipping region selection')
+            return
         self.print_log("Setting region to %s" % region, end='   ')
 
         input_region = self.driver.find_element_by_class_name("sys-event-hook.sys-fi-mark.yui-ac-input")
