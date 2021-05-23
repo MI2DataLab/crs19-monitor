@@ -7,6 +7,7 @@ clean_metadata <- function(df) {
 
   location_from <- sapply(strsplit(df$location, split = "/"), `[`, 3,
                           simplify = TRUE, USE.NAMES = FALSE)
+  location_from[is.na(location_from)] <- 'NA'
   df$LocationRaw <- location_from
   location_to <- location_dict_from_to[location_from]
   location_to[is.na(names(location_to))] <- NA

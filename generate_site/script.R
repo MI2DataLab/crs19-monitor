@@ -32,17 +32,18 @@ SMOOTH_VARIANTS <- c("20I/501Y.V1", "20A", "20B")
 
 # ----- READ DATA ----- #
 
-query <- "SELECT country FROM metadata GROUP BY country HAVING COUNT(*) > 200 AND MAX(collection_date) > ?"
+query <- "SELECT continent || ' / ' || country as country from metadata where cast(collection_date as text) > ? group by country,continent having count(*) > 500 order by continent,country"
 metadata <- covar::read_sql(DB_PATH, query, bind=list(as.character(lubridate::`%m-%`(lubridate::ymd(LINEAGE_DATE_CLEAN),months(3)))))
 
 regions <- metadata$country
-# regions <- c('Poland', 'Czech Republic', 'Germany')
+print(regions)
+#regions <- c('Poland', 'Czech Republic', 'Germany')
 
-lineage_full <- read.table(LINEAGE_PATH, sep = ",", header = TRUE, fileEncoding = "UTF-8")
+lineage_full <- read.table(LINEAGE_PATH, sep = ",", header = TRUE, fileEncoding = "UTF-8", quote="")
 colnames(lineage_full)[1:2] <- c('Sequence.name', 'Lineage')
 lineage_full$accession_id <- stringi::stri_extract_first_regex(lineage_full$Sequence.name, 'EPI_ISL_[0-9]+')
 
-nextclade_full <- read.table(NEXTCLADE_PATH, sep = "\t", header = TRUE, fileEncoding = "UTF-8")
+nextclade_full <- read.table(NEXTCLADE_PATH, sep = "\t", header = TRUE, fileEncoding = "UTF-8", quote="")
 nextclade_full$accession_id <- stringi::stri_extract_first_regex(nextclade_full$seqName, 'EPI_ISL_[0-9]+')
 
 cat(paste('full pango rows:', nrow(lineage_full), '\n'))
@@ -80,7 +81,7 @@ for (region in regions) {
 
   # ----- READ DATA ----- #
 
-  query <- "SELECT * FROM metadata WHERE country = ? AND substr(collection_date,1,4) >= '2019'"
+  query <- "SELECT accession_id,location,submission_date,cast(collection_date as text) as collection_date,country,continent FROM metadata WHERE continent || ' / ' || country = ? AND substr(cast(collection_date as text),1,4) >= '2019'"
   metadata <- covar::read_sql(DB_PATH, query, bind = list(region))
 
   cat(paste('found', nrow(metadata), 'rows in database \n'))
@@ -260,7 +261,7 @@ for (region in regions) {
         title = description_input["pl_var_all_4_tit", "names"]
       )
 
-    if (region == "Poland") {
+    if (region == "Europe / Poland") {
       path <- "./map/pl-voi.shp"
       map <- covar::read_map(path)
 
@@ -284,7 +285,7 @@ for (region in regions) {
 
   # ----- CREATE OUTPUT DIR----- #
 
-  REGION_CLEAN <- gsub(" ", "_", stringr::str_squish(gsub("[^a-z0-9 ]", "", tolower(region))))
+  REGION_CLEAN <- gsub("europe_", "", gsub(" ", "_", stringr::str_squish(gsub("[^a-z0-9 ]", "", tolower(region)))))
   OUTPUT_DATE_REGION_PATH <- paste0(OUTPUT_DATE_PATH, '/', REGION_CLEAN)
 
   dir.create(paste0(OUTPUT_DATE_REGION_PATH, '/', 'images'), recursive = TRUE, showWarnings = FALSE)
@@ -359,7 +360,7 @@ for (region in regions) {
 regions_list <- lapply(regions, function(name) {
   list(
     name = name,
-    dir = gsub(" ", "_", stringr::str_squish(gsub("[^a-z0-9 ]", "", tolower(name))))
+    dir = gsub("europe_", "", gsub(" ", "_", stringr::str_squish(gsub("[^a-z0-9 ]", "", tolower(name)))))
   )
 })
 write(jsonlite::toJSON(regions_list, auto_unbox = TRUE), paste0(OUTPUT_DATE_PATH, '/regions.json'))

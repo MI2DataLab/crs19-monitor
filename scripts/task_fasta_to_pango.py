@@ -29,5 +29,7 @@ for f in input_files:
         if out != 0:
             sys.exit(out >> 8)
 
-out = os.system('bash -c "awk \'(NR == 1) || (FNR > 1)\' ' + pango_output_dir + '/*.csv' + ' > ' + pango_merged_file + '"')
+os.environ["PANGO_DIR"] = pango_output_dir
+os.environ['PANGO_MERGED_FILE'] = pango_merged_file
+out = os.system('bash -c "source ~/.bashrc && source ' + conda_sh_path + ' && cd ' + work_dir + ' && conda activate crs19 && python merge_results.py"')
 sys.exit(out >> 8)

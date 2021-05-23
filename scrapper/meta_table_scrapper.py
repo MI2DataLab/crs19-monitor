@@ -5,7 +5,7 @@ import sqlite3
 import pandas as pd
 
 from api import Api
-from utils import extract_country, repeater
+from utils import extract_location, repeater
 
 
 class ScrappingMetaHistory:
@@ -96,10 +96,11 @@ def scrap_meta_table(region, db_path, start_date, end_date, history, log_dir, cr
     # pylint: disable=unused-variable
     for index, row in df_clean.iterrows():
         if row['Accession ID'] not in duplicated:
-            country = extract_country(row['Location'])
+            continent = extract_location(row['Location'], 0)
+            country = extract_location(row['Location'], 1)
             cur.execute(
-                """INSERT INTO metadata (accession_id, passage, submission_date, collection_date, host, location, originating_lab, submitting_lab, country) VALUES (?,?,?,?,?,?,?,?,?)""",
-                (row['Accession ID'], row['Passage details/history'], row['Submission Date'], row['Collection date'], row['Host'], row['Location'], row['Originating lab'], row['Submitting lab'], country))
+                """INSERT INTO metadata (accession_id, passage, submission_date, collection_date, host, location, originating_lab, submitting_lab, country, continent) VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                (row['Accession ID'], row['Passage details/history'], row['Submission Date'], row['Collection date'], row['Host'], row['Location'], row['Originating lab'], row['Submitting lab'], country, continent))
     con.commit()
     con.close()
     return

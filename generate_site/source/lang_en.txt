@@ -18,7 +18,7 @@ pl_map_sub1:Sum for the 3 months preceding
 pl_map_sub2:Sum for the month preceding
 pl_map_pt1:Proportion of sequences with the mutation
 pl_map_pt2:in the regions
-site_title:Monitor of SARS-CoV-2 variants in Europe
+site_title:Monitor of SARS-CoV-2 variants
 site_and:and
 site_date:Date
 site_country:Country

@@ -15,3 +15,5 @@ for file_name in files:
         print('Failed reading %s' % file_name)
 merged = pd.concat(dataframes)[['seqName', 'clade']]
 merged.to_csv(output_file, sep='\t', index=False)
+os.system('cat ' + output_file + ' | grep -v "Unable to align" |grep -v "In sequence" > ' + output_file + '.tmp')
+os.system('mv ' + output_file + '.tmp ' + output_file)

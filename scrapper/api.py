@@ -6,7 +6,8 @@ import pandas as pd
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.common.exceptions import (ElementClickInterceptedException,
-                                        NoSuchWindowException)
+                                        NoSuchWindowException,
+                                        WebDriverException)
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support.select import Select
 
@@ -117,6 +118,9 @@ class Api:
         """
         Filters by given region
         """
+        if region == '':
+            self.print_log('Skipping region selection')
+            return
         self.print_log("Setting region to %s" % region, end='   ')
 
         input_region = self.driver.find_element_by_class_name("sys-event-hook.sys-fi-mark.yui-ac-input")
@@ -221,7 +225,10 @@ class Api:
         self.driver.find_element_by_xpath(("//button[contains(., 'Select')]")).click()
         self.wait_for_timer()
         self._find_and_switch_to_iframe()
-        self.driver.find_element_by_class_name("sys-event-hook.sys-fi-mark.sys-form-fi-multiline").send_keys(ids_str)
+        ids_input = self.driver.find_element_by_class_name("sys-event-hook.sys-fi-mark.sys-form-fi-multiline")
+        ids_input.clear()
+        self.driver.execute_script('arguments[0].value=arguments[1]', ids_input, ids_str)
+        ids_input.send_keys(' ')
         self.wait_for_timer()
         self.driver.find_element_by_xpath(("//button[contains(., 'OK')]")).click()
         time.sleep(3)
@@ -235,6 +242,8 @@ class Api:
                 self.driver.switch_to.default_content()
         except NoSuchWindowException:
             self.driver.switch_to.default_content()
+        except WebDriverException:
+            self.driver.switch_to.default_content()
         self.wait_for_timer()
 
     def start_downloading_augur(self):
@@ -246,6 +255,7 @@ class Api:
 
         self.driver.find_element_by_xpath(("//button[contains(., 'Download')]")).click()
         self.wait_for_timer()
+        self.driver.switch_to.default_content()
 
     def start_downloading_fasta(self):
         self.driver.find_element_by_xpath(("//button[contains(., 'Download')]")).click()
@@ -253,6 +263,7 @@ class Api:
 
         self.driver.find_element_by_xpath(("//button[contains(., 'Download')]")).click()
         self.wait_for_timer()
+        self.driver.switch_to.default_content()
 
     def get_filter_options(self, field):
         """
