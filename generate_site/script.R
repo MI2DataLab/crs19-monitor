@@ -67,30 +67,14 @@ for (region in regions) {
                                     sep = ":", header = TRUE, row.names = 1,
                                     fileEncoding = "UTF-8", quote = NULL)
 
-    query <- "
-      select week_start, sum(count) as count
-      from dates
-               join (select collection_date as date, count(*) as count
-                     from sequences
-                     where continent = ? AND country = ?
-                     group by date) as B on B.date = dates.date
-      group by week_start
-    "
-    df <- covar::read_sql(DB_PATH, query, list(continent, country))
+    df <- covar::load_sequence_count(DB_PATH, continent, country)
     plots_output[[lang]][['pl_seq_1']] <-
       covar::plot_sequence_count(
         df = df,
         title = description_input["pl_seq_1_tit", "names"]
       )
 
-    query <- "
-      select collection_date as date, count(*) as count
-      from sequences
-      where continent = ?
-        AND country = ?
-      group by date
-    "
-    df <- covar::read_sql(DB_PATH, query, list(continent, country))
+    df <- covar::load_sequence_cumulative(DB_PATH, continent, country)
     plots_output[[lang]][['pl_seq_2']] <-
       covar::plot_sequence_cumulative(
         df = df,
@@ -98,51 +82,7 @@ for (region in regions) {
       )
 
 
-    query <- "
-    select is_alarm, count, date, C.pango, B.pango_count
-    from (select pango.pango, is_alarm, pango_count
-          from pango
-                   join
-               (select our_pango as pango, count(*) as pango_count
-                from sequences
-                where continent = $CONTINENT
-                  and country = $COUNTRY
-                group by pango) as D on D.pango = pango.pango
-          order by is_alarm desc, pango_count desc
-          limit 15) as B
-             join (
-        select our_pango as pango, 0 as count, $MINDATE as date
-        from sequences
-        where continent = $CONTINENT
-          AND country = $COUNTRY
-        group by pango
-        having min(collection_date) > $MINDATE
-        UNION ALL
-        select our_pango as pango, count(*) as count, $MINDATE as date
-        from sequences
-        where continent = $CONTINENT
-          AND country = $COUNTRY
-          AND collection_date <= $MINDATE
-        group by pango
-        UNION ALL
-        select our_pango as pango, count(*) as count, collection_date as date
-        from sequences
-        where continent = $CONTINENT
-          AND country = $COUNTRY
-          AND date > $MINDATE
-        group by date, pango
-        UNION ALL
-        select our_pango as pango, 0 as count, $MAXDATE as date
-        from sequences
-        where continent = $CONTINENT
-          and country = $COUNTRY
-        group by our_pango
-        having max(collection_date) < $MAXDATE
-    ) as C on C.pango = B.pango
-    ORDER BY pango_count desc, date;
-    "
-    df <- covar::read_sql(DB_PATH, query, list(CONTINENT=continent, COUNTRY=country, MINDATE=START_DATE_LONG, MAXDATE=LINEAGE_DATE))
-
+    df <- covar::load_pango(DB_PATH, continent, country, START_DATE_LONG, LINEAGE_DATE)
     plots_output[[lang]][['pl_var_1']] <-
       covar::plot_pango_facet(
         df = df,
@@ -150,7 +90,6 @@ for (region in regions) {
         no_months_plots = NO_MONTHS_PLOTS,
         title = description_input["pl_var_1_tit", "names"]
       )
-
     plots_output[[lang]][['pl_var_2']] <-
       covar::plot_pango_cumulative(
         df = df,
@@ -160,51 +99,7 @@ for (region in regions) {
       )
 
 
-    query <- "
-    select is_alarm, count, date, C.clade, B.clade_count
-    from (select clade.clade, is_alarm, clade_count
-          from clade
-                   join
-               (select our_clade as clade, count(*) as clade_count
-                from sequences
-                where continent = $CONTINENT
-                  and country = $COUNTRY
-                group by clade) as D on D.clade = clade.clade
-          order by is_alarm desc, clade_count desc
-          limit 15) as B
-             join (
-        select our_clade as clade, 0 as count, $MINDATE as date
-        from sequences
-        where continent = $CONTINENT
-          AND country = $COUNTRY
-        group by clade
-        having min(collection_date) > $MINDATE
-        UNION ALL
-        select our_clade as clade, count(*) as count, $MINDATE as date
-        from sequences
-        where continent = $CONTINENT
-          AND country = $COUNTRY
-          AND collection_date <= $MINDATE
-        group by clade
-        UNION ALL
-        select our_clade as clade, count(*) as count, collection_date as date
-        from sequences
-        where continent = $CONTINENT
-          AND country = $COUNTRY
-          AND date > $MINDATE
-        group by date, clade
-        UNION ALL
-        select our_clade as clade, 0 as count, $MAXDATE as date
-        from sequences
-        where continent = $CONTINENT
-          and country = $COUNTRY
-        group by our_clade
-        having max(collection_date) < $MAXDATE
-    ) as C on C.clade = B.clade
-    ORDER BY clade_count desc, date;
-    "
-    df <- covar::read_sql(DB_PATH, query, list(CONTINENT=continent, COUNTRY=country, MINDATE=START_DATE_LONG, MAXDATE=LINEAGE_DATE))
-
+    df <- covar::load_clade(DB_PATH, continent, country, START_DATE_LONG, LINEAGE_DATE)
     plots_output[[lang]][['pl_var_3']] <-
       covar::plot_clade_facet(
         df = df,
@@ -212,7 +107,6 @@ for (region in regions) {
         no_months_plots = NO_MONTHS_PLOTS,
         title = description_input["pl_var_3_tit", "names"]
       )
-
     plots_output[[lang]][['pl_var_4']] <-
       covar::plot_clade_cumulative(
         df = df,
@@ -222,21 +116,7 @@ for (region in regions) {
       )
 
 
-    query <- "
-    select color, collection_date, submission_date
-    from clade
-             join (select collection_date, submission_date, our_clade
-                   from sequences
-                   where continent = $CONTINENT
-                     AND country = $COUNTRY
-                     AND collection_date IS NOT NULL
-                     AND submission_date IS NOT NULL
-                     AND submission_date > $MIN_SUBMISSION_DATE
-                     AND collection_date > $MIN_COLLECTION_DATE) AS B on clade.clade = B.our_clade
-    ORDER BY RANDOM();
-    "
-    df <- covar::read_sql(DB_PATH, query, list(CONTINENT=continent, COUNTRY=country, MIN_SUBMISSION_DATE=as.character(ymd(START_DATE) %m+% months(1)), MIN_COLLECTION_DATE=START_DATE))
-
+    df <- covar::load_metadata_dates(DB_PATH, continent, country, ymd(START_DATE) %m+% months(1), START_DATE)
     plots_output[[lang]][['pl_var_5']] <-
       covar::plot_metadata_dates(
         df = df,
@@ -248,25 +128,7 @@ for (region in regions) {
       )
 
 
-    query <- "
-    select B.state, is_alarm, count(*) as count, week_start
-    from sequences
-             join(select continent, country, state
-                  from sequences
-                  where continent = $CONTINENT
-                    and country = $COUNTRY
-                  group by continent, country, state
-                  order by count(*) desc
-                  limit $LIMIT) as B
-                 on sequences.continent = B.continent AND sequences.country = B.country AND sequences.state = B.state
-             join dates on sequences.collection_date = dates.date
-             join clade on sequences.our_clade = clade.clade
-    where week_start > $MIN_DATE
-    group by B.state, is_alarm, week_start
-    order by week_start, B.state;
-    "
-    df <- covar::read_sql(DB_PATH, query, list(CONTINENT=continent, COUNTRY=country, LIMIT=25, MIN_DATE=START_DATE))
-
+    df <- covar::load_location(DB_PATH, continent, country, START_DATE, 25)
     plots_output[[lang]][['pl_loc_1']] <-
       covar::plot_location_count(
         df = df,
@@ -274,7 +136,6 @@ for (region in regions) {
         no_months_plots = NO_MONTHS_PLOTS,
         title = description_input["pl_loc_1_tit", "names"]
       )
-
     plots_output[[lang]][['pl_loc_2']] <-
       covar::plot_location_proportion(
         df = df,
@@ -283,22 +144,7 @@ for (region in regions) {
         title = description_input["pl_loc_2_tit", "names"]
       )
 
-    query <- "
-    select color, count, week_start, C.clade
-    from clade
-             join (select week_start, clade, sum(count) as count
-                   from dates
-                            join (select collection_date as date, our_clade as clade, count(*) as count
-                                  from sequences
-                                  where continent = ?
-                                    AND country = ?
-                                    AND collection_date > ?
-                                  group by date, clade) as B on B.date = dates.date
-                   where week_start > ?
-                   group by week_start, clade) as C on C.clade = clade.clade
-    "
-    df <- covar::read_sql(DB_PATH, query, list(continent, country, START_DATE, START_DATE))
-
+    df <- covar::load_variant_col(DB_PATH, continent, country, START_DATE)
     plots_output[[lang]][['pl_var_all_2']] <-
       covar::plot_variant_col_fill(
         df = df,
@@ -306,7 +152,6 @@ for (region in regions) {
         no_months_plots = NO_MONTHS_PLOTS,
         title = description_input["pl_var_all_2_tit", "names"]
       )
-
     plots_output[[lang]][['pl_var_all_3']] <-
       covar::plot_variant_col_stack(
         df = df,
@@ -316,21 +161,9 @@ for (region in regions) {
       )
 
 
-    query <- "
-    select color, count, date, C.clade
-    from clade
-             join (select collection_date as date, our_clade as clade, count(*) as count
-                   from sequences
-                   where continent = ?
-                     AND country = ?
-                     AND collection_date > ?
-                   group by date, clade) as C on C.clade = clade.clade
-    "
-    df <- covar::read_sql(DB_PATH, query, list(continent, country, START_DATE))
-
     # add +k days for reporting lag
     k <- 7
-
+    df <- covar::load_variant_point(DB_PATH, continent, country, START_DATE)
     plots_output[[lang]][['pl_var_all_1']] <-
       covar::plot_variant_area(
         df = df,
@@ -339,7 +172,6 @@ for (region in regions) {
         no_months_plots = NO_MONTHS_PLOTS,
         title = description_input["pl_var_all_1_tit", "names"]
       )
-
     plots_output[[lang]][['pl_var_all_4']] <-
       covar::plot_variant_point_smooth(
         df = df,
