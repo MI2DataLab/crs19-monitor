@@ -6,49 +6,23 @@ devtools::install_local('../r-package/', force=TRUE)
 
 DB_PATH <- Sys.getenv('DB_PATH')
 OUTPUT_PATH <- Sys.getenv('OUTPUT_PATH')
-LINEAGE_PATH <- Sys.getenv("LINEAGE_REPORT_PATH")
-NEXTCLADE_PATH <- Sys.getenv("NEXTCLADE_REPORT_PATH")
 LINEAGE_DATE <- Sys.getenv('LINEAGE_DATE')
-
-LINEAGE_DATE_CLEAN <- gsub('/', '-', LINEAGE_DATE)
-OUTPUT_DATE_PATH <- paste0(OUTPUT_PATH, '/', LINEAGE_DATE_CLEAN)
+LINEAGE_DATE <- gsub('/', '-', LINEAGE_DATE)
+OUTPUT_DATE_PATH <- paste0(OUTPUT_PATH, '/', LINEAGE_DATE)
 LANGUAGES <- c('pl', 'en')
-
-# https://covariants.org/shared-mutations
-ALARM_MUTATION <- "N501Y"
-ALARM_PATTERN <- "501Y"
-ALARM_PANGO <- c("B.1.1.7", "B.1.351", "P.1", "P.2", "B.1.427", "B.1.429", "B.1.526", "B.1.525", "B.1.617", "B.1.617.1", "B.1.617.2")
-ALARM_CLADE <- c("20I/501Y.V1","20H/501Y.V2", "20J/501Y.V3", "20B/S.484K", "20C/S.452R",  "20C/S.484K",  "20A/S.484K", "20A/S.154K", "20A/S.478K")
-MAX_REGIONS <- 24
 NO_MONTHS_PLOTS <- 4
 NO_MONTHS_PLOTS_LONG <- 8
-PALETTE <- structure(
-  c("#E9C622", "#51A4B8", "#E5BC13", "#67AFBF", "#E1B103",
-    "#82B8B6", "#E58600", "#ACC07E", "#3B9AB2", "#7F00FF", "#EB5000", "#F21A00"),
-  .Names = c("20A.EU2", "19A", "20D", "19B", "20C", "20E (EU1)",
-             "20G", "20A", "20B", "20J/501Y.V3", "20H/501Y.V2", "20I/501Y.V1"))
-SMOOTH_VARIANTS <- c("20I/501Y.V1", "20A", "20B")
-
+library(lubridate)
+START_DATE <- as.character(ymd(LINEAGE_DATE) %m-% months(NO_MONTHS_PLOTS))
+START_DATE_LONG <- as.character(ymd(LINEAGE_DATE) %m-% months(NO_MONTHS_PLOTS_LONG))
 
 # ----- READ DATA ----- #
+query <- "SELECT continent, country, continent || ' / ' || country as label from sequences where cast(collection_date as text) > ? group by country,continent having count(*) > 500 order by continent,country"
+metadata <- covar::read_sql(DB_PATH, query, bind=list(as.character(lubridate::`%m-%`(lubridate::ymd(LINEAGE_DATE),months(3)))))
 
-query <- "SELECT continent || ' / ' || country as country from metadata where cast(collection_date as text) > ? group by country,continent having count(*) > 500 order by continent,country"
-metadata <- covar::read_sql(DB_PATH, query, bind=list(as.character(lubridate::`%m-%`(lubridate::ymd(LINEAGE_DATE_CLEAN),months(3)))))
-
-regions <- metadata$country
+regions <- split(metadata, seq(nrow(metadata)))
 print(regions)
 #regions <- c('Poland', 'Czech Republic', 'Germany')
-
-lineage_full <- read.table(LINEAGE_PATH, sep = ",", header = TRUE, fileEncoding = "UTF-8", quote="")
-colnames(lineage_full)[1:2] <- c('Sequence.name', 'Lineage')
-lineage_full$accession_id <- stringi::stri_extract_first_regex(lineage_full$Sequence.name, 'EPI_ISL_[0-9]+')
-
-nextclade_full <- read.table(NEXTCLADE_PATH, sep = "\t", header = TRUE, fileEncoding = "UTF-8", quote="")
-nextclade_full$accession_id <- stringi::stri_extract_first_regex(nextclade_full$seqName, 'EPI_ISL_[0-9]+')
-
-cat(paste('full pango rows:', nrow(lineage_full), '\n'))
-cat(paste('full nextclade rows:', nrow(nextclade_full), '\n'))
-
 
 # ----- SUMMARY ----- #
 
@@ -76,36 +50,9 @@ cat('--- CREATE REPORTS \n')
 
 for (region in regions) {
 
-  cat(paste('-- REGION:', region, '\n'))
-
-
-  # ----- READ DATA ----- #
-
-  query <- "SELECT accession_id,location,submission_date,cast(collection_date as text) as collection_date,country,continent FROM metadata WHERE continent || ' / ' || country = ? AND substr(cast(collection_date as text),1,4) >= '2019'"
-  metadata <- covar::read_sql(DB_PATH, query, bind = list(region))
-
-  cat(paste('found', nrow(metadata), 'rows in database \n'))
-
-  # filter data by region
-  lineage_subset <- subset(lineage_full, accession_id %in% metadata$accession_id)
-  nextclade_subset <- subset(nextclade_full, accession_id %in% metadata$accession_id)
-
-  cat(paste('region pango rows:', nrow(lineage_subset), '\n'))
-  cat(paste('region nextclade rows:', nrow(nextclade_subset), '\n'))
-
-  DATE_LAST_SAMPLE <- max(lubridate::ymd(metadata$collection_date), na.rm = TRUE)
-
-  # add location
-  metadata_input <- covar::clean_metadata(metadata)
-
-  # find misspelled data
-  misspelled_rows <- is.na(metadata_input$LocationClean)
-  misspelled_locations <- as.data.frame(table(metadata_input$location[misspelled_rows]))
-
-  cat(paste("there are", sum(misspelled_rows), "unique misspelled rows \n"))
-  cat(paste("there are", nrow(misspelled_locations), "misspelled locations / TOP5: \n"))
-  print(head(arrange(misspelled_locations, -Freq), 5))
-
+  cat(paste('-- REGION:', region$label, '\n'))
+  continent <- region$continent
+  country <- region$country
 
   # ----- ITERATE OVER LANGUAGES ----- #
 
@@ -120,38 +67,85 @@ for (region in regions) {
                                     sep = ":", header = TRUE, row.names = 1,
                                     fileEncoding = "UTF-8", quote = NULL)
 
-    lineage_input <- covar::clean_lineage(
-      df = lineage_subset,
-      alarm_pango = ALARM_PANGO,
-      other_level = description_input["other_level", "names"]
-    )
-
-    nextclade_input <- covar::clean_nextclade(
-      df = nextclade_subset,
-      alarm_clade = ALARM_CLADE,
-      alarm_mutation = ALARM_MUTATION,
-      alarm_pattern = ALARM_PATTERN,
-      other_level = description_input["other_level", "names"]
-    )
-
-    metadata_nextclade <- merge(metadata_input, nextclade_input, by = "accession_id")
-
+    query <- "
+      select week_start, sum(count) as count
+      from dates
+               join (select collection_date as date, count(*) as count
+                     from sequences
+                     where continent = ? AND country = ?
+                     group by date) as B on B.date = dates.date
+      group by week_start
+    "
+    df <- covar::read_sql(DB_PATH, query, list(continent, country))
     plots_output[[lang]][['pl_seq_1']] <-
       covar::plot_sequence_count(
-        df = lineage_input,
+        df = df,
         title = description_input["pl_seq_1_tit", "names"]
       )
 
+    query <- "
+      select collection_date as date, count(*) as count
+      from sequences
+      where continent = ?
+        AND country = ?
+      group by date
+    "
+    df <- covar::read_sql(DB_PATH, query, list(continent, country))
     plots_output[[lang]][['pl_seq_2']] <-
       covar::plot_sequence_cumulative(
-        df = lineage_input,
+        df = df,
         title = description_input["pl_seq_2_tit", "names"]
       )
 
+
+    query <- "
+    select is_alarm, count, date, C.pango, B.pango_count
+    from (select pango.pango, is_alarm, pango_count
+          from pango
+                   join
+               (select our_pango as pango, count(*) as pango_count
+                from sequences
+                where continent = $CONTINENT
+                  and country = $COUNTRY
+                group by pango) as D on D.pango = pango.pango
+          order by is_alarm desc, pango_count desc
+          limit 15) as B
+             join (
+        select our_pango as pango, 0 as count, $MINDATE as date
+        from sequences
+        where continent = $CONTINENT
+          AND country = $COUNTRY
+        group by pango
+        having min(collection_date) > $MINDATE
+        UNION ALL
+        select our_pango as pango, count(*) as count, $MINDATE as date
+        from sequences
+        where continent = $CONTINENT
+          AND country = $COUNTRY
+          AND collection_date <= $MINDATE
+        group by pango
+        UNION ALL
+        select our_pango as pango, count(*) as count, collection_date as date
+        from sequences
+        where continent = $CONTINENT
+          AND country = $COUNTRY
+          AND date > $MINDATE
+        group by date, pango
+        UNION ALL
+        select our_pango as pango, 0 as count, $MAXDATE as date
+        from sequences
+        where continent = $CONTINENT
+          and country = $COUNTRY
+        group by our_pango
+        having max(collection_date) < $MAXDATE
+    ) as C on C.pango = B.pango
+    ORDER BY pango_count desc, date;
+    "
+    df <- covar::read_sql(DB_PATH, query, list(CONTINENT=continent, COUNTRY=country, MINDATE=START_DATE_LONG, MAXDATE=LINEAGE_DATE))
+
     plots_output[[lang]][['pl_var_1']] <-
       covar::plot_pango_facet(
-        df = lineage_input,
-        alarm_pango = ALARM_PANGO,
+        df = df,
         lineage_date = LINEAGE_DATE,
         no_months_plots = NO_MONTHS_PLOTS,
         title = description_input["pl_var_1_tit", "names"]
@@ -159,17 +153,61 @@ for (region in regions) {
 
     plots_output[[lang]][['pl_var_2']] <-
       covar::plot_pango_cumulative(
-        df = lineage_input,
-        alarm_pango = ALARM_PANGO,
+        df = df,
         lineage_date = LINEAGE_DATE,
         no_months_plots_long = NO_MONTHS_PLOTS_LONG,
         title = description_input["pl_var_2_tit", "names"]
       )
 
+
+    query <- "
+    select is_alarm, count, date, C.clade, B.clade_count
+    from (select clade.clade, is_alarm, clade_count
+          from clade
+                   join
+               (select our_clade as clade, count(*) as clade_count
+                from sequences
+                where continent = $CONTINENT
+                  and country = $COUNTRY
+                group by clade) as D on D.clade = clade.clade
+          order by is_alarm desc, clade_count desc
+          limit 15) as B
+             join (
+        select our_clade as clade, 0 as count, $MINDATE as date
+        from sequences
+        where continent = $CONTINENT
+          AND country = $COUNTRY
+        group by clade
+        having min(collection_date) > $MINDATE
+        UNION ALL
+        select our_clade as clade, count(*) as count, $MINDATE as date
+        from sequences
+        where continent = $CONTINENT
+          AND country = $COUNTRY
+          AND collection_date <= $MINDATE
+        group by clade
+        UNION ALL
+        select our_clade as clade, count(*) as count, collection_date as date
+        from sequences
+        where continent = $CONTINENT
+          AND country = $COUNTRY
+          AND date > $MINDATE
+        group by date, clade
+        UNION ALL
+        select our_clade as clade, 0 as count, $MAXDATE as date
+        from sequences
+        where continent = $CONTINENT
+          and country = $COUNTRY
+        group by our_clade
+        having max(collection_date) < $MAXDATE
+    ) as C on C.clade = B.clade
+    ORDER BY clade_count desc, date;
+    "
+    df <- covar::read_sql(DB_PATH, query, list(CONTINENT=continent, COUNTRY=country, MINDATE=START_DATE_LONG, MAXDATE=LINEAGE_DATE))
+
     plots_output[[lang]][['pl_var_3']] <-
       covar::plot_clade_facet(
-        df = nextclade_input,
-        alarm_pattern = ALARM_PATTERN,
+        df = df,
         lineage_date = LINEAGE_DATE,
         no_months_plots = NO_MONTHS_PLOTS,
         title = description_input["pl_var_3_tit", "names"]
@@ -177,17 +215,31 @@ for (region in regions) {
 
     plots_output[[lang]][['pl_var_4']] <-
       covar::plot_clade_cumulative(
-        df = nextclade_input,
-        alarm_clade = ALARM_CLADE,
+        df = df,
         lineage_date = LINEAGE_DATE,
         no_months_plots_long = NO_MONTHS_PLOTS_LONG,
         title = description_input["pl_var_4_tit", "names"]
       )
 
+
+    query <- "
+    select color, collection_date, submission_date
+    from clade
+             join (select collection_date, submission_date, our_clade
+                   from sequences
+                   where continent = $CONTINENT
+                     AND country = $COUNTRY
+                     AND collection_date IS NOT NULL
+                     AND submission_date IS NOT NULL
+                     AND submission_date > $MIN_SUBMISSION_DATE
+                     AND collection_date > $MIN_COLLECTION_DATE) AS B on clade.clade = B.our_clade
+    ORDER BY RANDOM();
+    "
+    df <- covar::read_sql(DB_PATH, query, list(CONTINENT=continent, COUNTRY=country, MIN_SUBMISSION_DATE=as.character(ymd(START_DATE) %m+% months(1)), MIN_COLLECTION_DATE=START_DATE))
+
     plots_output[[lang]][['pl_var_5']] <-
       covar::plot_metadata_dates(
-        df = metadata_nextclade,
-        alarm_pattern = ALARM_PATTERN,
+        df = df,
         lineage_date = LINEAGE_DATE,
         no_months_plots = NO_MONTHS_PLOTS,
         xlab = description_input["pl_var_5_scx", "names"],
@@ -195,97 +247,133 @@ for (region in regions) {
         title = description_input["pl_var_5_tit", "names"]
       )
 
+
+    query <- "
+    select B.state, is_alarm, count(*) as count, week_start
+    from sequences
+             join(select continent, country, state
+                  from sequences
+                  where continent = $CONTINENT
+                    and country = $COUNTRY
+                  group by continent, country, state
+                  order by count(*) desc
+                  limit $LIMIT) as B
+                 on sequences.continent = B.continent AND sequences.country = B.country AND sequences.state = B.state
+             join dates on sequences.collection_date = dates.date
+             join clade on sequences.our_clade = clade.clade
+    where week_start > $MIN_DATE
+    group by B.state, is_alarm, week_start
+    order by week_start, B.state;
+    "
+    df <- covar::read_sql(DB_PATH, query, list(CONTINENT=continent, COUNTRY=country, LIMIT=25, MIN_DATE=START_DATE))
+
     plots_output[[lang]][['pl_loc_1']] <-
       covar::plot_location_count(
-        df = metadata_nextclade,
-        max_regions = MAX_REGIONS,
+        df = df,
         lineage_date = LINEAGE_DATE,
         no_months_plots = NO_MONTHS_PLOTS,
-        other_level = description_input["other_level", "names"],
         title = description_input["pl_loc_1_tit", "names"]
       )
 
     plots_output[[lang]][['pl_loc_2']] <-
       covar::plot_location_proportion(
-        df = metadata_nextclade,
-        max_regions = MAX_REGIONS,
+        df = df,
         lineage_date = LINEAGE_DATE,
         no_months_plots = NO_MONTHS_PLOTS,
-        other_level = description_input["other_level", "names"],
         title = description_input["pl_loc_2_tit", "names"]
       )
 
+    query <- "
+    select color, count, week_start, C.clade
+    from clade
+             join (select week_start, clade, sum(count) as count
+                   from dates
+                            join (select collection_date as date, our_clade as clade, count(*) as count
+                                  from sequences
+                                  where continent = ?
+                                    AND country = ?
+                                    AND collection_date > ?
+                                  group by date, clade) as B on B.date = dates.date
+                   where week_start > ?
+                   group by week_start, clade) as C on C.clade = clade.clade
+    "
+    df <- covar::read_sql(DB_PATH, query, list(continent, country, START_DATE, START_DATE))
+
     plots_output[[lang]][['pl_var_all_2']] <-
       covar::plot_variant_col_fill(
-        df = nextclade_input,
-        alarm_clade = ALARM_CLADE,
+        df = df,
         lineage_date = LINEAGE_DATE,
-        palette = PALETTE,
         no_months_plots = NO_MONTHS_PLOTS,
         title = description_input["pl_var_all_2_tit", "names"]
       )
 
     plots_output[[lang]][['pl_var_all_3']] <-
       covar::plot_variant_col_stack(
-        df = nextclade_input,
-        alarm_clade = ALARM_CLADE,
+        df = df,
         lineage_date = LINEAGE_DATE,
-        palette = PALETTE,
         no_months_plots = NO_MONTHS_PLOTS,
         title = description_input["pl_var_all_3_tit", "names"]
       )
+
+
+    query <- "
+    select color, count, date, C.clade
+    from clade
+             join (select collection_date as date, our_clade as clade, count(*) as count
+                   from sequences
+                   where continent = ?
+                     AND country = ?
+                     AND collection_date > ?
+                   group by date, clade) as C on C.clade = clade.clade
+    "
+    df <- covar::read_sql(DB_PATH, query, list(continent, country, START_DATE))
 
     # add +k days for reporting lag
     k <- 7
 
     plots_output[[lang]][['pl_var_all_1']] <-
       covar::plot_variant_area(
-        df = nextclade_input,
+        df = df,
         k = k,
-        alarm_clade = ALARM_CLADE,
         lineage_date = LINEAGE_DATE,
-        palette = PALETTE,
         no_months_plots = NO_MONTHS_PLOTS,
         title = description_input["pl_var_all_1_tit", "names"]
       )
 
     plots_output[[lang]][['pl_var_all_4']] <-
       covar::plot_variant_point_smooth(
-        df = nextclade_input,
+        df = df,
         k = k,
-        smooth_variants = SMOOTH_VARIANTS,
-        alarm_clade = ALARM_CLADE,
         lineage_date = LINEAGE_DATE,
-        palette = PALETTE,
         no_months_plots = NO_MONTHS_PLOTS,
         title = description_input["pl_var_all_4_tit", "names"]
       )
 
-    if (region == "Europe / Poland") {
-      path <- "./map/pl-voi.shp"
-      map <- covar::read_map(path)
+    #if (region == "Europe / Poland") {
+    #  path <- "./map/pl-voi.shp"
+    #  map <- covar::read_map(path)
 
-      plots_output[[lang]][['pl_map']] <-
-        covar::plot_map(
-          df = metadata_nextclade,
-          map = map,
-          alarm_mutation = ALARM_MUTATION,
-          date_last_sample = DATE_LAST_SAMPLE,
-          max_regions = MAX_REGIONS,
-          other_level = description_input["other_level", "names"],
-          subtitle1 = paste(description_input["pl_map_sub1", "names"], DATE_LAST_SAMPLE),
-          subtitle2 = paste(description_input["pl_map_sub2", "names"], DATE_LAST_SAMPLE),
-          title = paste(description_input["pl_map_pt1", "names"],
-                        ALARM_MUTATION,
-                        description_input["pl_map_pt2", "names"])
-        )
-    }
+    #  plots_output[[lang]][['pl_map']] <-
+    #    covar::plot_map(
+    #      df = metadata_nextclade,
+    #      map = map,
+    #      alarm_mutation = ALARM_MUTATION,
+    #      date_last_sample = DATE_LAST_SAMPLE,
+    #      max_regions = MAX_REGIONS,
+    #      other_level = description_input["other_level", "names"],
+    #      subtitle1 = paste(description_input["pl_map_sub1", "names"], DATE_LAST_SAMPLE),
+    #      subtitle2 = paste(description_input["pl_map_sub2", "names"], DATE_LAST_SAMPLE),
+    #      title = paste(description_input["pl_map_pt1", "names"],
+    #                    ALARM_MUTATION,
+    #                    description_input["pl_map_pt2", "names"])
+    #    )
+    #}
   }
 
 
   # ----- CREATE OUTPUT DIR----- #
 
-  REGION_CLEAN <- gsub("europe_", "", gsub(" ", "_", stringr::str_squish(gsub("[^a-z0-9 ]", "", tolower(region)))))
+  REGION_CLEAN <- gsub("europe_", "", gsub(" ", "_", stringr::str_squish(gsub("[^a-z0-9 ]", "", tolower(region$label)))))
   OUTPUT_DATE_REGION_PATH <- paste0(OUTPUT_DATE_PATH, '/', REGION_CLEAN)
 
   dir.create(paste0(OUTPUT_DATE_REGION_PATH, '/', 'images'), recursive = TRUE, showWarnings = FALSE)
@@ -293,20 +381,20 @@ for (region in regions) {
 
   # ----- CREATE HTML ----- #
 
-  tab <- table(lineage_input$date, lineage_input$pango_small)
-  variants <- head(colnames(tab)[-ncol(tab)], 7)
-  variants_list <- paste0(paste0('<a href="https://cov-lineages.org/lineages/lineage_', variants, '.html">', variants, '</a>'), collapse = ",\n")
-  variants2 <- head(colnames(tab), 5)
-  variants2_list <- paste0(paste0('<a href="https://www.cdc.gov/coronavirus/2019-ncov/more/science-and-research/scientific-brief-emerging-variants.html">', variants2, '</a>'), collapse = ",\n")
+  #tab <- table(lineage_input$date, lineage_input$pango_small)
+  #variants <- head(colnames(tab)[-ncol(tab)], 7)
+  #variants_list <- paste0(paste0('<a href="https://cov-lineages.org/lineages/lineage_', variants, '.html">', variants, '</a>'), collapse = ",\n")
+  #variants2 <- head(colnames(tab), 5)
+  #variants2_list <- paste0(paste0('<a href="https://www.cdc.gov/coronavirus/2019-ncov/more/science-and-research/scientific-brief-emerging-variants.html">', variants2, '</a>'), collapse = ",\n")
 
   placeholders <- list(
-    DATE = LINEAGE_DATE_CLEAN,
-    NUMBER = nrow(lineage_input),
-    DATELAST = max(lineage_input$date),
-    VARIANTSLIST = variants_list,
-    VARIANTS = length(unique(lineage_input$Lineage)),
-    VARIANTSLIST2 = variants2_list,
-    VARIANTS2 = length(colnames(tab))
+    DATE = LINEAGE_DATE,
+    NUMBER = 0,#nrow(lineage_input),
+    DATELAST = "",#max(lineage_input$date),
+    VARIANTSLIST = "", #variants_list,
+    VARIANTS = 0, #length(unique(lineage_input$Lineage)),
+    VARIANTSLIST2 = "", #variants2_list,
+    VARIANTS2 = 0#length(colnames(tab))
   )
   write(jsonlite::toJSON(placeholders, auto_unbox = TRUE), paste0(OUTPUT_DATE_REGION_PATH, '/placeholders.json'))
   file.copy('./source/index_source.html', paste0(OUTPUT_DATE_REGION_PATH, '/index.html'), overwrite = TRUE)
@@ -328,7 +416,8 @@ for (region in regions) {
     ggplot2::ggsave(plot = plots[['pl_seq_1']], file = paste0(dir_prefix, "liczba_seq_1.svg"), width = 4, height = 2.5)
     ggplot2::ggsave(plot = plots[['pl_seq_2']], file = paste0(dir_prefix, "liczba_seq_2.svg"), width = 4, height = 2.5)
 
-    th <- ceiling(attr(plots[['pl_loc_1']], "n_unique_regions") / 5) * 5 / 4
+    #th <- ceiling(attr(plots[['pl_loc_1']], "n_unique_regions") / 5) * 5 / 4
+    th <- 4
     ggplot2::ggsave(plot = plots[['pl_loc_1']], file = paste0(dir_prefix, "liczba_loc_1.svg"), width = 8, height = th, limitsize = FALSE)
     ggplot2::ggsave(plot = plots[['pl_loc_2']], file = paste0(dir_prefix, "liczba_loc_2.svg"), width = 8, height = th, limitsize = FALSE)
 
@@ -346,9 +435,9 @@ for (region in regions) {
     ggplot2::ggsave(plot = plots[['pl_var_all_3']], file = paste0(dir_prefix, "udzial_warianty_3.svg"), width = tw, height = th)
     ggplot2::ggsave(plot = plots[['pl_var_all_4']], file = paste0(dir_prefix, "udzial_warianty_4.svg"), width = tw, height = th)
 
-    if ('pl_map' %in% names(plots)) {
-      ggplot2::ggsave(plot = plots[['pl_map']], file = paste0(dir_prefix, "mapa_mutacje.svg"), width = 10, height = 5)
-    }
+    #if ('pl_map' %in% names(plots)) {
+    #  ggplot2::ggsave(plot = plots[['pl_map']], file = paste0(dir_prefix, "mapa_mutacje.svg"), width = 10, height = 5)
+    #}
 
     save(plots, file = paste0(dir_prefix, 'gg_objects.rda'))
   }
@@ -357,10 +446,10 @@ for (region in regions) {
 
 # ----- REGIONS ----- #
 
-regions_list <- lapply(regions, function(name) {
+regions_list <- lapply(regions, function(region) {
   list(
-    name = name,
-    dir = gsub("europe_", "", gsub(" ", "_", stringr::str_squish(gsub("[^a-z0-9 ]", "", tolower(name)))))
+    name = region$label,
+    dir = gsub("europe_", "", gsub(" ", "_", stringr::str_squish(gsub("[^a-z0-9 ]", "", tolower(region$label)))))
   )
 })
 write(jsonlite::toJSON(regions_list, auto_unbox = TRUE), paste0(OUTPUT_DATE_PATH, '/regions.json'))
