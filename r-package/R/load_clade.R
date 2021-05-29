@@ -45,3 +45,19 @@ load_clade <- function(db_path, continent, country, start_date, end_date) {
   "
   read_sql(db_path, query, list(CONTINENT=continent, COUNTRY=country, MINDATE=start_date, MAXDATE=end_date))
 }
+
+#' @export
+load_clade_count <- function(db_path, continent, country) {
+  query <- "
+  select clade.clade, count, is_alarm
+  from clade
+           join (
+      select our_clade as clade, count(*) as count
+      from sequences
+      where continent = $CONTINENT
+        AND country = $COUNTRY
+      group by clade
+      order by count desc) as B on B.clade = clade.clade;
+  "
+  read_sql(db_path, query, list(CONTINENT=continent, COUNTRY=country))
+}

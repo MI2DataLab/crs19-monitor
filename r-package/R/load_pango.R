@@ -45,3 +45,19 @@ load_pango <- function(db_path, continent, country, start_date, end_date) {
   "
   read_sql(db_path, query, list(CONTINENT=continent, COUNTRY=country, MINDATE=start_date, MAXDATE=end_date))
 }
+
+#' @export
+load_pango_count <- function(db_path, continent, country) {
+  query <- "
+  select pango.pango, count, is_alarm
+  from pango
+           join (
+      select our_pango as pango, count(*) as count
+      from sequences
+      where continent = $CONTINENT
+        AND country = $COUNTRY
+      group by pango
+      order by count desc) as B on B.pango = pango.pango;
+  "
+  read_sql(db_path, query, list(CONTINENT=continent, COUNTRY=country))
+}

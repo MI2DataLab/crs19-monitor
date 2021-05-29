@@ -24,3 +24,14 @@ load_sequence_cumulative <- function(db_path, continent, country) {
   "
   read_sql(db_path, query, list(continent, country))
 }
+
+#' @export
+load_sequence_stats <- function(db_path, continent, country) {
+  query <- "
+    select count(*) as count, max(collection_date) as last_collection_date
+    from sequences
+    where continent = ?
+      AND country = ?
+  "
+  read_sql(db_path, query, list(continent, country))
+}

@@ -21,6 +21,7 @@ query <- "SELECT continent, country, continent || ' / ' || country as label from
 metadata <- covar::read_sql(DB_PATH, query, bind=list(as.character(lubridate::`%m-%`(lubridate::ymd(LINEAGE_DATE),months(3)))))
 
 regions <- split(metadata, seq(nrow(metadata)))
+names(regions) <- NULL
 print(regions)
 #regions <- c('Poland', 'Czech Republic', 'Germany')
 
@@ -129,6 +130,7 @@ for (region in regions) {
 
 
     df <- covar::load_location(DB_PATH, continent, country, START_DATE, 25)
+    n_unique_regions <- length(unique(df$state))
     plots_output[[lang]][['pl_loc_1']] <-
       covar::plot_location_count(
         df = df,
@@ -180,26 +182,6 @@ for (region in regions) {
         no_months_plots = NO_MONTHS_PLOTS,
         title = description_input["pl_var_all_4_tit", "names"]
       )
-
-    #if (region == "Europe / Poland") {
-    #  path <- "./map/pl-voi.shp"
-    #  map <- covar::read_map(path)
-
-    #  plots_output[[lang]][['pl_map']] <-
-    #    covar::plot_map(
-    #      df = metadata_nextclade,
-    #      map = map,
-    #      alarm_mutation = ALARM_MUTATION,
-    #      date_last_sample = DATE_LAST_SAMPLE,
-    #      max_regions = MAX_REGIONS,
-    #      other_level = description_input["other_level", "names"],
-    #      subtitle1 = paste(description_input["pl_map_sub1", "names"], DATE_LAST_SAMPLE),
-    #      subtitle2 = paste(description_input["pl_map_sub2", "names"], DATE_LAST_SAMPLE),
-    #      title = paste(description_input["pl_map_pt1", "names"],
-    #                    ALARM_MUTATION,
-    #                    description_input["pl_map_pt2", "names"])
-    #    )
-    #}
   }
 
 
@@ -212,21 +194,20 @@ for (region in regions) {
 
 
   # ----- CREATE HTML ----- #
-
-  #tab <- table(lineage_input$date, lineage_input$pango_small)
-  #variants <- head(colnames(tab)[-ncol(tab)], 7)
-  #variants_list <- paste0(paste0('<a href="https://cov-lineages.org/lineages/lineage_', variants, '.html">', variants, '</a>'), collapse = ",\n")
-  #variants2 <- head(colnames(tab), 5)
-  #variants2_list <- paste0(paste0('<a href="https://www.cdc.gov/coronavirus/2019-ncov/more/science-and-research/scientific-brief-emerging-variants.html">', variants2, '</a>'), collapse = ",\n")
+  df_pango <- covar::load_pango_count(DB_PATH, continent, country)
+  variants_pango_list <- paste0(paste0('<a href="https://cov-lineages.org/lineages/lineage_', head(df_pango$pango, 7), '.html">', head(df_pango$pango, 7), '</a>'), collapse = ",\n")
+  df_clade <- covar::load_clade_count(DB_PATH,continent, country)
+  variants_clade_list <- paste0(paste0('<a href="https://www.cdc.gov/coronavirus/2019-ncov/more/science-and-research/scientific-brief-emerging-variants.html">', head(df_clade$clade, 7), '</a>'), collapse = ",\n")
+  df_stats <- covar::load_sequence_stats(DB_PATH, continent, country)
 
   placeholders <- list(
     DATE = LINEAGE_DATE,
-    NUMBER = 0,#nrow(lineage_input),
-    DATELAST = "",#max(lineage_input$date),
-    VARIANTSLIST = "", #variants_list,
-    VARIANTS = 0, #length(unique(lineage_input$Lineage)),
-    VARIANTSLIST2 = "", #variants2_list,
-    VARIANTS2 = 0#length(colnames(tab))
+    NUMBER = df_stats$count,
+    DATELAST = df_stats$last_collection_date,
+    VARIANTSLIST = variants_pango_list,
+    VARIANTS = nrow(df_pango),
+    VARIANTSLIST2 = variants_clade_list,
+    VARIANTS2 = nrow(df_clade)
   )
   write(jsonlite::toJSON(placeholders, auto_unbox = TRUE), paste0(OUTPUT_DATE_REGION_PATH, '/placeholders.json'))
   file.copy('./source/index_source.html', paste0(OUTPUT_DATE_REGION_PATH, '/index.html'), overwrite = TRUE)
@@ -248,8 +229,7 @@ for (region in regions) {
     ggplot2::ggsave(plot = plots[['pl_seq_1']], file = paste0(dir_prefix, "liczba_seq_1.svg"), width = 4, height = 2.5)
     ggplot2::ggsave(plot = plots[['pl_seq_2']], file = paste0(dir_prefix, "liczba_seq_2.svg"), width = 4, height = 2.5)
 
-    #th <- ceiling(attr(plots[['pl_loc_1']], "n_unique_regions") / 5) * 5 / 4
-    th <- 4
+    th <- ceiling(n_unique_regions / 5) * 5 / 4
     ggplot2::ggsave(plot = plots[['pl_loc_1']], file = paste0(dir_prefix, "liczba_loc_1.svg"), width = 8, height = th, limitsize = FALSE)
     ggplot2::ggsave(plot = plots[['pl_loc_2']], file = paste0(dir_prefix, "liczba_loc_2.svg"), width = 8, height = th, limitsize = FALSE)
 
@@ -266,10 +246,6 @@ for (region in regions) {
     ggplot2::ggsave(plot = plots[['pl_var_all_2']], file = paste0(dir_prefix, "udzial_warianty_2.svg"), width = tw, height = th)
     ggplot2::ggsave(plot = plots[['pl_var_all_3']], file = paste0(dir_prefix, "udzial_warianty_3.svg"), width = tw, height = th)
     ggplot2::ggsave(plot = plots[['pl_var_all_4']], file = paste0(dir_prefix, "udzial_warianty_4.svg"), width = tw, height = th)
-
-    #if ('pl_map' %in% names(plots)) {
-    #  ggplot2::ggsave(plot = plots[['pl_map']], file = paste0(dir_prefix, "mapa_mutacje.svg"), width = 10, height = 5)
-    #}
 
     save(plots, file = paste0(dir_prefix, 'gg_objects.rda'))
   }
