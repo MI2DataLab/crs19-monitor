@@ -2,20 +2,21 @@ import os
 import glob
 import sys
 from datetime import datetime
-from config import repo_path, site_dist, clean_db_path, remotes, rsync_remotes
+from config import repo_path, site_dist, clean_db_path, remotes, rsync_remotes, log_db_path, conda_sh_path, tmp_dir
 
 work_dir = repo_path + '/generate_site'
 exec_path = "script.R"
 main_region = 'Poland'
 
-os.environ["LINEAGE_DATE"] = datetime.today().strftime('%Y/%m/%d')
-os.environ["DB_PATH"] = clean_db_path
-os.environ["MAIN_REGION"] = main_region
+os.environ["GENERATION_DATE"] = datetime.today().strftime('%Y-%m-%d')
+os.environ["CLEAN_DB"] = clean_db_path
+os.environ["LOG_DB"] = log_db_path
 os.environ["OUTPUT_PATH"] = site_dist
+os.environ["TMP_DIR"] = tmp_dir 
 
 out = 0
 if not os.environ.get('NOT_BUILD'):
-    out = os.system('cd ' + work_dir + ' && Rscript ' + exec_path)
+    out = os.system('bash -c "source ' + conda_sh_path + ' && cd ' + work_dir + ' && conda activate crs19 && python script.py"')
 
 if out == 0 and not os.environ.get('NOT_PUSH'):
     for remote in remotes:

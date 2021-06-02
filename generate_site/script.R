@@ -7,29 +7,29 @@ if (Sys.getenv("INSTALL_PACKAGE") == "1") {
 # ----- LOAD PACKAGES ----- #
 
 suppressMessages(library(dplyr))
-library(tidyr)
+suppressMessages(library(tidyr))
 options(dplyr.summarise.inform = FALSE)
-library(lubridate)
+suppressMessages(library(lubridate))
 
 # ----- GLOBAL VARS ----- #
 
-DB_PATH <- Sys.getenv('DB_PATH')
-LINEAGE_DATE <- Sys.getenv('LINEAGE_DATE')
-LINEAGE_DATE <- gsub('/', '-', LINEAGE_DATE)
+DB_PATH <- Sys.getenv('CLEAN_DB')
+TIME_LOG_PATH <- Sys.getenv('TIME_LOG_PATH')
+GENERATION_DATE <- Sys.getenv('GENERATION_DATE')
 OUTPUT_DATE_REGION_PATH <- Sys.getenv('OUTPUT_DATE_REGION_PATH')
 continent <- Sys.getenv('CONTINENT')
 country <- Sys.getenv('COUNTRY')
 LANGUAGES <- c('pl', 'en')
 NO_MONTHS_PLOTS <- 4
 NO_MONTHS_PLOTS_LONG <- 8
-START_DATE <- as.character(ymd(LINEAGE_DATE) %m-% months(NO_MONTHS_PLOTS))
-START_DATE_LONG <- as.character(ymd(LINEAGE_DATE) %m-% months(NO_MONTHS_PLOTS_LONG))
+START_DATE <- as.character(ymd(GENERATION_DATE) %m-% months(NO_MONTHS_PLOTS))
+START_DATE_LONG <- as.character(ymd(GENERATION_DATE) %m-% months(NO_MONTHS_PLOTS_LONG))
 
 # ----- ITERATE OVER LANGUAGES ----- #
 # log for time elapsed on different tasks
 time_log <- list()
 measure_time <- function(expr, name, type, lang) {
-  time <- system.time(expr)['elapsed']
+  time <- as.numeric(system.time(expr)['elapsed'])
   time_log[[length(time_log) + 1]] <<- list(name=name, type=type, lang=lang, time=time)
 }
 
@@ -70,7 +70,7 @@ for (lang in LANGUAGES) {
   )
 
   measure_time(
-    df <- covar::load_pango(DB_PATH, continent, country, START_DATE_LONG, LINEAGE_DATE),
+    df <- covar::load_pango(DB_PATH, continent, country, START_DATE_LONG, GENERATION_DATE),
     'pango', 'load', lang
   )
 
@@ -78,7 +78,7 @@ for (lang in LANGUAGES) {
     plots_output[[lang]][['pl_var_1']] <-
       covar::plot_pango_facet(
         df = df,
-        lineage_date = LINEAGE_DATE,
+        lineage_date = GENERATION_DATE,
         no_months_plots = NO_MONTHS_PLOTS,
         title = description_input["pl_var_1_tit", "names"]
       ),
@@ -88,7 +88,7 @@ for (lang in LANGUAGES) {
     plots_output[[lang]][['pl_var_2']] <-
       covar::plot_pango_cumulative(
         df = df,
-        lineage_date = LINEAGE_DATE,
+        lineage_date = GENERATION_DATE,
         no_months_plots_long = NO_MONTHS_PLOTS_LONG,
         title = description_input["pl_var_2_tit", "names"]
       ),
@@ -97,14 +97,14 @@ for (lang in LANGUAGES) {
 
 
   measure_time(
-    df <- covar::load_clade(DB_PATH, continent, country, START_DATE_LONG, LINEAGE_DATE),
+    df <- covar::load_clade(DB_PATH, continent, country, START_DATE_LONG, GENERATION_DATE),
     'clade', 'load', lang
   )
   measure_time(
     plots_output[[lang]][['pl_var_3']] <-
       covar::plot_clade_facet(
         df = df,
-        lineage_date = LINEAGE_DATE,
+        lineage_date = GENERATION_DATE,
         no_months_plots = NO_MONTHS_PLOTS,
         title = description_input["pl_var_3_tit", "names"]
       ),
@@ -114,7 +114,7 @@ for (lang in LANGUAGES) {
     plots_output[[lang]][['pl_var_4']] <-
       covar::plot_clade_cumulative(
         df = df,
-        lineage_date = LINEAGE_DATE,
+        lineage_date = GENERATION_DATE,
         no_months_plots_long = NO_MONTHS_PLOTS_LONG,
         title = description_input["pl_var_4_tit", "names"]
       ),
@@ -130,7 +130,7 @@ for (lang in LANGUAGES) {
     plots_output[[lang]][['pl_var_5']] <-
       covar::plot_metadata_dates(
         df = df,
-        lineage_date = LINEAGE_DATE,
+        lineage_date = GENERATION_DATE,
         no_months_plots = NO_MONTHS_PLOTS,
         xlab = description_input["pl_var_5_scx", "names"],
         ylab = description_input["pl_var_5_scy", "names"],
@@ -149,7 +149,7 @@ for (lang in LANGUAGES) {
     plots_output[[lang]][['pl_loc_1']] <-
       covar::plot_location_count(
         df = df,
-        lineage_date = LINEAGE_DATE,
+        lineage_date = GENERATION_DATE,
         no_months_plots = NO_MONTHS_PLOTS,
         title = description_input["pl_loc_1_tit", "names"]
       ),
@@ -159,7 +159,7 @@ for (lang in LANGUAGES) {
     plots_output[[lang]][['pl_loc_2']] <-
       covar::plot_location_proportion(
         df = df,
-        lineage_date = LINEAGE_DATE,
+        lineage_date = GENERATION_DATE,
         no_months_plots = NO_MONTHS_PLOTS,
         title = description_input["pl_loc_2_tit", "names"]
       ),
@@ -174,7 +174,7 @@ for (lang in LANGUAGES) {
     plots_output[[lang]][['pl_var_all_2']] <-
       covar::plot_variant_col_fill(
         df = df,
-        lineage_date = LINEAGE_DATE,
+        lineage_date = GENERATION_DATE,
         no_months_plots = NO_MONTHS_PLOTS,
         title = description_input["pl_var_all_2_tit", "names"]
       ),
@@ -184,7 +184,7 @@ for (lang in LANGUAGES) {
     plots_output[[lang]][['pl_var_all_3']] <-
       covar::plot_variant_col_stack(
         df = df,
-        lineage_date = LINEAGE_DATE,
+        lineage_date = GENERATION_DATE,
         no_months_plots = NO_MONTHS_PLOTS,
         title = description_input["pl_var_all_3_tit", "names"]
       ),
@@ -203,7 +203,7 @@ for (lang in LANGUAGES) {
       covar::plot_variant_area(
         df = df,
         k = k,
-        lineage_date = LINEAGE_DATE,
+        lineage_date = GENERATION_DATE,
         no_months_plots = NO_MONTHS_PLOTS,
         title = description_input["pl_var_all_1_tit", "names"]
       ),
@@ -214,14 +214,13 @@ for (lang in LANGUAGES) {
       covar::plot_variant_point_smooth(
         df = df,
         k = k,
-        lineage_date = LINEAGE_DATE,
+        lineage_date = GENERATION_DATE,
         no_months_plots = NO_MONTHS_PLOTS,
         title = description_input["pl_var_all_4_tit", "names"]
       ),
     'variant_point_smooth', 'plot', lang
   )
 }
-
 # ----- CREATE OUTPUT DIR----- #
 dir.create(paste0(OUTPUT_DATE_REGION_PATH, '/', 'images'), recursive = TRUE, showWarnings = FALSE)
 
@@ -234,7 +233,7 @@ variants_clade_list <- paste0(paste0('<a href="https://www.cdc.gov/coronavirus/2
 df_stats <- covar::load_sequence_stats(DB_PATH, continent, country)
 
 placeholders <- list(
-  DATE = LINEAGE_DATE,
+  DATE = GENERATION_DATE,
   NUMBER = df_stats$count,
   DATELAST = df_stats$last_collection_date,
   VARIANTSLIST = variants_pango_list,
@@ -242,14 +241,14 @@ placeholders <- list(
   VARIANTSLIST2 = variants_clade_list,
   VARIANTS2 = nrow(df_clade)
 )
+
 write(jsonlite::toJSON(placeholders, auto_unbox = TRUE), paste0(OUTPUT_DATE_REGION_PATH, '/placeholders.json'))
-file.copy('./source/index_source.html', paste0(OUTPUT_DATE_REGION_PATH, '/index.html'), overwrite = TRUE)
+tmp <- file.copy('./source/index_source.html', paste0(OUTPUT_DATE_REGION_PATH, '/index.html'), overwrite = TRUE)
 
 covar::create_i18n(
   input_paths = sapply(LANGUAGES, function(lang) paste0("./source/lang_", lang, ".txt")),
   output_path = OUTPUT_DATE_REGION_PATH
 )
-
 
 # ----- SAVE PLOTS ----- #
 
@@ -325,4 +324,4 @@ for (lang in LANGUAGES) {
   )
 }
 
-do.call('rbind', time_log)
+write.csv(do.call('rbind', time_log), TIME_LOG_PATH, row.names=FALSE)
