@@ -66,9 +66,9 @@ for region in regions:
 
 # Run builds
 success = []
-for region in regions:
+for index, region in enumerate(regions):
     region['build_time'] = str(datetime.now())
-    print('Generating %s [%s]' % (region['label'], region['build_time']))
+    print('[%s / %s] Generating %s [%s]' % (index + 1, len(regions), region['label'], region['build_time']))
     print('Build dir: %s' % region['build_dir'])
     os.makedirs(region['build_dir'])
 

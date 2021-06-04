@@ -4,6 +4,23 @@ DROP TABLE IF EXISTS sequences;
 DROP TABLE IF EXISTS dates;
 DROP TABLE IF EXISTS pango;
 DROP TABLE IF EXISTS clade;
+DROP TABLE IF EXISTS geography;
+
+CREATE TABLE geography (
+  continent TEXT NOT NULL,
+  country TEXT NOT NULL,
+  state TEXT NOT NULL,
+  continent_iso_code TEXT NULL,
+  country_iso_code TEXT NULL,
+  state_iso_code TEXT NULL,
+  continent_lat FLOAT NULL,
+  country_lat FLOAT NULL,
+  state_lat FLOAT NULL,
+  continent_lng FLOAT NULL,
+  country_lng FLOAT NULL,
+  state_lng FLOAT NULL,
+  PRIMARY KEY(continent, country, state)
+);
 
 CREATE TABLE dates (
   date TEXT PRIMARY KEY NOT NULL,
@@ -54,7 +71,8 @@ CREATE TABLE sequences (
   FOREIGN KEY (submission_date) REFERENCES dates(date)
   FOREIGN KEY (our_pango) REFERENCES pango(pango),
   FOREIGN KEY (gisaid_pango) REFERENCES pango(pango),
-  FOREIGN KEY (our_clade) REFERENCES clade(clade)
+  FOREIGN KEY (our_clade) REFERENCES clade(clade),
+  FOREIGN KEY (continent, country, state) REFERENCES geography(continent, country, state)
 );
 CREATE INDEX location_index ON sequences(continent, country);
 CREATE INDEX our_pango_index ON sequences(our_pango);

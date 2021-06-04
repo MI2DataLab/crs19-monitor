@@ -131,43 +131,42 @@ def clean_sex(sex):
         return None
 
 
-def update_locations(raw_db, loc_db):
+def update_locations_level(loc_db, df):
     """
-    Adds new locations to locations db and updates counts
+    df - pandas dataframe with columns name, parent_id
     """
-    with sqlite3.connect(raw_db) as con:
-        raw = pd.read_sql('select accession_id, location from metadata', con)
     with sqlite3.connect(loc_db) as con:
-        simplified = pd.read_sql('select continent, country, simple_name, full_name from simplified', con)
-    raw['continent'] = [extract_location(x, 0) for x in raw['location']]
-    raw['country'] = [extract_location(x, 1) for x in raw['location']]
-    raw['raw_state'] = [extract_location(x, 2) for x in raw['location']]
-    raw['simple_name'] = [simplify_location(x) for x in raw['raw_state']]
+        mappings = pd.read_sql('select parent_id, simple_name, node_id from mappings', con)
 
-    # Get most popular full name of state for each simplified state name
-    stats_counts = raw.groupby(['continent', 'country', 'raw_state', 'simple_name']).size().reset_index(name='count')
-    most_popular_full_name = stats_counts.sort_values('count').groupby(['continent', 'country', 'simple_name'], sort=False).tail(1).rename(columns={'raw_state': 'popular_full_name'})
+    df['simple_name'] = [simplify_location(x) for x in df['name']]
+    if 'parent_id' not in df.columns:
+        df['parent_id'] = [1] * df.shape[0]
 
-    # Assign full name to simplified names from locations database
-    merged = pd.merge(most_popular_full_name, simplified, how='left', left_on=['continent', 'country', 'simple_name'], right_on=['continent', 'country', 'simple_name'])
+    # Get most popular name for each simplified name
+    stats_counts = df.groupby(['parent_id', 'simple_name', 'name']).size().reset_index(name='count')
+    most_popular_full_name = stats_counts.sort_values('count').groupby(['parent_id', 'simple_name'], sort=False).tail(1).rename(columns={'name': 'popular_name'})
+
+    # Assign node id to simplified names from locations database
+    merged = pd.merge(most_popular_full_name, mappings, how='left', left_on=['parent_id', 'simple_name'], right_on=['parent_id', 'simple_name'])
+
     # Rows not present in locations database
-    new_states = merged.loc[merged['full_name'].isnull()]
+    new_nodes = merged.loc[merged['node_id'].isnull()]
 
     # Count of each simplified name
-    count_stats = raw.groupby(['continent', 'country', 'simple_name']).size().reset_index(name='count')
+    count_stats = df.groupby(['parent_id', 'simple_name']).size().reset_index(name='count')
 
-    print('Adding %s new states to locations database' % new_states.shape[0])
-
-    # Add new states to locations db
+    print('Adding %s new nodes to locations database' % new_nodes.shape[0])
     # pylint: disable=unused-variable
     with sqlite3.connect(loc_db) as con:
         cur = con.cursor()
-        for index, row in new_states.iterrows():
-            cur.execute('INSERT INTO simplified (full_name, continent, country, simple_name) VALUES (?, ?, ?, ?)', (row['popular_full_name'], row['continent'], row['country'], row['simple_name']))
-        cur.execute('UPDATE simplified SET count = 0')
+        for index, row in new_nodes.iterrows():
+            cur.execute('INSERT INTO nodes (name) VALUES (?)', (row['popular_name'],))
+            cur.execute('INSERT INTO mappings (parent_id, simple_name, node_id) VALUES (?, ?, (SELECT MAX(id) FROM nodes))', (row['parent_id'], row['simple_name']))
         for index, row in count_stats.iterrows():
-            cur.execute('UPDATE simplified SET count = ? WHERE continent = ? AND country = ? AND simple_name = ?', (row['count'], row['continent'], row['country'], row['simple_name']))
+            cur.execute('UPDATE mappings SET count = ? WHERE simple_name = ? AND parent_id = ?', (row['count'], row['simple_name'], row['parent_id']))
         con.commit()
+        mappings = pd.read_sql('select parent_id, simple_name, node_id from mappings', con)
+        return pd.merge(df, mappings, how='left', left_on=['parent_id', 'simple_name'], right_on=['parent_id', 'simple_name'])['node_id'].tolist()
 
 
 def load_dates(clean_db, dates):
@@ -286,7 +285,7 @@ def load_substitutions(clean_db, raw_db, df):
                 frames = []
 
 
-def load(raw_db, loc_db, clean_db, pango_path, clades_path, clade_config_path, pango_config_path):
+def load(raw_db, loc_db, clean_db, pango_path, clades_path, clade_config_path, pango_config_path, skip_substitutions):
     """
     Cleans data and loads to new database
     """
@@ -297,16 +296,33 @@ def load(raw_db, loc_db, clean_db, pango_path, clades_path, clade_config_path, p
         ]
         raw = pd.read_sql('select ' + ','.join(columns) + ' from metadata', con)
     with sqlite3.connect(loc_db) as con:
-        simplified = pd.read_sql('select continent, country, simple_name, full_name from simplified', con)
+        cur = con.cursor()
+        cur.execute('UPDATE mappings SET count = 0')
+        loc_nodes = pd.read_sql('select name, id, iso_code, lat, lng from nodes', con)
 
     # Location cleaning
     print('Cleaning location')
-    raw['continent'] = [extract_location(x, 0) for x in raw['location']]
-    raw['country'] = [extract_location(x, 1) for x in raw['location']]
+    raw['raw_continent'] = [extract_location(x, 0) for x in raw['location']]
+    raw['raw_country'] = [extract_location(x, 1) for x in raw['location']]
     raw['raw_state'] = [extract_location(x, 2) for x in raw['location']]
-    raw['simple_name'] = [simplify_location(x) for x in raw['raw_state']]
-    raw = pd.merge(raw, simplified, how='left', left_on=['continent', 'country', 'simple_name'], right_on=['continent', 'country', 'simple_name'])
-    raw = raw.rename(columns={'full_name': 'state'}).drop(columns=['raw_state', 'simple_name', 'location'])
+    raw = raw.drop(columns=['location'])
+
+    raw['continent_id'] = update_locations_level(loc_db, raw[['raw_continent']].rename(columns={'raw_continent': 'name'}))
+    raw['country_id'] = update_locations_level(loc_db, raw[['raw_country', 'continent_id']].rename(columns={'continent_id': 'parent_id', 'raw_country': 'name'}))
+    raw['state_id'] = update_locations_level(loc_db, raw[['raw_state', 'country_id']].rename(columns={'country_id': 'parent_id', 'raw_state': 'name'}))
+
+    for pre in ['continent', 'country', 'state']:
+        raw = pd.merge(raw, loc_nodes, how='left', left_on=pre + '_id', right_on='id') \
+                .rename(columns={'name': pre, 'iso_code': pre + '_iso_code', 'lat': pre + '_lat', 'lng': pre + '_lng'}) \
+                .drop(columns=['id', pre + '_id', 'raw_' + pre])
+
+    print('Saving geography')
+    geography = raw.groupby(['continent', 'country', 'state']).first().reset_index()[[a + b for a in ['continent', 'country', 'state'] for b in ['', '_iso_code', '_lat', '_lng']]]
+    with sqlite3.connect(clean_db) as con:
+        geography.to_sql('geography', con, if_exists='append', index=None)
+
+    raw = raw.drop(columns=[a + b for a in ['continent', 'country', 'state'] for b in ['_iso_code', '_lat', '_lng']])
+    
 
     # Clean dates
     print('Cleaning date')
@@ -364,7 +380,8 @@ def load(raw_db, loc_db, clean_db, pango_path, clades_path, clade_config_path, p
         raw.to_sql('sequences', con, if_exists='append', index=None)
 
     # Substitutions
-    load_substitutions(clean_db, raw_db, substitutions)
+    if not skip_substitutions:
+        load_substitutions(clean_db, raw_db, substitutions)
 
 
 if __name__ == "__main__":
@@ -375,10 +392,10 @@ if __name__ == "__main__":
     CLADES_PATH = os.environ.get('CLADES_PATH')
     CLADE_CONFIG_PATH = os.environ.get('CLADE_CONFIG_PATH')
     PANGO_CONFIG_PATH = os.environ.get('PANGO_CONFIG_PATH')
+    SKIP_SUBSTITUTIONS = not os.environ.get('LOAD_SUBSTITUTIONS')
     print('Initializing database')
     init_db(CLEAN_DB_PATH)
     print('Creating locations database')
     init_locations_db(LOCATIONS_DB_PATH)
-    update_locations(RAW_DB_PATH, LOCATIONS_DB_PATH)
     print('Cleaning data')
-    load(RAW_DB_PATH, LOCATIONS_DB_PATH, CLEAN_DB_PATH, PANGO_PATH, CLADES_PATH, CLADE_CONFIG_PATH, PANGO_CONFIG_PATH)
+    load(RAW_DB_PATH, LOCATIONS_DB_PATH, CLEAN_DB_PATH, PANGO_PATH, CLADES_PATH, CLADE_CONFIG_PATH, PANGO_CONFIG_PATH, SKIP_SUBSTITUTIONS)
