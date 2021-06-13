@@ -5,11 +5,11 @@ plot_pango_facet <- function(df,
                              no_months_plots,
                              title = "") {
   # Add cummulative counts
-  df <- df %>% group_by(pango) %>% mutate(cum_count = cumsum(count), is_alarm=is_alarm==1) %>% ungroup
+  df <- df %>% group_by(label) %>% mutate(cum_count = cumsum(count), is_alarm=is_alarm==1) %>% ungroup
   # Fix order of facets
-  df$pango <- factor(df$pango, levels=unique(df$pango))
+  df$label <- factor(df$label, levels=unique(df$label))
   # Total counts
-  counts <- df %>% group_by(pango) %>% summarise(cum_count=sum(count), is_alarm=first(is_alarm), date=ymd(lineage_date) %m-% months(no_months_plots))
+  counts <- df %>% group_by(label) %>% summarise(cum_count=sum(count), is_alarm=first(is_alarm), date=ymd(lineage_date) %m-% months(no_months_plots))
   # plot
   p <- ggplot(df, aes(ymd(date), ymax = cum_count, ymin = 0, fill = is_alarm)) +
     pammtools::geom_stepribbon() +
@@ -22,7 +22,7 @@ plot_pango_facet <- function(df,
     scale_fill_manual(values = c("FALSE"="blue4", "TRUE"="red4")) +
     scale_x_date("", date_breaks = "1 month", date_labels = "%m",
                  limits = c(ymd(lineage_date) %m-% months(no_months_plots), ymd(lineage_date))) +
-    facet_wrap(~pango, ncol = 5) +
+    facet_wrap(~label, ncol = 5) +
     theme_minimal(base_family = "Arial") +
     scale_y_log10(
       breaks = scales::trans_breaks("log10", function(x) 10^x),
@@ -42,16 +42,16 @@ plot_pango_cumulative <- function(df,
                                   no_months_plots_long,
                                   title = "") {
   # Add cummulative counts
-  df <- df %>% group_by(pango) %>% mutate(cum_count = cumsum(count), is_alarm=is_alarm==1) %>% ungroup
+  df <- df %>% group_by(label) %>% mutate(cum_count = cumsum(count), is_alarm=is_alarm==1) %>% ungroup
   # Get last point of each pango
-  last_points <- df %>% group_by(pango) %>% summarise(date=max(date), cum_count=sum(count), is_alarm=first(is_alarm)) %>% filter(is_alarm)
+  last_points <- df %>% group_by(label) %>% summarise(date=max(date), cum_count=sum(count), is_alarm=first(is_alarm)) %>% filter(is_alarm)
   # plot
-  p <- ggplot(df, aes(ymd(date), y = cum_count, color = is_alarm, group=pango, size=is_alarm)) +
+  p <- ggplot(df, aes(ymd(date), y = cum_count, color = is_alarm, group=label, size=is_alarm)) +
     geom_step() +
     ggrepel::geom_text_repel(data = last_points,
                              aes(x = ymd(lineage_date),
                                  y = cum_count,
-                                 label = pango,
+                                 label = label,
                                  hjust = 0,
                                  vjust = 0.6),
                              size = 2.9,

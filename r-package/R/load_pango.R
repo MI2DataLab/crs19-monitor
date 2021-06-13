@@ -1,8 +1,8 @@
 #' @export
 load_pango <- function(db_path, continent, country, start_date, end_date) {
   query <- "
-  select is_alarm, count, date, C.pango, B.pango_count
-  from (select pango.pango, is_alarm, pango_count
+  select is_alarm, count, date, C.pango, B.pango_count, C.pango || REPLACE(' (' || ifnull(name, '') || ')', ' ()', '') as label
+  from (select pango.pango, is_alarm, pango_count, name
         from pango
                  join
              (select our_pango as pango, count(*) as pango_count

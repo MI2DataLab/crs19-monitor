@@ -1,8 +1,8 @@
 #' @export
 load_clade <- function(db_path, continent, country, start_date, end_date) {
   query <- "
-  select is_alarm, count, date, C.clade, B.clade_count
-  from (select clade.clade, is_alarm, clade_count
+  select is_alarm, count, date, C.clade, B.clade_count, C.clade || REPLACE(' (' || ifnull(name, '') || ')', ' ()', '') as label
+  from (select clade.clade, is_alarm, clade_count, name
         from clade
                  join
              (select our_clade as clade, count(*) as clade_count

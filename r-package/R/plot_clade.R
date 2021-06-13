@@ -5,11 +5,11 @@ plot_clade_facet <- function(df,
                              no_months_plots,
                              title = "") {
   # Add cummulative counts
-  df <- df %>% group_by(clade) %>% mutate(cum_count = cumsum(count), is_alarm=is_alarm==1) %>% ungroup
+  df <- df %>% group_by(label) %>% mutate(cum_count = cumsum(count), is_alarm=is_alarm==1) %>% ungroup
   # Fix order of facets
-  df$clade <- factor(df$clade, levels=unique(df$clade))
+  df$label <- factor(df$label, levels=unique(df$label))
   # Total counts
-  counts <- df %>% group_by(clade) %>% summarise(cum_count=sum(count), is_alarm=first(is_alarm), date=ymd(lineage_date) %m-% months(no_months_plots))
+  counts <- df %>% group_by(label) %>% summarise(cum_count=sum(count), is_alarm=first(is_alarm), date=ymd(lineage_date) %m-% months(no_months_plots))
   # plot
   p <- ggplot(df, aes(ymd(date), ymax = cum_count, ymin = 0, fill = is_alarm)) +
     pammtools::geom_stepribbon() +
@@ -23,7 +23,7 @@ plot_clade_facet <- function(df,
     scale_fill_manual(values = c("FALSE"="blue4", "TRUE"="red4")) +
     scale_x_date("", date_breaks = "1 month", date_labels = "%m",
                  limits = c(ymd(lineage_date) %m-% months(no_months_plots), ymd(lineage_date))) +
-    facet_wrap(~clade, ncol = 5) +
+    facet_wrap(~label, ncol = 5) +
     theme_minimal(base_family = "Arial") +
     scale_y_log10(
       breaks = scales::trans_breaks("log10", function(x) 10^x),
