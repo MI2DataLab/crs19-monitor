@@ -1,5 +1,5 @@
 Package: covar
-Title: Monitor of SARS-CoV-2 variants and mutations in Europe
+Title: Monitor of SARS-CoV-2 variants and mutations
 Version: 1.1.0
 Authors@R: c(person("Hubert", "Baniecki", email = "hbaniecki@gmail.com",
                     role = c("aut", "cre")),
@@ -17,11 +17,10 @@ Imports:
     forcats,
     tidyr,
     RSQLite,
-    sf,
     scatterpie,
-    tmaptools,
     patchwork,
-    rgdal,
-    stringr
+    stringr,
+    DBI,
+    SQLite
 LazyData: true
 RoxygenNote: 7.1.1

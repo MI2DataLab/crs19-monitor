@@ -8,6 +8,7 @@ from unidecode import unidecode
 from pathlib import Path
 from datetime import datetime, timedelta
 from tqdm import tqdm
+from locations_utils import update_locations_level
 
 
 def init_db(db_path):
@@ -42,10 +43,6 @@ def extract_location(location, level=0):
         return 'UNDEFINED'
     striped = locs[level].rstrip(" ").lstrip(" ")
     return striped if len(striped) > 0 else 'UNDEFINED'
-
-
-def simplify_location(location):
-    return None if location is None else unidecode(location).lower().replace('-', ' ').replace('_', ' ')
 
 
 minimal_date = datetime.strptime('2019-12-01', '%Y-%m-%d')
@@ -129,45 +126,6 @@ def clean_sex(sex):
         return "Male"
     else:
         return None
-
-
-def update_locations_level(loc_db, df):
-    """
-    df - pandas dataframe with columns name, parent_id
-    """
-    with sqlite3.connect(loc_db) as con:
-        mappings = pd.read_sql('select parent_id, simple_name, node_id from mappings', con)
-
-    df['simple_name'] = [simplify_location(x) for x in df['name']]
-    if 'parent_id' not in df.columns:
-        df['parent_id'] = [1] * df.shape[0]
-
-    # Get most popular name for each simplified name
-    stats_counts = df.groupby(['parent_id', 'simple_name', 'name']).size().reset_index(name='count')
-    most_popular_full_name = stats_counts.sort_values('count').groupby(['parent_id', 'simple_name'], sort=False).tail(1).rename(columns={'name': 'popular_name'})
-
-    # Assign node id to simplified names from locations database
-    merged = pd.merge(most_popular_full_name, mappings, how='left', left_on=['parent_id', 'simple_name'], right_on=['parent_id', 'simple_name'])
-
-    # Rows not present in locations database
-    new_nodes = merged.loc[merged['node_id'].isnull()]
-
-    # Count of each simplified name
-    count_stats = df.groupby(['parent_id', 'simple_name']).size().reset_index(name='count')
-
-    print('Adding %s new nodes to locations database' % new_nodes.shape[0])
-    # pylint: disable=unused-variable
-    with sqlite3.connect(loc_db) as con:
-        cur = con.cursor()
-        for index, row in new_nodes.iterrows():
-            cur.execute('INSERT INTO nodes (name) VALUES (?)', (row['popular_name'],))
-            cur.execute('INSERT INTO mappings (parent_id, simple_name, node_id) VALUES (?, ?, (SELECT MAX(id) FROM nodes))', (row['parent_id'], row['simple_name']))
-        for index, row in count_stats.iterrows():
-            cur.execute('UPDATE mappings SET count = ? WHERE simple_name = ? AND parent_id = ?', (row['count'], row['simple_name'], row['parent_id']))
-        con.commit()
-        mappings = pd.read_sql('select parent_id, simple_name, node_id from mappings', con)
-        return pd.merge(df, mappings, how='left', left_on=['parent_id', 'simple_name'], right_on=['parent_id', 'simple_name'])['node_id'].tolist()
-
 
 def load_dates(clean_db, dates):
     """

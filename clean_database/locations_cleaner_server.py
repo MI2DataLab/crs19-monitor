@@ -5,6 +5,8 @@ import itertools
 from flask import Flask, abort, request, redirect, Response
 from flask_cors import CORS
 from difflib import SequenceMatcher
+import sys 
+from locations_utils import merge_nodes
 
 class App:
     def __init__(self, db_path):
@@ -33,8 +35,8 @@ class App:
     def get_nodes(self):
         with self.get_db() as con:
             cur = con.cursor()
-            cur.execute('SELECT id, name, iso_code, lat, lng FROM nodes')
-            result = [{'node_id': x[0], 'name': x[1], 'iso_code': x[2], 'lat': x[3], 'lng': x[4]} for x in cur.fetchall()]
+            cur.execute('SELECT id, name, iso_code, lat, lng, count, complete FROM nodes left join (select parent_id, sum(count) as count, cast(sum(correct*count) as float)/sum(count) as complete from (select parent_id, sum(count) as count, lat is not null and lng is not null and iso_code is not null as correct from mappings M join nodes N on M.node_id = N.id group by parent_id, correct) group by parent_id) F on nodes.id = F.parent_id')
+            result = [{'node_id': x[0], 'name': x[1], 'iso_code': x[2], 'lat': x[3], 'lng': x[4], 'count': x[5], 'complete': x[6]} for x in cur.fetchall()]
         return Response(json.dumps(result), mimetype="application/json")
 
     def get_task(self, parent_id):
@@ -53,7 +55,11 @@ class App:
             cur = con.cursor()
             data = request.json
             for row in data.get('mappings'):
-                cur.execute('UPDATE mappings SET node_id = ? WHERE simple_name = ? AND parent_id = ?', (row['node_id'], row['simple_name'], parent_id))
+                cur.execute('select node_id from mappings where simple_name = ? and parent_id = ?', (row['simple_name'], parent_id))
+                old_node_id = (cur.fetchall() or [(None, None)])[0][0]
+                if row['node_id'] != old_node_id:
+                    merge_nodes(self.db_path, [row['node_id'], old_node_id], sort_by_count=False)
+            con.commit()
             for row in data.get('nodes'):
                 cur.execute('UPDATE nodes SET iso_code = ?, lat = ?, lng = ?, name = ? WHERE id = ?', (row.get('iso_code'), row.get('lat'), row.get('lng'), row.get('name'), row.get('node_id')))
             con.commit()

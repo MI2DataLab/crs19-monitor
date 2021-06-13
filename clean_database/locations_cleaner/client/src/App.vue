@@ -63,19 +63,14 @@ export default {
   },
   created () {
     this.api = new URLSearchParams(window.location.search).get('api')
-    this.$http.get(this.api + '/nodes').then(response => {
-      this.nodes = response.body.reduce((acu, x) => ({ ...acu, [x.node_id]: x }), {})
-    }).catch(console.error)
+    this.downloadNodes()
   },
   watch: {
-    scopeNode (newValue) {
+    scopeNode () {
       this.mappings = null
       this.selectedNodes = []
       this.saveStatus = null
-      this.$http.get(this.api + '/task/' + newValue.node_id).then(response => {
-        if (this.scopeNode.node_id !== newValue.node_id) return
-        this.mappings = response.body
-      })
+      this.downloadTask()
     },
     selectedRegion (newValue) {
       this.countryData = null
@@ -146,14 +141,17 @@ export default {
       // Create graph node
       let nodes = Object.entries(groups).map(([nodeId, simpleNames]) => ({
         id: nodeId,
-        label: this.nodes[nodeId].name + '\n-------------\n' + simpleNames.join('\n')
+        label: this.nodes[nodeId].name + '\n' + this.nodesAggregatedCount[nodeId] + '  ' + Math.round(this.nodes[nodeId].complete * 1000) / 10 + '%' + '\n-------------\n' + simpleNames.join('\n')
       }))
       // Filter out epty nodes
       if (!this.displayEmptyNodes) nodes = nodes.filter(x => this.nodesAggregatedCount[x.id] > 0)
 
       let edges = this.mappings.similarity
       // Map from simple name to node id
-      const simpleToNodeId = this.mappings.mappings.reduce((acu, v) => ({ ...acu, [v.simple_name]: v.node_id }), {})
+      const simpleToNodeId = this.mappings.mappings.reduce((acu, v) => {
+        acu[v.simple_name] = v.node_id
+        return acu
+      }, {})
       // Replace simple names in edges definition to node ids
       edges = edges.map(edge => ({ ...edge, a: simpleToNodeId[edge.a], b: simpleToNodeId[edge.b] })).filter(x => x.a !== x.b && x.a && x.b)
       // Do not display edges between empty nodes
@@ -175,9 +173,12 @@ export default {
       edges.sort((a, b) => b.similarity - a.similarity)
       // Keep only nodes that are connected by one of first nodesCount edges
       const visibleNodes = [...new Set(edges.slice(0, this.nodesCount).map(e => ([e.a, e.b])).flat())]
-      nodes = nodes.filter(n => visibleNodes.includes(n.id))
+      // When there is only one node, than display it
+      if (visibleNodes.length > 0) {
+        nodes = nodes.filter(n => visibleNodes.includes(n.id))
+      }
       // Keep edgesCount edges visible
-      edges = edges.slice(0, this.edgesCount).map(x => ({ from: x.a, to: x.b, length: 150 + 100 * (1 - x.similarity) }))
+      edges = edges.slice(0, this.edgesCount).map(x => ({ from: x.a, to: x.b, length: 300 + 200 * (1 - x.similarity) }))
       return { nodes, edges }
     },
     nodesAggregatedCount () {
@@ -196,6 +197,22 @@ export default {
     }
   },
   methods: {
+    downloadTask () {
+      const nodeId = this.scopeNode.node_id
+      this.$http.get(this.api + '/task/' + this.scopeNode.node_id).then(response => {
+        if (this.scopeNode.node_id !== nodeId) return
+        this.mappings = response.body
+      })
+    },
+    downloadNodes () {
+      this.$http.get(this.api + '/nodes').then(response => {
+        const nodes = {}
+        response.body.forEach(x => {
+          nodes[x.node_id] = x
+        })
+        this.nodes = nodes
+      }).catch(console.error)
+    },
     goToNode (id) {
       const index = this.scopeNodePath.indexOf(id)
       if (index === -1) this.scopeNodePath.push(id)
@@ -242,6 +259,8 @@ export default {
       this.$http.post(this.api + '/task/' + this.scopeNode.node_id, update).then(response => {
         this.saveStatus = 'Saved'
         this.updatedNodes = []
+        this.downloadTask()
+        this.downloadNodes()
       }).catch(e => {
         this.saveStatus = 'Failed'
       })
