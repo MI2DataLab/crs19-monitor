@@ -278,7 +278,7 @@ for (lang in LANGUAGES) {
   )
 
   measure_time(
-    ggplot2::ggsave(plot = plots[['pl_var_1']], file = paste0(dir_prefix, "liczba_warianty_1.svg"), width = 8, height = 5),
+    ggplot2::ggsave(plot = plots[['pl_var_1']], file = paste0(dir_prefix, "liczba_warianty_1.png"), width = 8, height = 5),
     'pango_facet', 'save', lang
   )
   measure_time(
@@ -286,7 +286,7 @@ for (lang in LANGUAGES) {
     'pango_cumulative', 'save', lang
   )
   measure_time(
-    ggplot2::ggsave(plot = plots[['pl_var_3']], file = paste0(dir_prefix, "liczba_warianty_3.svg"), width = 8, height = 5),
+    ggplot2::ggsave(plot = plots[['pl_var_3']], file = paste0(dir_prefix, "liczba_warianty_3.png"), width = 8, height = 5),
     'clade_facet', 'save', lang
   )
   measure_time(

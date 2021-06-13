@@ -6,7 +6,6 @@ from config import repo_path, site_dist, clean_db_path, remotes, rsync_remotes, 
 
 work_dir = repo_path + '/generate_site'
 exec_path = "script.R"
-main_region = 'Poland'
 
 os.environ["GENERATION_DATE"] = datetime.today().strftime('%Y-%m-%d')
 os.environ["CLEAN_DB"] = clean_db_path

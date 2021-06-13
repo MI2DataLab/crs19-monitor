@@ -18,9 +18,8 @@ plot_pango_facet <- function(df,
                   y = max(cum_count),
                   label = format(cum_count, big.mark=" ", scientific=FALSE),
                   hjust = -0.1,
-                  vjust = 1),
-              size = 2.7) +
-    scale_fill_manual(values = c("blue4", "red4")) +
+                  vjust = 1), size=2.7) +
+    scale_fill_manual(values = c("FALSE"="blue4", "TRUE"="red4")) +
     scale_x_date("", date_breaks = "1 month", date_labels = "%m",
                  limits = c(ymd(lineage_date) %m-% months(no_months_plots), ymd(lineage_date))) +
     facet_wrap(~pango, ncol = 5) +
@@ -57,8 +56,8 @@ plot_pango_cumulative <- function(df,
                                  vjust = 0.6),
                              size = 2.9,
                              direction = "y") +
-    scale_size_manual(values = c(0.4, 1.2)) +
-    scale_color_manual(values = c("grey", "red3")) +
+    scale_size_manual(values = c("FALSE"=0.4, "TRUE"=1.2)) +
+    scale_color_manual(values = c("FALSE"="grey", "TRUE"="red3")) +
     scale_x_date("", date_breaks = "2 weeks", date_labels = "%m/%d",
                  limits = c(ymd(lineage_date) %m-% months(no_months_plots_long), ymd(lineage_date))) +
     theme_minimal(base_family = "Arial") +
