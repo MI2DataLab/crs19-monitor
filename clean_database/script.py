@@ -1,7 +1,7 @@
 import sqlite3
 import os
 import re
-
+import yaml
 import pandas as pd
 import numpy as np
 from unidecode import unidecode
@@ -158,18 +158,35 @@ def load_clade(clean_db, clade_config_path, unique_clade):
         con.commit()
 
 
+def get_pango_attributes(tree, pango):
+    if type(pango) is str and len(pango) > 0:
+        pango = pango.split('.')
+    root_attrs = {k:tree[k] for k in tree.keys() if k != 'sub' and k != 'id'}
+    if len(pango) == 0:
+        return root_attrs
+    child = next(filter(lambda x: str(x['id']) == pango[0], tree.get('sub') or []), None)
+    if child is None:
+        return root_attrs
+    child_attrs = get_pango_attributes(child, pango[1:])
+    # override root attributes with more specific child attributes
+    for k in child_attrs.keys():
+        root_attrs[k] = child_attrs[k]
+    return root_attrs
+
+        
 def load_pango(clean_db, pango_config_path, unique_pango):
     """
     Fill pango table
     """
     print('Filling pango table')
-    config = pd.read_csv(pango_config_path, sep='\t')
-    others = [str(x) for x in unique_pango if x not in list(config['pango'])]
+    handle = open(pango_config_path, 'r')
+    config = yaml.safe_load(handle)
+    handle.close()
     with sqlite3.connect(clean_db) as con:
-        config.to_sql('pango', con, if_exists='append', index=None)
         cur = con.cursor()
-        for other in others:
-            cur.execute('INSERT INTO pango (pango, color, is_alarm, name) VALUES (?, ?, ?, ?)', (other, None, 0, ''))
+        for p in unique_pango:
+            attrs = get_pango_attributes(config, str(p))
+            cur.execute('INSERT INTO pango (pango, color, is_alarm, name) VALUES (?, ?, ?, ?)', (p, attrs['color'], int(attrs['alarm']), attrs['name']))
         con.commit()
 
 
