@@ -3,7 +3,7 @@ import time
 from datetime import datetime
 import sys
 import glob
-from config import data_dir, backup_dir, backups_number, site_dist
+from config import data_dir, backup_dir, backups_number, site_dist, clean_db_path
 
 for d in [data_dir, backup_dir, site_dist]:
     if not os.path.exists(d):
@@ -11,7 +11,10 @@ for d in [data_dir, backup_dir, site_dist]:
 
 filename = datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + '.tar.gz'
 
-out = os.system('bash -c "tar -cf - --exclude=\'.git\' ' + data_dir + ' ' + site_dist + ' |gzip > ' + backup_dir + '/' + filename + '"')
+out = os.system('bash -c "xz -k -z -1 -f ' + clean_db_path + ' "')
+if out != 0:
+    sys.exit(out >> 8)
+out = os.system('bash -c "tar -cf - --exclude=\'clean.sqlite\' --exclude=\'.git\' ' + data_dir + ' ' + site_dist + ' |gzip > ' + backup_dir + '/' + filename + '"')
 if out != 0:
     sys.exit(out >> 8)
 

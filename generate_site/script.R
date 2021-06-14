@@ -1,376 +1,327 @@
-cat('---- START \n')
-try(devtools::uninstall("covar"), silent = TRUE)
-devtools::install_local('../r-package/', force=TRUE)
-
-# ----- GLOBAL VARS ----- #
-
-DB_PATH <- Sys.getenv('DB_PATH')
-OUTPUT_PATH <- Sys.getenv('OUTPUT_PATH')
-LINEAGE_PATH <- Sys.getenv("LINEAGE_REPORT_PATH")
-NEXTCLADE_PATH <- Sys.getenv("NEXTCLADE_REPORT_PATH")
-LINEAGE_DATE <- Sys.getenv('LINEAGE_DATE')
-
-LINEAGE_DATE_CLEAN <- gsub('/', '-', LINEAGE_DATE)
-OUTPUT_DATE_PATH <- paste0(OUTPUT_PATH, '/', LINEAGE_DATE_CLEAN)
-LANGUAGES <- c('pl', 'en')
-
-# https://covariants.org/shared-mutations
-ALARM_MUTATION <- "N501Y"
-ALARM_PATTERN <- "501Y"
-ALARM_PANGO <- c("B.1.1.7", "B.1.351", "P.1", "P.2", "B.1.427", "B.1.429", "B.1.526", "B.1.525", "B.1.617", "B.1.617.1", "B.1.617.2")
-ALARM_CLADE <- c("20I/501Y.V1","20H/501Y.V2", "20J/501Y.V3", "20B/S.484K", "20C/S.452R",  "20C/S.484K",  "20A/S.484K", "20A/S.154K", "20A/S.478K")
-MAX_REGIONS <- 24
-NO_MONTHS_PLOTS <- 4
-NO_MONTHS_PLOTS_LONG <- 8
-PALETTE <- structure(
-  c("#E9C622", "#51A4B8", "#E5BC13", "#67AFBF", "#E1B103",
-    "#82B8B6", "#E58600", "#ACC07E", "#3B9AB2", "#7F00FF", "#EB5000", "#F21A00"),
-  .Names = c("20A.EU2", "19A", "20D", "19B", "20C", "20E (EU1)",
-             "20G", "20A", "20B", "20J/501Y.V3", "20H/501Y.V2", "20I/501Y.V1"))
-SMOOTH_VARIANTS <- c("20I/501Y.V1", "20A", "20B")
-
-
-# ----- READ DATA ----- #
-
-query <- "SELECT continent || ' / ' || country as country from metadata where cast(collection_date as text) > ? group by country,continent having count(*) > 500 order by continent,country"
-metadata <- covar::read_sql(DB_PATH, query, bind=list(as.character(lubridate::`%m-%`(lubridate::ymd(LINEAGE_DATE_CLEAN),months(3)))))
-
-regions <- metadata$country
-print(regions)
-#regions <- c('Poland', 'Czech Republic', 'Germany')
-
-lineage_full <- read.table(LINEAGE_PATH, sep = ",", header = TRUE, fileEncoding = "UTF-8", quote="")
-colnames(lineage_full)[1:2] <- c('Sequence.name', 'Lineage')
-lineage_full$accession_id <- stringi::stri_extract_first_regex(lineage_full$Sequence.name, 'EPI_ISL_[0-9]+')
-
-nextclade_full <- read.table(NEXTCLADE_PATH, sep = "\t", header = TRUE, fileEncoding = "UTF-8", quote="")
-nextclade_full$accession_id <- stringi::stri_extract_first_regex(nextclade_full$seqName, 'EPI_ISL_[0-9]+')
-
-cat(paste('full pango rows:', nrow(lineage_full), '\n'))
-cat(paste('full nextclade rows:', nrow(nextclade_full), '\n'))
-
-
-# ----- SUMMARY ----- #
-
-dir.create(OUTPUT_DATE_PATH, recursive = TRUE, showWarnings = FALSE)
-if (file.copy('./source/index_source_summary.html',
-              paste0(OUTPUT_DATE_PATH, '/index.html'),
-              overwrite = TRUE)) cat('--- CREATE SUMMARY \n')
-
-covar::create_i18n(
-  input_paths = sapply(LANGUAGES, function(lang) paste0("./source/lang_", lang, ".txt")),
-  output_path = OUTPUT_DATE_PATH
-)
-
+# This flag should be set only for the first country
+if (Sys.getenv("INSTALL_PACKAGE") == "1") {
+  try(devtools::uninstall("covar"), silent = TRUE)
+  devtools::install_local('../r-package/', force=TRUE)
+}
 
 # ----- LOAD PACKAGES ----- #
 
 suppressMessages(library(dplyr))
-library(tidyr)
+suppressMessages(library(tidyr))
 options(dplyr.summarise.inform = FALSE)
+suppressMessages(library(lubridate))
 
+# ----- GLOBAL VARS ----- #
 
-# ----- REPORTS ----- #
+DB_PATH <- Sys.getenv('CLEAN_DB')
+TIME_LOG_PATH <- Sys.getenv('TIME_LOG_PATH')
+GENERATION_DATE <- Sys.getenv('GENERATION_DATE')
+OUTPUT_DATE_REGION_PATH <- Sys.getenv('OUTPUT_DATE_REGION_PATH')
+continent <- Sys.getenv('CONTINENT')
+country <- Sys.getenv('COUNTRY')
+LANGUAGES <- c('pl', 'en')
+NO_MONTHS_PLOTS <- 4
+NO_MONTHS_PLOTS_LONG <- 8
+START_DATE <- as.character(ymd(GENERATION_DATE) %m-% months(NO_MONTHS_PLOTS))
+START_DATE_LONG <- as.character(ymd(GENERATION_DATE) %m-% months(NO_MONTHS_PLOTS_LONG))
 
-cat('--- CREATE REPORTS \n')
+# ----- ITERATE OVER LANGUAGES ----- #
+# log for time elapsed on different tasks
+time_log <- list()
+measure_time <- function(expr, name, type, lang) {
+  time <- as.numeric(system.time(expr)['elapsed'])
+  time_log[[length(time_log) + 1]] <<- list(name=name, type=type, lang=lang, time=time)
+}
 
-for (region in regions) {
+plots_output <- list()
+for (lang in LANGUAGES) {
+  cat(paste0('- creating plots in ', lang, '\n'))
 
-  cat(paste('-- REGION:', region, '\n'))
+  plots_output[[lang]] <- list()
 
+  description_input <- read.table(paste0("./source/lang_", lang, ".txt"),
+                                  sep = ":", header = TRUE, row.names = 1,
+                                  fileEncoding = "UTF-8", quote = NULL)
 
-  # ----- READ DATA ----- #
-
-  query <- "SELECT accession_id,location,submission_date,cast(collection_date as text) as collection_date,country,continent FROM metadata WHERE continent || ' / ' || country = ? AND substr(cast(collection_date as text),1,4) >= '2019'"
-  metadata <- covar::read_sql(DB_PATH, query, bind = list(region))
-
-  cat(paste('found', nrow(metadata), 'rows in database \n'))
-
-  # filter data by region
-  lineage_subset <- subset(lineage_full, accession_id %in% metadata$accession_id)
-  nextclade_subset <- subset(nextclade_full, accession_id %in% metadata$accession_id)
-
-  cat(paste('region pango rows:', nrow(lineage_subset), '\n'))
-  cat(paste('region nextclade rows:', nrow(nextclade_subset), '\n'))
-
-  DATE_LAST_SAMPLE <- max(lubridate::ymd(metadata$collection_date), na.rm = TRUE)
-
-  # add location
-  metadata_input <- covar::clean_metadata(metadata)
-
-  # find misspelled data
-  misspelled_rows <- is.na(metadata_input$LocationClean)
-  misspelled_locations <- as.data.frame(table(metadata_input$location[misspelled_rows]))
-
-  cat(paste("there are", sum(misspelled_rows), "unique misspelled rows \n"))
-  cat(paste("there are", nrow(misspelled_locations), "misspelled locations / TOP5: \n"))
-  print(head(arrange(misspelled_locations, -Freq), 5))
-
-
-  # ----- ITERATE OVER LANGUAGES ----- #
-
-  plots_output <- list()
-
-  for (lang in LANGUAGES) {
-    cat(paste0('- creating plots in ', lang, '\n'))
-
-    plots_output[[lang]] <- list()
-
-    description_input <- read.table(paste0("./source/lang_", lang, ".txt"),
-                                    sep = ":", header = TRUE, row.names = 1,
-                                    fileEncoding = "UTF-8", quote = NULL)
-
-    lineage_input <- covar::clean_lineage(
-      df = lineage_subset,
-      alarm_pango = ALARM_PANGO,
-      other_level = description_input["other_level", "names"]
-    )
-
-    nextclade_input <- covar::clean_nextclade(
-      df = nextclade_subset,
-      alarm_clade = ALARM_CLADE,
-      alarm_mutation = ALARM_MUTATION,
-      alarm_pattern = ALARM_PATTERN,
-      other_level = description_input["other_level", "names"]
-    )
-
-    metadata_nextclade <- merge(metadata_input, nextclade_input, by = "accession_id")
-
+  measure_time(
+    df <- covar::load_sequence_count(DB_PATH, continent, country),
+    'sequence_count', 'load', lang
+  )
+  measure_time(
     plots_output[[lang]][['pl_seq_1']] <-
       covar::plot_sequence_count(
-        df = lineage_input,
+        df = df,
         title = description_input["pl_seq_1_tit", "names"]
-      )
+      ),
+    'sequence_count', 'plot', lang
+  )
 
+  measure_time(
+    df <- covar::load_sequence_cumulative(DB_PATH, continent, country),
+    'sequence_cumulative', 'load', lang
+  )
+  measure_time(
     plots_output[[lang]][['pl_seq_2']] <-
       covar::plot_sequence_cumulative(
-        df = lineage_input,
+        df = df,
         title = description_input["pl_seq_2_tit", "names"]
-      )
+      ),
+    'sequence_cumulative', 'plot', lang
+  )
 
+  measure_time(
+    df <- covar::load_pango(DB_PATH, continent, country, START_DATE_LONG, GENERATION_DATE),
+    'pango', 'load', lang
+  )
+
+  measure_time(
     plots_output[[lang]][['pl_var_1']] <-
       covar::plot_pango_facet(
-        df = lineage_input,
-        alarm_pango = ALARM_PANGO,
-        lineage_date = LINEAGE_DATE,
+        df = df,
+        lineage_date = GENERATION_DATE,
         no_months_plots = NO_MONTHS_PLOTS,
         title = description_input["pl_var_1_tit", "names"]
-      )
-
+      ),
+    'pango_facet', 'plot', lang
+  )
+  measure_time(
     plots_output[[lang]][['pl_var_2']] <-
       covar::plot_pango_cumulative(
-        df = lineage_input,
-        alarm_pango = ALARM_PANGO,
-        lineage_date = LINEAGE_DATE,
+        df = df,
+        lineage_date = GENERATION_DATE,
         no_months_plots_long = NO_MONTHS_PLOTS_LONG,
         title = description_input["pl_var_2_tit", "names"]
-      )
+      ),
+    'pango_cumulative', 'plot', lang
+  )
 
+
+  measure_time(
+    df <- covar::load_clade(DB_PATH, continent, country, START_DATE_LONG, GENERATION_DATE),
+    'clade', 'load', lang
+  )
+  measure_time(
     plots_output[[lang]][['pl_var_3']] <-
       covar::plot_clade_facet(
-        df = nextclade_input,
-        alarm_pattern = ALARM_PATTERN,
-        lineage_date = LINEAGE_DATE,
+        df = df,
+        lineage_date = GENERATION_DATE,
         no_months_plots = NO_MONTHS_PLOTS,
         title = description_input["pl_var_3_tit", "names"]
-      )
-
+      ),
+    'clade_facet', 'plot', lang
+  )
+  measure_time(
     plots_output[[lang]][['pl_var_4']] <-
       covar::plot_clade_cumulative(
-        df = nextclade_input,
-        alarm_clade = ALARM_CLADE,
-        lineage_date = LINEAGE_DATE,
+        df = df,
+        lineage_date = GENERATION_DATE,
         no_months_plots_long = NO_MONTHS_PLOTS_LONG,
         title = description_input["pl_var_4_tit", "names"]
-      )
+      ),
+    'clade_cumulative', 'plot', lang
+  )
 
+
+  measure_time(
+    df <- covar::load_metadata_dates(DB_PATH, continent, country, ymd(START_DATE) %m+% months(1), START_DATE),
+    'metadata_dates', 'load', lang
+  )
+  measure_time(
     plots_output[[lang]][['pl_var_5']] <-
       covar::plot_metadata_dates(
-        df = metadata_nextclade,
-        alarm_pattern = ALARM_PATTERN,
-        lineage_date = LINEAGE_DATE,
+        df = df,
+        lineage_date = GENERATION_DATE,
         no_months_plots = NO_MONTHS_PLOTS,
         xlab = description_input["pl_var_5_scx", "names"],
         ylab = description_input["pl_var_5_scy", "names"],
         title = description_input["pl_var_5_tit", "names"]
-      )
+      ),
+    'metadata_dates', 'plot', lang
+  )
 
+
+  measure_time(
+    df <- covar::load_location(DB_PATH, continent, country, START_DATE, 25),
+    'location', 'load', lang
+  )
+  n_unique_regions <- length(unique(df$state))
+  measure_time(
     plots_output[[lang]][['pl_loc_1']] <-
       covar::plot_location_count(
-        df = metadata_nextclade,
-        max_regions = MAX_REGIONS,
-        lineage_date = LINEAGE_DATE,
+        df = df,
+        lineage_date = GENERATION_DATE,
         no_months_plots = NO_MONTHS_PLOTS,
-        other_level = description_input["other_level", "names"],
         title = description_input["pl_loc_1_tit", "names"]
-      )
-
+      ),
+    'location_count', 'plot', lang
+  )
+  measure_time(
     plots_output[[lang]][['pl_loc_2']] <-
       covar::plot_location_proportion(
-        df = metadata_nextclade,
-        max_regions = MAX_REGIONS,
-        lineage_date = LINEAGE_DATE,
+        df = df,
+        lineage_date = GENERATION_DATE,
         no_months_plots = NO_MONTHS_PLOTS,
-        other_level = description_input["other_level", "names"],
         title = description_input["pl_loc_2_tit", "names"]
-      )
+      ),
+    'location_proportion', 'plot', lang
+  )
 
+  measure_time(
+    df <- covar::load_variant_col(DB_PATH, continent, country, START_DATE),
+    'variant_col', 'load', lang
+  )
+  measure_time(
     plots_output[[lang]][['pl_var_all_2']] <-
       covar::plot_variant_col_fill(
-        df = nextclade_input,
-        alarm_clade = ALARM_CLADE,
-        lineage_date = LINEAGE_DATE,
-        palette = PALETTE,
+        df = df,
+        lineage_date = GENERATION_DATE,
         no_months_plots = NO_MONTHS_PLOTS,
         title = description_input["pl_var_all_2_tit", "names"]
-      )
-
+      ),
+    'variant_col_fill', 'plot', lang
+  )
+  measure_time(
     plots_output[[lang]][['pl_var_all_3']] <-
       covar::plot_variant_col_stack(
-        df = nextclade_input,
-        alarm_clade = ALARM_CLADE,
-        lineage_date = LINEAGE_DATE,
-        palette = PALETTE,
+        df = df,
+        lineage_date = GENERATION_DATE,
         no_months_plots = NO_MONTHS_PLOTS,
         title = description_input["pl_var_all_3_tit", "names"]
-      )
+      ),
+    'variant_col_stack', 'plot', lang
+  )
 
-    # add +k days for reporting lag
-    k <- 7
 
+  # add +k days for reporting lag
+  k <- 7
+  measure_time(
+    df <- covar::load_variant_point(DB_PATH, continent, country, START_DATE),
+    'variant_point', 'load', lang
+  )
+  measure_time(
     plots_output[[lang]][['pl_var_all_1']] <-
       covar::plot_variant_area(
-        df = nextclade_input,
+        df = df,
         k = k,
-        alarm_clade = ALARM_CLADE,
-        lineage_date = LINEAGE_DATE,
-        palette = PALETTE,
+        lineage_date = GENERATION_DATE,
         no_months_plots = NO_MONTHS_PLOTS,
         title = description_input["pl_var_all_1_tit", "names"]
-      )
-
+      ),
+    'variant_point_area', 'plot', lang
+  )
+  measure_time(
     plots_output[[lang]][['pl_var_all_4']] <-
       covar::plot_variant_point_smooth(
-        df = nextclade_input,
+        df = df,
         k = k,
-        smooth_variants = SMOOTH_VARIANTS,
-        alarm_clade = ALARM_CLADE,
-        lineage_date = LINEAGE_DATE,
-        palette = PALETTE,
+        lineage_date = GENERATION_DATE,
         no_months_plots = NO_MONTHS_PLOTS,
         title = description_input["pl_var_all_4_tit", "names"]
-      )
-
-    if (region == "Europe / Poland") {
-      path <- "./map/pl-voi.shp"
-      map <- covar::read_map(path)
-
-      plots_output[[lang]][['pl_map']] <-
-        covar::plot_map(
-          df = metadata_nextclade,
-          map = map,
-          alarm_mutation = ALARM_MUTATION,
-          date_last_sample = DATE_LAST_SAMPLE,
-          max_regions = MAX_REGIONS,
-          other_level = description_input["other_level", "names"],
-          subtitle1 = paste(description_input["pl_map_sub1", "names"], DATE_LAST_SAMPLE),
-          subtitle2 = paste(description_input["pl_map_sub2", "names"], DATE_LAST_SAMPLE),
-          title = paste(description_input["pl_map_pt1", "names"],
-                        ALARM_MUTATION,
-                        description_input["pl_map_pt2", "names"])
-        )
-    }
-  }
-
-
-  # ----- CREATE OUTPUT DIR----- #
-
-  REGION_CLEAN <- gsub("europe_", "", gsub(" ", "_", stringr::str_squish(gsub("[^a-z0-9 ]", "", tolower(region)))))
-  OUTPUT_DATE_REGION_PATH <- paste0(OUTPUT_DATE_PATH, '/', REGION_CLEAN)
-
-  dir.create(paste0(OUTPUT_DATE_REGION_PATH, '/', 'images'), recursive = TRUE, showWarnings = FALSE)
-
-
-  # ----- CREATE HTML ----- #
-
-  tab <- table(lineage_input$date, lineage_input$pango_small)
-  variants <- head(colnames(tab)[-ncol(tab)], 7)
-  variants_list <- paste0(paste0('<a href="https://cov-lineages.org/lineages/lineage_', variants, '.html">', variants, '</a>'), collapse = ",\n")
-  variants2 <- head(colnames(tab), 5)
-  variants2_list <- paste0(paste0('<a href="https://www.cdc.gov/coronavirus/2019-ncov/more/science-and-research/scientific-brief-emerging-variants.html">', variants2, '</a>'), collapse = ",\n")
-
-  placeholders <- list(
-    DATE = LINEAGE_DATE_CLEAN,
-    NUMBER = nrow(lineage_input),
-    DATELAST = max(lineage_input$date),
-    VARIANTSLIST = variants_list,
-    VARIANTS = length(unique(lineage_input$Lineage)),
-    VARIANTSLIST2 = variants2_list,
-    VARIANTS2 = length(colnames(tab))
+      ),
+    'variant_point_smooth', 'plot', lang
   )
-  write(jsonlite::toJSON(placeholders, auto_unbox = TRUE), paste0(OUTPUT_DATE_REGION_PATH, '/placeholders.json'))
-  file.copy('./source/index_source.html', paste0(OUTPUT_DATE_REGION_PATH, '/index.html'), overwrite = TRUE)
+}
+# ----- CREATE OUTPUT DIR----- #
+dir.create(paste0(OUTPUT_DATE_REGION_PATH, '/', 'images'), recursive = TRUE, showWarnings = FALSE)
 
-  covar::create_i18n(
-    input_paths = sapply(LANGUAGES, function(lang) paste0("./source/lang_", lang, ".txt")),
-    output_path = OUTPUT_DATE_REGION_PATH
+
+# ----- CREATE HTML ----- #
+df_pango <- covar::load_pango_count(DB_PATH, continent, country)
+variants_pango_list <- paste0(paste0('<a href="https://cov-lineages.org/lineages/lineage_', head(df_pango$pango, 7), '.html">', head(df_pango$pango, 7), '</a>'), collapse = ",\n")
+df_clade <- covar::load_clade_count(DB_PATH,continent, country)
+variants_clade_list <- paste0(paste0('<a href="https://www.cdc.gov/coronavirus/2019-ncov/more/science-and-research/scientific-brief-emerging-variants.html">', head(df_clade$clade, 7), '</a>'), collapse = ",\n")
+df_stats <- covar::load_sequence_stats(DB_PATH, continent, country)
+
+placeholders <- list(
+  DATE = GENERATION_DATE,
+  NUMBER = df_stats$count,
+  DATELAST = df_stats$last_collection_date,
+  VARIANTSLIST = variants_pango_list,
+  VARIANTS = nrow(df_pango),
+  VARIANTSLIST2 = variants_clade_list,
+  VARIANTS2 = nrow(df_clade)
+)
+
+write(jsonlite::toJSON(placeholders, auto_unbox = TRUE), paste0(OUTPUT_DATE_REGION_PATH, '/placeholders.json'))
+tmp <- file.copy('./source/index_source.html', paste0(OUTPUT_DATE_REGION_PATH, '/index.html'), overwrite = TRUE)
+
+covar::create_i18n(
+  input_paths = sapply(LANGUAGES, function(lang) paste0("./source/lang_", lang, ".txt")),
+  output_path = OUTPUT_DATE_REGION_PATH
+)
+
+# ----- SAVE PLOTS ----- #
+
+for (lang in LANGUAGES) {
+  cat(paste0('- saving plots in ', lang, '\n'))
+  plots <- plots_output[[lang]]
+  dir_prefix <- paste0(OUTPUT_DATE_REGION_PATH, '/images/', lang, '/')
+  dir.create(dir_prefix, recursive = TRUE, showWarnings = FALSE)
+
+  measure_time(
+    ggplot2::ggsave(plot = plots[['pl_seq_1']], file = paste0(dir_prefix, "liczba_seq_1.svg"), width = 4, height = 2.5),
+    'sequence_count', 'save', lang
+  )
+  measure_time(
+    ggplot2::ggsave(plot = plots[['pl_seq_2']], file = paste0(dir_prefix, "liczba_seq_2.svg"), width = 4, height = 2.5),
+    'sequence_cumulative', 'save', lang
   )
 
+  th <- ceiling(n_unique_regions / 5) * 5 / 4
+  measure_time(
+    ggplot2::ggsave(plot = plots[['pl_loc_1']], file = paste0(dir_prefix, "liczba_loc_1.svg"), width = 8, height = th, limitsize = FALSE),
+    'location_count', 'save', lang
+  )
+  measure_time(
+    ggplot2::ggsave(plot = plots[['pl_loc_2']], file = paste0(dir_prefix, "liczba_loc_2.svg"), width = 8, height = th, limitsize = FALSE),
+    'location_proportion', 'save', lang
+  )
 
-  # ----- SAVE PLOTS ----- #
+  measure_time(
+    ggplot2::ggsave(plot = plots[['pl_var_1']], file = paste0(dir_prefix, "liczba_warianty_1.png"), width = 8, height = 5),
+    'pango_facet', 'save', lang
+  )
+  measure_time(
+    ggplot2::ggsave(plot = plots[['pl_var_2']], file = paste0(dir_prefix, "liczba_warianty_2.svg"), width = 8, height = 3),
+    'pango_cumulative', 'save', lang
+  )
+  measure_time(
+    ggplot2::ggsave(plot = plots[['pl_var_3']], file = paste0(dir_prefix, "liczba_warianty_3.png"), width = 8, height = 5),
+    'clade_facet', 'save', lang
+  )
+  measure_time(
+    ggplot2::ggsave(plot = plots[['pl_var_4']], file = paste0(dir_prefix, "liczba_warianty_4.svg"), width = 8, height = 3),
+    'clade_cumulative', 'save', lang
+  )
+  measure_time(
+    ggplot2::ggsave(plot = plots[['pl_var_5']], file = paste0(dir_prefix, "liczba_warianty_5.png"), width = 8, height = 5),
+    'metadata_dates', 'save', lang
+  )
 
-  for (lang in LANGUAGES) {
-    cat(paste0('- saving plots in ', lang, '\n'))
-    plots <- plots_output[[lang]]
-    dir_prefix <- paste0(OUTPUT_DATE_REGION_PATH, '/images/', lang, '/')
-    dir.create(dir_prefix, recursive = TRUE, showWarnings = FALSE)
+  # pre v1.1.0 it was 5.5/3.5
+  tw <- 4 
+  th <- 2.5 
+  measure_time(
+    ggplot2::ggsave(plot = plots[['pl_var_all_1']], file = paste0(dir_prefix, "udzial_warianty_1.svg"), width = tw, height = th),
+    'variant_point_area', 'save', lang
+  )
+  measure_time(
+    ggplot2::ggsave(plot = plots[['pl_var_all_2']], file = paste0(dir_prefix, "udzial_warianty_2.svg"), width = tw, height = th),
+    'variant_col_fill', 'save', lang
+  )
+  measure_time(
+    ggplot2::ggsave(plot = plots[['pl_var_all_3']], file = paste0(dir_prefix, "udzial_warianty_3.svg"), width = tw, height = th),
+    'variant_col_stack', 'save', lang
+  )
+  measure_time(
+    ggplot2::ggsave(plot = plots[['pl_var_all_4']], file = paste0(dir_prefix, "udzial_warianty_4.svg"), width = tw, height = th),
+    'variant_point_smooth', 'save', lang
+  )
 
-    ggplot2::ggsave(plot = plots[['pl_seq_1']], file = paste0(dir_prefix, "liczba_seq_1.svg"), width = 4, height = 2.5)
-    ggplot2::ggsave(plot = plots[['pl_seq_2']], file = paste0(dir_prefix, "liczba_seq_2.svg"), width = 4, height = 2.5)
-
-    th <- ceiling(attr(plots[['pl_loc_1']], "n_unique_regions") / 5) * 5 / 4
-    ggplot2::ggsave(plot = plots[['pl_loc_1']], file = paste0(dir_prefix, "liczba_loc_1.svg"), width = 8, height = th, limitsize = FALSE)
-    ggplot2::ggsave(plot = plots[['pl_loc_2']], file = paste0(dir_prefix, "liczba_loc_2.svg"), width = 8, height = th, limitsize = FALSE)
-
-    ggplot2::ggsave(plot = plots[['pl_var_1']], file = paste0(dir_prefix, "liczba_warianty_1.svg"), width = 8, height = 5)
-    ggplot2::ggsave(plot = plots[['pl_var_2']], file = paste0(dir_prefix, "liczba_warianty_2.svg"), width = 8, height = 3)
-    ggplot2::ggsave(plot = plots[['pl_var_3']], file = paste0(dir_prefix, "liczba_warianty_3.svg"), width = 8, height = 5)
-    ggplot2::ggsave(plot = plots[['pl_var_4']], file = paste0(dir_prefix, "liczba_warianty_4.svg"), width = 8, height = 3)
-    ggplot2::ggsave(plot = plots[['pl_var_5']], file = paste0(dir_prefix, "liczba_warianty_5.png"), width = 8, height = 5)
-
-    # pre v1.1.0 it was 5.5/3.5
-    tw <- 4 
-    th <- 2.5 
-    ggplot2::ggsave(plot = plots[['pl_var_all_1']], file = paste0(dir_prefix, "udzial_warianty_1.svg"), width = tw, height = th)
-    ggplot2::ggsave(plot = plots[['pl_var_all_2']], file = paste0(dir_prefix, "udzial_warianty_2.svg"), width = tw, height = th)
-    ggplot2::ggsave(plot = plots[['pl_var_all_3']], file = paste0(dir_prefix, "udzial_warianty_3.svg"), width = tw, height = th)
-    ggplot2::ggsave(plot = plots[['pl_var_all_4']], file = paste0(dir_prefix, "udzial_warianty_4.svg"), width = tw, height = th)
-
-    if ('pl_map' %in% names(plots)) {
-      ggplot2::ggsave(plot = plots[['pl_map']], file = paste0(dir_prefix, "mapa_mutacje.svg"), width = 10, height = 5)
-    }
-
-    save(plots, file = paste0(dir_prefix, 'gg_objects.rda'))
-  }
+  measure_time(
+    save(plots, file = paste0(dir_prefix, 'gg_objects.rda')),
+    'ggobjects', 'save', lang
+  )
 }
 
-
-# ----- REGIONS ----- #
-
-regions_list <- lapply(regions, function(name) {
-  list(
-    name = name,
-    dir = gsub("europe_", "", gsub(" ", "_", stringr::str_squish(gsub("[^a-z0-9 ]", "", tolower(name)))))
-  )
-})
-write(jsonlite::toJSON(regions_list, auto_unbox = TRUE), paste0(OUTPUT_DATE_PATH, '/regions.json'))
-
-
-# ----- DATES ----- #
-
-subdirs <- list.dirs(path = OUTPUT_PATH, full.names = FALSE, recursive = FALSE)
-date_dirs <- stringi::stri_subset_regex(subdirs, '^\\d{4}-\\d{2}-\\d{2}$')
-write(jsonlite::toJSON(date_dirs, auto_unbox = FALSE), paste0(OUTPUT_PATH, '/dates.json'))
-
-
-cat('---- END \n')
+write.csv(do.call('rbind', time_log), TIME_LOG_PATH, row.names=FALSE)

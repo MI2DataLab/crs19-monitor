@@ -5,7 +5,7 @@ pl_var_1_tit:Cumulative number of virus variant sequences (Pango, last 3 months)
 pl_var_3_tit:Cumulative number of virus variant sequences (GISAID, last 3 months)
 pl_var_2_tit:Cumulative number of virus variant sequences (Pango, last 6 months)
 pl_var_4_tit:Cumulative number of virus variant sequences (GISAID, last 6 months)
-pl_var_5_tit:Dashed lines - latency 0, 2 and 4 weeks. Red points - variants with the N501Y mutation
+pl_var_5_tit:Dashed lines - latency 0, 2 and 4 weeks.
 pl_var_5_scx:Date of sample collection (last 3 months)
 pl_var_5_scy:Date of submission
 pl_loc_1_tit:Number of sequences per week in the regions (last 3 months)
