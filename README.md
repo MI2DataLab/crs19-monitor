@@ -1,4 +1,4 @@
-# Monitor of SARS-CoV-2 variants and mutations in Europe
+# Monitor of SARS-CoV-2 variants
 
 ▶️ https://monitor.crs19.pl/
 
@@ -10,10 +10,10 @@ From [MI2DataLab](http://mi2.mini.pw.edu.pl/), [Faculty of Mathematics and Infor
 
 * [Przemysław Biecek](https://biecek.pl) (lead) 
 * [Hubert Baniecki](https://github.com/hbaniecki)
-* [Stanisław Giziński](https://github.com/Gizzio)
-* [Maciej Łukasik](https://github.com/maciej-lukasik-va)
 * [Piotr Piątyszek](https://github.com/piotrpiatyszek)
 * [Hanna Zdulska](https://github.com/HaZdula)
+* [Maciej Łukasik](https://github.com/maciej-lukasik-va)
+
 
 ## [Materials](https://github.com/MI2DataLab/crs19-monitor/wiki/Materials)
 
