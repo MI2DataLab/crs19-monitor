@@ -81,7 +81,9 @@ class Api:
 
             # navigate to search
             driver.find_elements_by_class_name("sys-actionbar-action")[1].click()
-            time.sleep(3)
+            time.sleep(30)
+            self.wait_for_timer()
+            time.sleep(15)
             driver.execute_script("document.getElementById('sys_curtain').remove()")
 
         except Exception as e:
@@ -110,9 +112,11 @@ class Api:
         """
         Sleeps until "sys_timer_img" and "small_spinner" are visible
         """
-        time.sleep(4)
-        while self._is_spinning("sys_timer_img") or self._is_spinning("small_spinner"):
-            time.sleep(1)
+        time.sleep(2)
+        for i in range(3):
+            time.sleep(2)
+            while self._is_spinning("sys_timer_img") or self._is_spinning("small_spinner"):
+                time.sleep(1)
 
     def set_region(self, region):
         """
@@ -223,6 +227,7 @@ class Api:
     def select_accession_ids(self, ids):
         ids_str = ",".join(ids)
         self.driver.find_element_by_xpath(("//button[contains(., 'Select')]")).click()
+        time.sleep(3)
         self.wait_for_timer()
         self._find_and_switch_to_iframe()
         ids_input = self.driver.find_element_by_class_name("sys-event-hook.sys-fi-mark.sys-form-fi-multiline")
@@ -231,6 +236,7 @@ class Api:
         ids_input.send_keys(' ')
         self.wait_for_timer()
         self.driver.find_element_by_xpath(("//button[contains(., 'OK')]")).click()
+        self.wait_for_timer()
         time.sleep(3)
         # TODO : this chunk should be more safe
         try:
@@ -245,11 +251,14 @@ class Api:
         except WebDriverException:
             self.driver.switch_to.default_content()
         self.wait_for_timer()
+        time.sleep(3)
 
     def start_downloading_augur(self):
+        self.wait_for_timer()
         self.driver.find_element_by_xpath(("//button[contains(., 'Download')]")).click()
         self._find_and_switch_to_iframe()
 
+        self.wait_for_timer()
         self.driver.find_element_by_xpath(("//input[@value='augur_input']")).click()
         self.wait_for_timer()
 
@@ -386,8 +395,11 @@ class Api:
         """
         elems = self._get_elements_or_empty(class_name)
         for elem in elems:
-            if elem is not None and list(elem.rect.values()) != [0, 0, 0, 0]:
-                return True
+            try:
+                if elem is not None and list(elem.rect.values()) != [0, 0, 0, 0]:
+                    return True
+            except:
+                pass
         return False
 
     def _find_and_switch_to_iframe(self):
