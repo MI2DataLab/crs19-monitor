@@ -20,5 +20,5 @@ From [MI2DataLab](http://mi2.mini.pw.edu.pl/), [Faculty of Mathematics and Infor
 ## [Documentation](https://github.com/MI2DataLab/crs19-monitor/wiki/Documentation)
 
 <p align="center">
-<img width=800 src="https://github.com/MI2DataLab/crs19-monitor/blob/main/doc/schema.svg">
+<img width=800 src="https://github.com/MI2DataLab/crs19-monitor/blob/main/doc/schema.png">
 </p>
