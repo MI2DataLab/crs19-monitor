@@ -1,6 +1,7 @@
 import os
 import glob
 import sys
+import shutil
 from datetime import datetime
 from config import repo_path, site_dist, clean_db_path, remotes, rsync_remotes, log_db_path, conda_sh_path, tmp_dir
 
@@ -12,6 +13,9 @@ os.environ["CLEAN_DB"] = clean_db_path
 os.environ["LOG_DB"] = log_db_path
 os.environ["OUTPUT_PATH"] = site_dist
 os.environ["TMP_DIR"] = tmp_dir 
+
+if not os.path.exists(site_dist):
+    shutil.copytree(repo_path + '/generate_site/source/root', site_dist)
 
 out = 0
 if not os.environ.get('NOT_BUILD'):

@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html lang="en">
+  <script>
+    const defaultRegion = 'poland'
+    fetch("dates.json").then(res => res.json()).then(date_dirs => {
+      latest = date_dirs.sort().pop()
+      window.location.pathname += (window.location.pathname.endsWith('/') ? '' : '/') + latest + '/' + defaultRegion + '/'
+    });
+  </script>
+</html>
+
