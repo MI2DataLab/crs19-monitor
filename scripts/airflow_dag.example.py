@@ -35,17 +35,18 @@ def generate_dag(dag_id, schedule):
         dag=dag,
     )
     
-    task_fasta_to_mutation = BashOperator(
-        task_id='fasta_to_mutation',
-        bash_command='python ' + repo_path + '/scripts/task_fasta_to_mutation.py',
-        dag=dag,
-    )
+    # Not used anymore
+    #task_fasta_to_mutation = BashOperator(
+    #    task_id='fasta_to_mutation',
+    #    bash_command='python ' + repo_path + '/scripts/task_fasta_to_mutation.py',
+    #    dag=dag,
+    #)
 
     task_scrapper = BashOperator(
         task_id='scrapper',
         retries=2,
         bash_command='SKIP_VARIANTS=1 SKIP_PANGO=1 python ' + repo_path + '/scripts/task_scrapper.py',
-        execution_timeout = timedelta(minutes=60),
+        execution_timeout = timedelta(minutes=360),
         dag=dag
     )
     
@@ -67,7 +68,13 @@ def generate_dag(dag_id, schedule):
         dag=dag,
     )
     
-    task_scrapper >> [task_fasta_to_pango, task_fasta_to_clades, task_fasta_to_mutation] >> task_generate_site >> task_clear_old_sites >> task_backup
+    task_clean_database = BashOperator(
+        task_id='clean_database',
+        bash_command='python ' + repo_path + '/scripts/task_clean_database.py',
+        dag=dag,
+    )
+    
+    task_scrapper >> [task_fasta_to_pango, task_fasta_to_clades] >> task_clean_database >> task_generate_site >> task_clear_old_sites >> task_backup
     return dag
 
 dag1 = generate_dag('europe', '0 */12 * * *')
