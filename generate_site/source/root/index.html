@@ -2,9 +2,16 @@
 <html lang="en">
   <script>
     const defaultRegion = 'poland'
+    const setLang = { 'monitor.mi2.ai': 'en' }
+    const lang = setLang[window.location.hostname]
     fetch("dates.json").then(res => res.json()).then(date_dirs => {
       latest = date_dirs.sort().pop()
       window.location.pathname += (window.location.pathname.endsWith('/') ? '' : '/') + latest + '/' + defaultRegion + '/'
+      const params = new URLSearchParams(window.location.search)
+      if (params.get('lang') === null && lang) {
+        params.set('lang', lang)
+        window.location.search = params.toString()
+      }
     });
   </script>
 </html>
