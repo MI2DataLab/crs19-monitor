@@ -1,6 +1,6 @@
 # Monitor of SARS-CoV-2 variants
 
-▶️ https://monitor.crs19.pl/
+▶️ https://monitor.mi2.ai
 
 Part of the [MI2 against COVID](http://covid.mi2.ai/) initiative
 
