@@ -33,18 +33,27 @@ def manage_table_scrapping(db_path, minimum_start_date, max_date_range, region, 
         start_date = minimum_start_date
     else:
         start_date = datetime.datetime.strptime(start_date, '%Y-%m-%d').date()
-        print('Scrapping 3 days before proper date range')
+        print('Scrapping 3rd day before proper date range')
         history = ScrappingMetaHistory()
-        repeater(scrap_meta_table, region, db_path, start_date - datetime.timedelta(days=3), start_date - datetime.timedelta(days=1), history, log_dir, credentials)
+        repeater(scrap_meta_table, region, db_path, start_date - datetime.timedelta(days=3), start_date - datetime.timedelta(days=3), history, log_dir, credentials)
+        print('Scrapping 2nd day before proper date range')
+        history = ScrappingMetaHistory()
+        repeater(scrap_meta_table, region, db_path, start_date - datetime.timedelta(days=2), start_date - datetime.timedelta(days=2), history, log_dir, credentials)
+        print('Scrapping 1st day before proper date range')
+        history = ScrappingMetaHistory()
+        repeater(scrap_meta_table, region, db_path, start_date - datetime.timedelta(days=1), start_date - datetime.timedelta(days=1), history, log_dir, credentials)
         print('Scrapping starting day')
         history = ScrappingMetaHistory()
         repeater(scrap_meta_table, region, db_path, start_date, start_date, history, log_dir, credentials)
         start_date = start_date + datetime.timedelta(days=1)
 
-    end_date = min(datetime.date.today(), start_date + datetime.timedelta(days=max_date_range))
-
-    history = ScrappingMetaHistory()
-    repeater(scrap_meta_table, region, db_path, start_date, end_date, history, log_dir, credentials)
+    while True:
+        end_date = min(datetime.date.today(), start_date + datetime.timedelta(days=max_date_range))
+        if start_date > end_date:
+            break
+        history = ScrappingMetaHistory()
+        repeater(scrap_meta_table, region, db_path, start_date, end_date, history, log_dir, credentials)
+        start_date = end_date + datetime.timedelta(days=1)
 
 
 def scrap_meta_table(region, db_path, start_date, end_date, history, log_dir, credentials):
