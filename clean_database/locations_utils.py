@@ -32,7 +32,7 @@ def update_locations_level(loc_db, df, update_counts=True):
     # Count of each simplified name
     count_stats = df.groupby(['parent_id', 'simple_name']).size().reset_index(name='count')
 
-    print('Adding %s new nodes to locations database' % new_nodes.shape[0])
+    print('Adding %s new nodes to locations database' % new_nodes.shape[0], flush=True)
     # pylint: disable=unused-variable
     with sqlite3.connect(loc_db) as con:
         cur = con.cursor()
