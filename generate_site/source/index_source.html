@@ -68,7 +68,8 @@
 
           <hr>
 
-          <div class="row" id="Liczba_seq">
+          <!-- Row with count of sequences per week and cummulative -->
+          <div class="row">
             <div class="col-lg-4 col-md-4 col-sm-4">
               <p>
                 {{ [i18n('site_seq_count_1'), placeholders.DATE, i18n('site_seq_count_2'), placeholders.NUMBER, i18n('site_seq_count_3')].join(' ').replaceAll(' ,', ',') }}
@@ -85,7 +86,55 @@
 
           <hr>
 
-          <div class="row" id="Liczba_wariantow2">
+          <!-- Row with count of sequences in categories and of VOC -->
+          <div class="row">
+            <div class="col-lg-4 col-md-4 col-sm-4">
+              <p>
+                {{ i18n('site_description_count') }}
+                <a href="https://www.ecdc.europa.eu/en/covid-19/variants-concern">ECDC</a>
+              </p>
+            </div>
+            <div class="col-lg-4 col-md-4 col-sm-4">
+              <img align="right" :src="'images/' + lang + '/category_count.svg'" width="100%" onerror="this.parentElement.parentElement.style.display='none'" :key="editTime" >
+            </div>
+            <div class="col-lg-4 col-md-4 col-sm-4">
+              <img align="right" :src="'images/' + lang + '/who_count.svg'" width="100%" onerror="this.parentElement.parentElement.style.display='none'" :key="editTime" >
+            </div>
+          </div><!-- /.row -->
+
+          <hr>
+
+          <!-- Row with proportion of sequences in categories and of VOC -->
+          <div class="row">
+            <div class="col-lg-4 col-md-4 col-sm-4">
+              <p>
+                {{ i18n('site_description_proportion') }}
+                <a href="https://www.ecdc.europa.eu/en/covid-19/variants-concern">ECDC</a>
+              </p>
+            </div>
+            <div class="col-lg-4 col-md-4 col-sm-4">
+              <img align="right" :src="'images/' + lang + '/category_proportion.svg'" width="100%" onerror="this.parentElement.parentElement.style.display='none'" :key="editTime" >
+            </div>
+            <div class="col-lg-4 col-md-4 col-sm-4">
+              <img align="right" :src="'images/' + lang + '/who_proportion.svg'" width="100%" onerror="this.parentElement.parentElement.style.display='none'" :key="editTime" >
+            </div>
+          </div><!-- /.row -->
+
+          <hr>
+
+          <!-- Row with cummulative count of sequences for each who name -->
+          <div class="row">
+            <div class="col-lg-4 col-md-4 col-sm-4">
+            </div>
+            <div class="col-lg-8 col-md-8 col-sm-8">
+              <img align="right" :src="'images/' + lang + '/who_cumulative.svg'" width="100%" onerror="this.parentElement.parentElement.style.display='none'" :key="editTime" >
+            </div>
+          </div><!-- /.row -->
+
+          <hr>
+
+          <!--
+          <div class="row">
             <div class="col-lg-4 col-md-4 col-sm-4">
               <p>{{ i18n('site_description_1') }}</p>
             </div>
@@ -95,7 +144,7 @@
             <div class="col-lg-4 col-md-4 col-sm-4">
               <img align="right" :src="'images/' + lang + '/udzial_warianty_2.svg'" width="100%" onerror="this.parentElement.parentElement.style.display='none'" :key="editTime" >
             </div>
-          </div><!-- /.row -->
+          </div>
 
           <hr>
 
@@ -109,7 +158,7 @@
             <div class="col-lg-4 col-md-4 col-sm-4">
               <img align="right" :src="'images/' + lang + '/udzial_warianty_4.svg'" width="100%" onerror="this.parentElement.parentElement.style.display='none'" :key="editTime" >
             </div>
-          </div><!-- /.row -->
+          </div>
 
           <hr>
 
@@ -124,7 +173,7 @@
             <div class="col-lg-8 col-md-8 col-sm-8">
               <img align="right" :src="'images/' + lang + '/liczba_warianty_3.png'" width="100%" onerror="this.parentElement.parentElement.style.display='none'" :key="editTime" >
             </div>
-          </div><!-- /.row -->
+          </div>
 
           <hr>
 
@@ -134,73 +183,78 @@
             <div class="col-lg-8 col-md-8 col-sm-8">
               <img align="right" :src="'images/' + lang + '/liczba_warianty_4.svg'" width="100%" onerror="this.parentElement.parentElement.style.display='none'" :key="editTime" >
             </div>
-          </div><!-- /.row -->
+          </div>
 
           <hr>
+          -->
 
-          <div class="row" id="Liczba_wariantow">
+          <!-- Row with cumulative count of pango variants (facets) -->
+          <div class="row">
             <div class="col-lg-4 col-md-4 col-sm-4">
               <p>
                 {{ i18n('site_pango_variants_1') + ' ' + placeholders.VARIANTS + ' ' + i18n('site_pango_variants_2') }}
                 <span v-html="placeholders.VARIANTSLIST"></span>.
                 {{ i18n('site_pango_variants_3') }}
-                <a href="https://cov-lineages.org/lineages/lineage_B.1.1.7.html">B.1.1.7</a>
-                {{ i18n('site_and') }}
-                <a href="https://cov-lineages.org/lineages/lineage_B.1.351.html">B.1.351</a>
-                {{ i18n('site_pango_variants_4') }}
+                <a href="https://www.ecdc.europa.eu/en/covid-19/variants-concern">ECDC</a>
               </p>
             </div>
             <div class="col-lg-8 col-md-8 col-sm-8">
               <img align="right" :src="'images/' + lang + '/liczba_warianty_1.png'" width="100%" onerror="this.parentElement.parentElement.style.display='none'" :key="editTime" >
             </div>
-          </div><!-- /.row -->
+          </div>
 
           <hr>
 
-          <div class="row" id="Liczba_wariantow">
+          <!-- Row with cumulative count of pango variants (lines) -->
+          <div class="row">
             <div class="col-lg-4 col-md-4 col-sm-4">
             </div>
             <div class="col-lg-8 col-md-8 col-sm-8">
               <img align="right" :src="'images/' + lang + '/liczba_warianty_2.svg'" width="100%" onerror="this.parentElement.parentElement.style.display='none'" :key="editTime" >
             </div>
-          </div><!-- /.row -->
+          </div>
 
           <hr>
 
-          <div class="row" id="Liczba_wariantow3">
+          <!-- Row with sumbission date against collection date -->
+          <div class="row">
             <div class="col-lg-4 col-md-4 col-sm-4">
               <p>{{ i18n('site_description_3') }}</p>
             </div>
             <div class="col-lg-8 col-md-8 col-sm-8">
               <img align="right" :src="'images/' + lang + '/liczba_warianty_5.png'" width="100%" onerror="this.parentElement.parentElement.style.display='none'" :key="editTime" >
             </div>
-          </div><!-- /.row -->
+          </div>
 
           <hr>
 
-          <div class="row" id="Liczba_wariantow3">
-            <div class="col-lg-4 col-md-4 col-sm-4">
-              <p>{{ i18n('site_description_4') }}</p>
-            </div>
-            <div class="col-lg-8 col-md-8 col-sm-8">
-              <img align="right" :src="'images/' + lang + '/liczba_loc_1.svg'" width="100%" onerror="this.parentElement.parentElement.style.display='none'" :key="editTime" >
-            </div>
-          </div><!-- /.row -->
-
-          <div class="row" id="Liczba_wariantow3">
-            <div class="col-lg-4 col-md-4 col-sm-4">
-              <p>{{ i18n('site_description_5') }}</p>
-            </div>
-            <div class="col-lg-8 col-md-8 col-sm-8">
-              <img align="right" :src="'images/' + lang + '/liczba_loc_2.svg'" width="100%" onerror="this.parentElement.parentElement.style.display='none'" :key="editTime" >
-            </div>
-          </div><!-- /.row -->
-
+          <!-- Row with counts in regions -->
           <div class="row">
             <div class="col-lg-12 col-md-12 col-sm-12">
-              <img align="right" :src="'images/' + lang + '/mapa_mutacje.svg'" width="100%" onerror="this.parentElement.parentElement.style.display='none'" :key="editTime" >
+              <p>{{ i18n('site_description_states_count') }}</p>
             </div>
-          </div><!-- /.row -->
+            <div class="col-lg-6 col-md-12 col-sm-12">
+              <img align="right" :src="'images/' + lang + '/liczba_loc_1.svg'" width="100%" onerror="this.parentElement.parentElement.style.display='none'" :key="editTime" >
+            </div>
+            <div class="col-lg-6 col-md-12 col-sm-12">
+              <img align="right" :src="'images/' + lang + '/who_voc_states_count.svg'" width="100%" onerror="this.parentElement.parentElement.style.display='none'" :key="editTime" >
+            </div>
+          </div>
+
+          <hr>
+
+          <!-- Row with proportions in regions -->
+          <div class="row">
+            <div class="col-lg-12 col-md-12 col-sm-12">
+              <p>{{ i18n('site_description_states_proportion') }}</p>
+            </div>
+            <div class="col-lg-6 col-md-12 col-sm-12">
+              <img align="right" :src="'images/' + lang + '/liczba_loc_2.svg'" width="100%" onerror="this.parentElement.parentElement.style.display='none'" :key="editTime" >
+            </div>
+            <div class="col-lg-6 col-md-12 col-sm-12">
+              <img align="right" :src="'images/' + lang + '/who_voc_states_proportion.svg'" width="100%" onerror="this.parentElement.parentElement.style.display='none'" :key="editTime" >
+            </div>
+          </div>
 
           <hr>
 

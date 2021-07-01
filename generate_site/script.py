@@ -113,7 +113,7 @@ with sqlite3.connect(log_db) as con:
     con.commit()
 
 if success_ratio < 0.7 * last_success_ratio and os.environ.get('SKIP_RATIO_CHECK') is None:
-    print('Success ratio is smaller than 70% of averaged success ratio of last iterations(%s). Stopping.' % last_success_ratio)
+    print('Success ratio is smaller than 70%% of averaged success ratio of last iterations(%s). Stopping.' % last_success_ratio)
     print('Set env SKIP_RATIO_CHECK=1 to skip this check')
     sys.exit(1)
 

@@ -186,7 +186,7 @@ def load_pango(clean_db, pango_config_path, unique_pango):
         cur = con.cursor()
         for p in unique_pango:
             attrs = get_pango_attributes(config, str(p))
-            cur.execute('INSERT INTO pango (pango, color, is_alarm, name) VALUES (?, ?, ?, ?)', (p, attrs['color'], int(attrs['alarm']), attrs['name']))
+            cur.execute('INSERT INTO pango (pango, color, is_alarm, class, name) VALUES (?, ?, ?, ?, ?)', (p, attrs['color'], int(attrs['alarm']), attrs['class'], attrs['name']))
         con.commit()
 
 

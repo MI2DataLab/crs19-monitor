@@ -8,8 +8,8 @@ pl_var_4_tit:Skumulowana liczba sekwencji wariantów wirusa (GISAID, ostatnie 6 
 pl_var_5_tit:Przerywane linie - opóźnienie 0, 2 i 4 tygodnie.
 pl_var_5_scx:Data pobrania materiału (ostatnie 3 miesiące)
 pl_var_5_scy:Data zgłoszenia
-pl_loc_1_tit:Liczba sekwencji na tydzień w województwach (ostatnie 3 miesiące)
-pl_loc_2_tit:Proporcja sekwencji na tydzień w województwach (ostatnie 3 miesiące)
+pl_loc_1_tit:Liczba sekwencji każdej kategorii
+pl_loc_2_tit:Udział sekwencji każdej kategorii
 pl_var_all_1_tit:Udział sekwencji z wariantem wirusa
 pl_var_all_2_tit:Tygodniowy udział sekwencji z wariantem wirusa
 pl_var_all_3_tit:Tygodniowa liczba sekwencji z wariantem wirusa
@@ -18,6 +18,13 @@ pl_map_sub1:Suma z 3 miesięcy poprzedzających
 pl_map_sub2:Suma z miesiąca poprzedzającego
 pl_map_pt1:Proporcja sekwencji z mutacją
 pl_map_pt2:w województwach
+pl_who_voc_states_proportion:Udział sekwencji VOC
+pl_who_voc_states_count:Liczba sekwencji VOC
+pl_category_count_tit:Liczba sekwencji każdej kategorii
+pl_category_proportion_tit:Udział sekwencji każdej kategorii
+pl_who_count_tit:Liczba sekwencji wariantów VOC
+pl_who_proportion_tit:Udział sekwencji wariantów VOC
+pl_who_cumulative_tit:Skumulowana liczba sekwencji wariantów
 site_title:Monitor wariantów SARS-CoV-2
 site_and:i
 site_date:Data
@@ -28,16 +35,19 @@ site_seq_count_3:sekwencje SARS-CoV-2.
 site_max_gisaid_date:Maksymalna data pobrania dla próbek z bazy GISAID
 site_description_1:Liczba (lewy panel) i udział (prawy panel) wariantów wirusa oznaczone z bazy GISAID. Dane prezentowane w agregacji tygodniowej. Wyniki dla ostatnich 3 miesięcy.
 site_description_2:Udział wariantów wirusa oznaczone z bazy GISAID. Prezentowane dane są wygładzone 7-dniowym oknem. Wyniki dla ostatnich 3 miesięcy.
+site_description_count:Wykresy przedstawiają tygodniową liczbę zarejestrowanych wariantów wirusa w podziale na kategorie (lewy wykres) oraz wyszczególnione warianty VOC (prawy wykres). Kategorie pochodzą ze strony 
+site_description_proportion:Wykresy przedstawiają tygodniowy udział zarejestrowanych wariantów wirusa w podziale na kategorie (lewy wykres) oraz wyszczególnione warianty VOC (prawy wykres). Kategorie pochodzą ze strony 
 site_gisaid_variants_1:W bazie są
 site_gisaid_variants_2:warianty wirusa oznaczone z bazy GISAID. Najczęstsze to
 site_gisaid_variants_3:Warianty z mutacją N501Y (zaznaczone na czerwono) to warianty alarmowe o zwiększonej zakaźności.
 site_pango_variants_1:W bazie są
 site_pango_variants_2:linie wirusa oznaczone z bazy Pango. Najczęstsze to
-site_pango_variants_3:Warianty
-site_pango_variants_4:(zaznaczone na czerwono) to warianty alarmowe o zwiększonej zakaźności.
+site_pango_variants_3:Warianty są podzielone na kategorie zgodnie z 
 site_description_3:Czas od pobrania materiału do zgłoszenia do bazy GISAID to najczęściej od 2 do 5 tygodni.
-site_description_4:Liczba wariantów z mutacją N501Y w województwach.
-site_description_5:Procent wariantów z mutacją N501Y w województwach.
-site_foot_1:Monitor wariantów SARS-CoV-2 w Europie. Stworzony przez
+site_description_4:Liczba wariantów każdej kategorii w regionach.
+site_description_5:Procent wariantów każdej kategorii w regionach.
+site_description_states_count:Tygodniowa liczba wariantów w podziale na regiony.
+site_description_states_proportion:Tygodniowa udział wariantów w podziale na regiony.
+site_foot_1:Monitor wariantów SARS-CoV-2. Stworzony przez
 site_foot_2:W oparciu o dane z
 other_level:Inne
