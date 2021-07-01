@@ -131,7 +131,7 @@ def load_dates(clean_db, dates):
     """
     Fill dates table
     """
-    print('Filling dates table')
+    print('Filling dates table', flush=True)
     fmt = '%Y-%m-%d'
     dates = [datetime.strptime(x, fmt) for x in dates]
     with sqlite3.connect(clean_db) as con:
@@ -147,7 +147,7 @@ def load_clade(clean_db, clade_config_path, unique_clade):
     """
     Fill clade table
     """
-    print('Filling clade table')
+    print('Filling clade table', flush=True)
     config = pd.read_csv(clade_config_path, sep='\t')
     others = [str(x) for x in unique_clade if x not in list(config['clade'])]
     with sqlite3.connect(clean_db) as con:
@@ -178,7 +178,7 @@ def load_pango(clean_db, pango_config_path, unique_pango):
     """
     Fill pango table
     """
-    print('Filling pango table')
+    print('Filling pango table', flush=True)
     handle = open(pango_config_path, 'r')
     config = yaml.safe_load(handle)
     handle.close()
@@ -219,7 +219,7 @@ def load_substitutions(clean_db, raw_db, df):
             self.last_loaded_id = self.last_new_id
             return ids
 
-    print('Filling substitutions and substitutions_bridge table')
+    print('Filling substitutions and substitutions_bridge table', flush=True)
     with sqlite3.connect(clean_db) as con:
         frames = []
         id_gen = ids_generator()
@@ -273,34 +273,45 @@ def load(raw_db, loc_db, clean_db, pango_path, clades_path, clade_config_path, p
     with sqlite3.connect(loc_db) as con:
         cur = con.cursor()
         cur.execute('UPDATE mappings SET count = 0')
-        loc_nodes = pd.read_sql('select name, id, iso_code, lat, lng from nodes', con)
+        con.commit()
 
     # Location cleaning
-    print('Cleaning location')
+    print('Cleaning location', flush=True)
     raw['raw_continent'] = [extract_location(x, 0) for x in raw['location']]
     raw['raw_country'] = [extract_location(x, 1) for x in raw['location']]
     raw['raw_state'] = [extract_location(x, 2) for x in raw['location']]
     raw = raw.drop(columns=['location'])
 
+    print('Assigning location nodes', flush=True)
     raw['continent_id'] = update_locations_level(loc_db, raw[['raw_continent']].rename(columns={'raw_continent': 'name'}))
     raw['country_id'] = update_locations_level(loc_db, raw[['raw_country', 'continent_id']].rename(columns={'continent_id': 'parent_id', 'raw_country': 'name'}))
     raw['state_id'] = update_locations_level(loc_db, raw[['raw_state', 'country_id']].rename(columns={'country_id': 'parent_id', 'raw_state': 'name'}))
+    raw = raw.drop(columns=['raw_continent', 'raw_country', 'raw_state'])
 
+    print('Loading location nodes table', flush=True)
+    with sqlite3.connect(loc_db) as con:
+        loc_nodes = pd.read_sql('select name, id, iso_code, lat, lng from nodes', con)
+
+    print('Geography merge', flush=True)
+    geography = raw[['continent_id', 'country_id', 'state_id']].drop_duplicates().reset_index(drop=True)
     for pre in ['continent', 'country', 'state']:
-        raw = pd.merge(raw, loc_nodes, how='left', left_on=pre + '_id', right_on='id') \
+        geography = pd.merge(geography, loc_nodes, how='left', left_on=pre + '_id', right_on='id') \
                 .rename(columns={'name': pre, 'iso_code': pre + '_iso_code', 'lat': pre + '_lat', 'lng': pre + '_lng'}) \
-                .drop(columns=['id', pre + '_id', 'raw_' + pre])
+                .drop(columns=['id', pre + '_id'])
 
-    print('Saving geography')
-    geography = raw.groupby(['continent', 'country', 'state']).first().reset_index()[[a + b for a in ['continent', 'country', 'state'] for b in ['', '_iso_code', '_lat', '_lng']]]
+    print('Saving geography', flush=True)
     with sqlite3.connect(clean_db) as con:
         geography.to_sql('geography', con, if_exists='append', index=None)
 
-    raw = raw.drop(columns=[a + b for a in ['continent', 'country', 'state'] for b in ['_iso_code', '_lat', '_lng']])
-    
+    print('Assigning corrected names to location ids')
+    loc_nodes = loc_nodes[['id', 'name']].copy()
+    for pre in ['continent', 'country', 'state']:
+        raw = pd.merge(raw, loc_nodes, how='left', left_on=pre + '_id', right_on='id') \
+                .rename(columns={'name': pre }) \
+                .drop(columns=['id', pre + '_id'])
 
     # Clean dates
-    print('Cleaning date')
+    print('Cleaning date', flush=True)
     raw['collection_date'] = [clean_date(x) for x in raw['collection_date']]
     raw['submission_date'] = [clean_date(x) for x in raw['submission_date']]
 
@@ -311,24 +322,25 @@ def load(raw_db, loc_db, clean_db, pango_path, clades_path, clade_config_path, p
     load_dates(clean_db, unique_dates)
 
     # Clean sex
-    print('Cleaning sex')
+    print('Cleaning sex', flush=True)
     raw['sex'] = [clean_sex(x) for x in raw['sex']]
 
     # Clean age
-    print('Cleaning age')
+    print('Cleaning age', flush=True)
     ages = [clean_age(x) for x in raw['age']]
     raw['min_age'] = [x[0] for x in ages]
     raw['max_age'] = [x[1] for x in ages]
     raw = raw.drop(columns=['age'])
 
     # Clades
-    print('Loading clade')
+    print('Loading clade', flush=True)
     clades = pd.read_csv(clades_path, sep='\t')
     clades['accession_id'] = [x.split('|')[1] for x in clades['seqName']]
     clades['clade'] = [str(x) if x is not np.nan and x is not None else np.nan for x in clades['clade']]
     clades.drop_duplicates(['accession_id'], keep='first', inplace=True)
     # substitutions will be used later
-    substitutions = clades[['accession_id', 'aaSubstitutions']]
+    if 'aaSubstitutions' in clades.index:
+        substitutions = clades[['accession_id', 'aaSubstitutions']]
     clades = clades[['accession_id', 'clade']].rename(columns={'clade': 'our_clade'})
     raw = pd.merge(raw, clades, how='left', on='accession_id')
 
@@ -337,7 +349,7 @@ def load(raw_db, loc_db, clean_db, pango_path, clades_path, clade_config_path, p
     load_clade(clean_db, clade_config_path, unique_clade)
 
     # Pango
-    print('Loading pango')
+    print('Loading pango', flush=True)
     pango = pd.read_csv(pango_path)
     pango['accession_id'] = [x.split('|')[1] for x in pango['taxon']]
     pango['lineage'] = [str(x) if x is not np.nan and x is not None and x != 'None' else np.nan for x in pango['lineage']]
@@ -350,7 +362,7 @@ def load(raw_db, loc_db, clean_db, pango_path, clades_path, clade_config_path, p
     load_pango(clean_db, pango_config_path, unique_pango)
 
     # Load
-    print('Saving sequences to clean database')
+    print('Saving sequences to clean database', flush=True)
     with sqlite3.connect(clean_db) as con:
         raw.to_sql('sequences', con, if_exists='append', index=None)
 
@@ -368,9 +380,9 @@ if __name__ == "__main__":
     CLADE_CONFIG_PATH = os.environ.get('CLADE_CONFIG_PATH')
     PANGO_CONFIG_PATH = os.environ.get('PANGO_CONFIG_PATH')
     SKIP_SUBSTITUTIONS = not os.environ.get('LOAD_SUBSTITUTIONS')
-    print('Initializing database')
+    print('Initializing database', flush=True)
     init_db(CLEAN_DB_PATH)
-    print('Creating locations database')
+    print('Creating locations database', flush=True)
     init_locations_db(LOCATIONS_DB_PATH)
-    print('Cleaning data')
+    print('Cleaning data', flush=True)
     load(RAW_DB_PATH, LOCATIONS_DB_PATH, CLEAN_DB_PATH, PANGO_PATH, CLADES_PATH, CLADE_CONFIG_PATH, PANGO_CONFIG_PATH, SKIP_SUBSTITUTIONS)

@@ -68,8 +68,8 @@ for region in regions:
 success = []
 for index, region in enumerate(regions):
     region['build_time'] = str(datetime.now())
-    print('[%s / %s] Generating %s [%s]' % (index + 1, len(regions), region['label'], region['build_time']))
-    print('Build dir: %s' % region['build_dir'])
+    print('[%s / %s] Generating %s [%s]' % (index + 1, len(regions), region['label'], region['build_time']), flush=True)
+    print('Build dir: %s' % region['build_dir'], flush=True)
     os.makedirs(region['build_dir'])
 
     # Parameters GENERATION_DATE, CLEAN_DB are inherited from parent scope
@@ -88,7 +88,7 @@ for index, region in enumerate(regions):
 
 
 success_ratio = len(success) / len(regions)
-print('Success ratio: %s\nSuccess: %s\nFailed: %s' % (success_ratio, [x['label'] for x in regions if x['success']], [x['label'] for x in regions if not x['success']]))
+print('Success ratio: %s\nSuccess: %s\nFailed: %s' % (success_ratio, [x['label'] for x in regions if x['success']], [x['label'] for x in regions if not x['success']]), flush=True)
 
 with sqlite3.connect(log_db) as con:
     cur = con.cursor()
@@ -97,7 +97,7 @@ with sqlite3.connect(log_db) as con:
     # get iteration id
     cur.execute('select IFNULL(max(iteration) + 1, 0) from log')
     iteration = cur.fetchall()[0][0]
-    print('Saving logs. Iteration id: %s' % iteration)
+    print('Saving logs. Iteration id: %s' % iteration, flush=True)
 
     # get log id
     cur.execute('select IFNULL(max(id) + 1, 1) from log')
@@ -114,16 +114,16 @@ with sqlite3.connect(log_db) as con:
 
 if success_ratio < 0.7 * last_success_ratio and os.environ.get('SKIP_RATIO_CHECK') is None:
     print('Success ratio is smaller than 70%% of averaged success ratio of last iterations(%s). Stopping.' % last_success_ratio)
-    print('Set env SKIP_RATIO_CHECK=1 to skip this check')
+    print('Set env SKIP_RATIO_CHECK=1 to skip this check', flush=True)
     sys.exit(1)
 
 
-print('Creating summary')
+print('Creating summary', flush=True)
 source_summary_file = os.path.dirname(os.path.realpath(__file__)) + '/source/index_source_summary.html'
 shutil.copy(source_summary_file, build_dir + '/index.html')
 
 
-print('Creating language files')
+print('Creating language files', flush=True)
 def get_lang_source(lang):
     path = os.path.dirname(os.path.realpath(__file__)) + '/source/lang_' + lang + '.txt'
     return pd.read_csv(path, sep=':', quoting=3).set_index('tag')['names'].to_dict()
@@ -134,22 +134,22 @@ with open(build_dir + '/i18n.json', 'w') as f:
     f.write(json.dumps(i18n_value))
 
 
-print('Saving regions list file')
+print('Saving regions list file', flush=True)
 regions_list_value = [{'name': region['label'], 'dir': region['simplified']} for region in success]
 # save
 with open(build_dir + '/regions.json', 'w') as f:
     json.dump(regions_list_value, f)
 
 
-print('Copying generated site to production directory')
+print('Copying generated site to production directory', flush=True)
 site_path = output_path + '/' + generation_date
 shutil.rmtree(site_path, ignore_errors=True)
 shutil.copytree(build_dir, site_path)
 
-print('Removing tmp directory')
+print('Removing tmp directory', flush=True)
 shutil.rmtree(tmp_dir, ignore_errors=True)
 
-print('Updating dates file')
+print('Updating dates file', flush=True)
 with open(output_path + '/dates.json', 'r') as f:
     dates_list = json.load(f)
     if generation_date not in dates_list:
