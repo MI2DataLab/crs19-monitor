@@ -45,6 +45,7 @@ CREATE TABLE pango (
   pango TEXT PRIMARY KEY NOT NULL,
   color TEXT NULL,
   is_alarm INT NOT NULL,
+  class TEXT NOT NULL,
   name TEXT NULL
 );
 

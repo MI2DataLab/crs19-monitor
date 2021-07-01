@@ -48,7 +48,7 @@ for (lang in LANGUAGES) {
     'sequence_count', 'load', lang
   )
   measure_time(
-    plots_output[[lang]][['pl_seq_1']] <-
+    plots_output[[lang]][['count']] <-
       covar::plot_sequence_count(
         df = df,
         title = description_input["pl_seq_1_tit", "names"]
@@ -61,7 +61,7 @@ for (lang in LANGUAGES) {
     'sequence_cumulative', 'load', lang
   )
   measure_time(
-    plots_output[[lang]][['pl_seq_2']] <-
+    plots_output[[lang]][['count_cummulative']] <-
       covar::plot_sequence_cumulative(
         df = df,
         title = description_input["pl_seq_2_tit", "names"]
@@ -75,7 +75,7 @@ for (lang in LANGUAGES) {
   )
 
   measure_time(
-    plots_output[[lang]][['pl_var_1']] <-
+    plots_output[[lang]][['pango_facet']] <-
       covar::plot_pango_facet(
         df = df,
         lineage_date = GENERATION_DATE,
@@ -85,7 +85,7 @@ for (lang in LANGUAGES) {
     'pango_facet', 'plot', lang
   )
   measure_time(
-    plots_output[[lang]][['pl_var_2']] <-
+    plots_output[[lang]][['pango_cumulative']] <-
       covar::plot_pango_cumulative(
         df = df,
         lineage_date = GENERATION_DATE,
@@ -97,37 +97,11 @@ for (lang in LANGUAGES) {
 
 
   measure_time(
-    df <- covar::load_clade(DB_PATH, continent, country, START_DATE_LONG, GENERATION_DATE),
-    'clade', 'load', lang
-  )
-  measure_time(
-    plots_output[[lang]][['pl_var_3']] <-
-      covar::plot_clade_facet(
-        df = df,
-        lineage_date = GENERATION_DATE,
-        no_months_plots = NO_MONTHS_PLOTS,
-        title = description_input["pl_var_3_tit", "names"]
-      ),
-    'clade_facet', 'plot', lang
-  )
-  measure_time(
-    plots_output[[lang]][['pl_var_4']] <-
-      covar::plot_clade_cumulative(
-        df = df,
-        lineage_date = GENERATION_DATE,
-        no_months_plots_long = NO_MONTHS_PLOTS_LONG,
-        title = description_input["pl_var_4_tit", "names"]
-      ),
-    'clade_cumulative', 'plot', lang
-  )
-
-
-  measure_time(
     df <- covar::load_metadata_dates(DB_PATH, continent, country, ymd(START_DATE) %m+% months(1), START_DATE),
     'metadata_dates', 'load', lang
   )
   measure_time(
-    plots_output[[lang]][['pl_var_5']] <-
+    plots_output[[lang]][['dates']] <-
       covar::plot_metadata_dates(
         df = df,
         lineage_date = GENERATION_DATE,
@@ -139,86 +113,121 @@ for (lang in LANGUAGES) {
     'metadata_dates', 'plot', lang
   )
 
-
   measure_time(
-    df <- covar::load_location(DB_PATH, continent, country, START_DATE, 25),
-    'location', 'load', lang
+    df <- covar::load_category_location(DB_PATH, continent, country, START_DATE, 25),
+    'category_location', 'load', lang
   )
   n_unique_regions <- length(unique(df$state))
   measure_time(
-    plots_output[[lang]][['pl_loc_1']] <-
-      covar::plot_location_count(
+    plots_output[[lang]][['category_location_count']] <-
+      covar::plot_category_location_count(
         df = df,
         lineage_date = GENERATION_DATE,
         no_months_plots = NO_MONTHS_PLOTS,
         title = description_input["pl_loc_1_tit", "names"]
       ),
-    'location_count', 'plot', lang
+    'category_location_count', 'plot', lang
   )
   measure_time(
-    plots_output[[lang]][['pl_loc_2']] <-
-      covar::plot_location_proportion(
+    plots_output[[lang]][['category_location_proportion']] <-
+      covar::plot_category_location_proportion(
         df = df,
         lineage_date = GENERATION_DATE,
         no_months_plots = NO_MONTHS_PLOTS,
         title = description_input["pl_loc_2_tit", "names"]
       ),
-    'location_proportion', 'plot', lang
+    'category_location_proportion', 'plot', lang
   )
 
   measure_time(
-    df <- covar::load_variant_col(DB_PATH, continent, country, START_DATE),
-    'variant_col', 'load', lang
+    df <- covar::load_category(DB_PATH, continent, country, START_DATE),
+    'category', 'load', lang
   )
   measure_time(
-    plots_output[[lang]][['pl_var_all_2']] <-
-      covar::plot_variant_col_fill(
+    plots_output[[lang]][['category_count']] <-
+      covar::plot_category_count(
         df = df,
         lineage_date = GENERATION_DATE,
         no_months_plots = NO_MONTHS_PLOTS,
-        title = description_input["pl_var_all_2_tit", "names"]
+        title = description_input["pl_category_count_tit", "names"]
       ),
-    'variant_col_fill', 'plot', lang
+    'category_count', 'plot', lang
   )
   measure_time(
-    plots_output[[lang]][['pl_var_all_3']] <-
-      covar::plot_variant_col_stack(
+    plots_output[[lang]][['category_proportion']] <-
+      covar::plot_category_proportion(
         df = df,
         lineage_date = GENERATION_DATE,
         no_months_plots = NO_MONTHS_PLOTS,
-        title = description_input["pl_var_all_3_tit", "names"]
+        title = description_input["pl_category_proportion_tit", "names"]
       ),
-    'variant_col_stack', 'plot', lang
+    'category_proportion', 'plot', lang
+  )
+
+  measure_time(
+    df <- covar::load_who(DB_PATH, continent, country, START_DATE, 'voc'),
+    'who', 'load', lang
+  )
+  measure_time(
+    plots_output[[lang]][['who_count']] <-
+      covar::plot_who_count(
+        df = df,
+        lineage_date = GENERATION_DATE,
+        no_months_plots = NO_MONTHS_PLOTS,
+        title = description_input["pl_who_count_tit", "names"]
+      ),
+    'who_count', 'plot', lang
+  )
+  measure_time(
+    plots_output[[lang]][['who_proportion']] <-
+      covar::plot_who_proportion(
+        df = df,
+        lineage_date = GENERATION_DATE,
+        no_months_plots = NO_MONTHS_PLOTS,
+        title = description_input["pl_who_proportion_tit", "names"]
+      ),
+    'who_proportion', 'plot', lang
+  )
+
+  measure_time(
+    df <- covar::load_who_cumulative(DB_PATH, continent, country, START_DATE_LONG, GENERATION_DATE),
+    'who_cumulative', 'load', lang
+  )
+  measure_time(
+    plots_output[[lang]][['who_cumulative']] <-
+      covar::plot_who_cumulative(
+        df = df,
+        lineage_date = GENERATION_DATE,
+        no_months_plots = NO_MONTHS_PLOTS_LONG,
+        title = description_input["pl_who_cumulative_tit", "names"]
+      ),
+    'who_cumulative', 'plot', lang
   )
 
 
-  # add +k days for reporting lag
-  k <- 7
   measure_time(
-    df <- covar::load_variant_point(DB_PATH, continent, country, START_DATE),
-    'variant_point', 'load', lang
+    df <- covar::load_who_location(DB_PATH, continent, country, START_DATE, 25, 'voc'),
+    'who_voc_states', 'load', lang
   )
   measure_time(
-    plots_output[[lang]][['pl_var_all_1']] <-
-      covar::plot_variant_area(
-        df = df,
-        k = k,
-        lineage_date = GENERATION_DATE,
-        no_months_plots = NO_MONTHS_PLOTS,
-        title = description_input["pl_var_all_1_tit", "names"]
+    plots_output[[lang]][['who_voc_states_count']] <-
+      covar::plot_who_location_count(
+        df,
+        GENERATION_DATE,
+        NO_MONTHS_PLOTS,
+        title = description_input["pl_who_voc_states_count", "names"]
       ),
-    'variant_point_area', 'plot', lang
+    'who_voc_states_count', 'plot', lang
   )
   measure_time(
-    plots_output[[lang]][['pl_var_all_4']] <-
-      covar::plot_variant_point_smooth(
-        df = df,
-        k = k,
-        lineage_date = GENERATION_DATE,
-        no_months_plots = NO_MONTHS_PLOTS,
-        title = description_input["pl_var_all_4_tit", "names"]
+    plots_output[[lang]][['who_voc_states_proportion']] <-
+      covar::plot_who_location_proportion(
+        df,
+        GENERATION_DATE,
+        NO_MONTHS_PLOTS,
+        title = description_input["pl_who_voc_states_proportion", "names"]
       ),
-    'variant_point_smooth', 'plot', lang
+    'who_voc_states_proportion', 'plot', lang
   )
 }
 # ----- CREATE OUTPUT DIR----- #
@@ -259,63 +268,68 @@ for (lang in LANGUAGES) {
   dir.create(dir_prefix, recursive = TRUE, showWarnings = FALSE)
 
   measure_time(
-    ggplot2::ggsave(plot = plots[['pl_seq_1']], file = paste0(dir_prefix, "liczba_seq_1.svg"), width = 4, height = 2.5),
+    ggplot2::ggsave(plot = plots[['count']], file = paste0(dir_prefix, "liczba_seq_1.svg"), width = 4, height = 2.5),
     'sequence_count', 'save', lang
   )
   measure_time(
-    ggplot2::ggsave(plot = plots[['pl_seq_2']], file = paste0(dir_prefix, "liczba_seq_2.svg"), width = 4, height = 2.5),
+    ggplot2::ggsave(plot = plots[['count_cummulative']], file = paste0(dir_prefix, "liczba_seq_2.svg"), width = 4, height = 2.5),
     'sequence_cumulative', 'save', lang
   )
 
-  th <- ceiling(n_unique_regions / 5) * 5 / 4
+  th <- ceiling(n_unique_regions / 3) * 3 / 3
+  tw <- 6
   measure_time(
-    ggplot2::ggsave(plot = plots[['pl_loc_1']], file = paste0(dir_prefix, "liczba_loc_1.svg"), width = 8, height = th, limitsize = FALSE),
+    ggplot2::ggsave(plot = plots[['category_location_count']], file = paste0(dir_prefix, "liczba_loc_1.svg"), width = tw, height = th, limitsize = FALSE),
     'location_count', 'save', lang
   )
   measure_time(
-    ggplot2::ggsave(plot = plots[['pl_loc_2']], file = paste0(dir_prefix, "liczba_loc_2.svg"), width = 8, height = th, limitsize = FALSE),
+    ggplot2::ggsave(plot = plots[['category_location_proportion']], file = paste0(dir_prefix, "liczba_loc_2.svg"), width = tw, height = th, limitsize = FALSE),
     'location_proportion', 'save', lang
+  )
+  measure_time(
+    ggplot2::ggsave(plot = plots[['who_voc_states_proportion']], file = paste0(dir_prefix, "who_voc_states_proportion.svg"), width = tw, height = th, limitsize = FALSE),
+    'who_voc_states_proportion', 'save', lang
+  )
+  measure_time(
+    ggplot2::ggsave(plot = plots[['who_voc_states_count']], file = paste0(dir_prefix, "who_voc_states_count.svg"), width = tw, height = th, limitsize = FALSE),
+    'who_voc_states_count', 'save', lang
   )
 
   measure_time(
-    ggplot2::ggsave(plot = plots[['pl_var_1']], file = paste0(dir_prefix, "liczba_warianty_1.png"), width = 8, height = 5),
+    ggplot2::ggsave(plot = plots[['pango_facet']], file = paste0(dir_prefix, "liczba_warianty_1.png"), width = 8, height = 5),
     'pango_facet', 'save', lang
   )
   measure_time(
-    ggplot2::ggsave(plot = plots[['pl_var_2']], file = paste0(dir_prefix, "liczba_warianty_2.svg"), width = 8, height = 3),
+    ggplot2::ggsave(plot = plots[['pango_cumulative']], file = paste0(dir_prefix, "liczba_warianty_2.svg"), width = 8, height = 3),
     'pango_cumulative', 'save', lang
   )
   measure_time(
-    ggplot2::ggsave(plot = plots[['pl_var_3']], file = paste0(dir_prefix, "liczba_warianty_3.png"), width = 8, height = 5),
-    'clade_facet', 'save', lang
-  )
-  measure_time(
-    ggplot2::ggsave(plot = plots[['pl_var_4']], file = paste0(dir_prefix, "liczba_warianty_4.svg"), width = 8, height = 3),
-    'clade_cumulative', 'save', lang
-  )
-  measure_time(
-    ggplot2::ggsave(plot = plots[['pl_var_5']], file = paste0(dir_prefix, "liczba_warianty_5.png"), width = 8, height = 5),
+    ggplot2::ggsave(plot = plots[['dates']], file = paste0(dir_prefix, "liczba_warianty_5.png"), width = 8, height = 5),
     'metadata_dates', 'save', lang
+  )
+  measure_time(
+    ggplot2::ggsave(plot = plots[['who_cumulative']], file = paste0(dir_prefix, "who_cumulative.svg"), width = 8, height = 3),
+    'who_cumulative', 'save', lang
   )
 
   # pre v1.1.0 it was 5.5/3.5
   tw <- 4 
   th <- 2.5 
   measure_time(
-    ggplot2::ggsave(plot = plots[['pl_var_all_1']], file = paste0(dir_prefix, "udzial_warianty_1.svg"), width = tw, height = th),
-    'variant_point_area', 'save', lang
+    ggplot2::ggsave(plot = plots[['category_count']], file = paste0(dir_prefix, "category_count.svg"), width = tw, height = th),
+    'category_count', 'save', lang
   )
   measure_time(
-    ggplot2::ggsave(plot = plots[['pl_var_all_2']], file = paste0(dir_prefix, "udzial_warianty_2.svg"), width = tw, height = th),
-    'variant_col_fill', 'save', lang
+    ggplot2::ggsave(plot = plots[['category_proportion']], file = paste0(dir_prefix, "category_proportion.svg"), width = tw, height = th),
+    'category_proportion', 'save', lang
   )
   measure_time(
-    ggplot2::ggsave(plot = plots[['pl_var_all_3']], file = paste0(dir_prefix, "udzial_warianty_3.svg"), width = tw, height = th),
-    'variant_col_stack', 'save', lang
+    ggplot2::ggsave(plot = plots[['who_count']], file = paste0(dir_prefix, "who_count.svg"), width = tw, height = th),
+    'who_count', 'save', lang
   )
   measure_time(
-    ggplot2::ggsave(plot = plots[['pl_var_all_4']], file = paste0(dir_prefix, "udzial_warianty_4.svg"), width = tw, height = th),
-    'variant_point_smooth', 'save', lang
+    ggplot2::ggsave(plot = plots[['who_proportion']], file = paste0(dir_prefix, "who_proportion.svg"), width = tw, height = th),
+    'who_proportion', 'save', lang
   )
 
   measure_time(

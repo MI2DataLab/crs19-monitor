@@ -8,8 +8,8 @@ pl_var_4_tit:Cumulative number of virus variant sequences (GISAID, last 6 months
 pl_var_5_tit:Dashed lines - latency 0, 2 and 4 weeks.
 pl_var_5_scx:Date of sample collection (last 3 months)
 pl_var_5_scy:Date of submission
-pl_loc_1_tit:Number of sequences per week in the regions (last 3 months)
-pl_loc_2_tit:Proportion of sequences per week in the region (last 3 months)
+pl_loc_1_tit:Number of sequences of each category
+pl_loc_2_tit:Proportion of sequences of each category
 pl_var_all_1_tit:Proportion of sequences with virus variant
 pl_var_all_2_tit:Weekly proportion of sequences with virus variant
 pl_var_all_3_tit:Weekly count of sequences with virus variant
@@ -18,6 +18,13 @@ pl_map_sub1:Sum for the 3 months preceding
 pl_map_sub2:Sum for the month preceding
 pl_map_pt1:Proportion of sequences with the mutation
 pl_map_pt2:in the regions
+pl_who_voc_states_proportion:Proportion of sequences VOC
+pl_who_voc_states_count:Count of sequences VOC
+pl_category_count_tit:Number of sequences of each category
+pl_category_proportion_tit:Proportion of sequences of each category
+pl_who_count_tit:Number of sequences of VOC variants
+pl_who_proportion_tit:Proportion of sequences of VOC variants
+pl_who_cumulative_tit:Cumulative number of sequences
 site_title:Monitor of SARS-CoV-2 variants
 site_and:and
 site_date:Date
@@ -26,6 +33,8 @@ site_seq_count_1:As of
 site_seq_count_2:, there are
 site_seq_count_3:SARS-CoV-2 sequences from the selected country in the GISAID database.
 site_max_gisaid_date:Last date of collection for samples from the GISAID database
+site_description_count:Charts show weekly count of sequences of each category (left chart) and named variants of concern (right chart). Categories are based on
+site_description_proportion:Charts show weekly proportion of sequences of each category (left chart) and named variants of concern (right chart). Categories are based on
 site_description_1:Count (left chart) and proportion (right chart) of the virus variants taken from the GISAID database. Data presented in a weekly aggregation. Results for the past 3 months.
 site_description_2:The proportion of the virus variants taken from the GISAID database. Data presented were smoothed with a 7-day window. Results for the past 3 months.
 site_gisaid_variants_1:In the database, there are
@@ -33,11 +42,12 @@ site_gisaid_variants_2:variants of the virus tagged by the GISAID database. The 
 site_gisaid_variants_3:The variants with the N501Y mutation (highlighted in red) are alert variants with increased infectivity.
 site_pango_variants_1:In the database, there are
 site_pango_variants_2:lineages of the virus tagged by the Pango database. The most common are
-site_pango_variants_3:Variants
-site_pango_variants_4:(highlighted in red) are alert variants with increased infectivity.
+site_pango_variants_3:Variants are categorized according to 
 site_description_3:The time from material collection to its submission into the GISAID database is usually 2 to 5 weeks.
-site_description_4:Number of variants with the N501Y mutation in the regions.
-site_description_5:Percentage of variants with the N501Y mutation in the regions.
+site_description_4:Number of variants of each category in the regions.
+site_description_5:Percentage of variants of each category in the regions.
+site_description_states_count:Weekly count of variants in regions.
+site_description_states_proportion:Weekly proportion of variants in regions.
 site_foot_1:Monitor of SARS-CoV-2 variants in Europe. Created by
 site_foot_2:Based on the data from
 other_level:Other
