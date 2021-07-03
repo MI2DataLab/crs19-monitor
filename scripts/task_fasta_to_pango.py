@@ -35,7 +35,7 @@ def runner(timestamp):
     os.environ['LINEAGE_REPORT_PATH'] = output_file
     os.environ["FASTA_FILE_PATH"] = unpacked
     os.environ["MAX_FASTA_SIZE"] = str(pango_max_fasta_size)
-    out = os.system('bash -c "source ' + conda_sh_path + ' && cd ' + work_dir + '/' + str(timestamp) + ' && conda activate crs19 && python ../script.py"')
+    out = os.system('bash -c "source ~/.bashrc && source ' + conda_sh_path + ' && cd ' + work_dir + '/' + str(timestamp) + ' && conda activate crs19 && python ../script.py"')
     os.unlink(unpacked)
     shutil.rmtree(work_dir + '/' + str(timestamp))
     if out != 0:
