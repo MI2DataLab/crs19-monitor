@@ -19,6 +19,9 @@ remotes = []
 rsync_remotes = []
 backups_number = 3
 old_sites_to_keep = 4
+pango_threads = 1
+# Maximum number of sequences processed in one pangoling run
+pango_max_fasta_size = 2000
 
 gisaid_fasta_dir = data_dir + '/gisaid_fasta'
 clades_output_dir = data_dir + '/clades'

@@ -1,4 +1,5 @@
 import os
+import sys
 import subprocess
 
 import pandas as pd
@@ -8,31 +9,18 @@ from tqdm import tqdm
 pangolin_out_file_name = "lineage_report.csv"
 analysis_results = os.environ['LINEAGE_REPORT_PATH']
 temp_fasta_path = "temp.fasta"
-
+max_fasta_size = int(os.environ["MAX_FASTA_SIZE"])
 input_fasta_path = os.environ["FASTA_FILE_PATH"]
 
-# checking old results
-if os.path.isfile(analysis_results):
-    old_results = pd.read_csv(analysis_results)
-    exclude_from_analysis = list(old_results["taxon"])
-else:
-    old_results = []
-    exclude_from_analysis = list()
-scrapped_fasta = FastaFile.read(input_fasta_path)
-# Excluding processed sequences
-unprocessed_sequences = FastaFile()
-for key in scrapped_fasta:
-    if key not in exclude_from_analysis:
-        unprocessed_sequences[key] = scrapped_fasta[key]
+unprocessed_sequences = FastaFile.read(input_fasta_path)
 print(f"Found {len(unprocessed_sequences)} unprocessed sequences")
 
 parts = []
 tmp = FastaFile()
 output_lines = []
 
-# Append not sequences not existing in db to new_sequences
 for index,key in enumerate(unprocessed_sequences.keys()):
-    part = index // 2000
+    part = index // max_fasta_size
     if len(parts) - 1 < part:
         parts.append(FastaFile())
     parts[part][key] = unprocessed_sequences[key]
