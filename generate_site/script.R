@@ -276,7 +276,7 @@ for (lang in LANGUAGES) {
     'sequence_cumulative', 'save', lang
   )
 
-  th <- ceiling(n_unique_regions / 3) * 3 / 3
+  th <- 1 + ceiling(n_unique_regions / 3)
   tw <- 6
   measure_time(
     ggplot2::ggsave(plot = plots[['category_location_count']], file = paste0(dir_prefix, "liczba_loc_1.svg"), width = tw, height = th, limitsize = FALSE),
