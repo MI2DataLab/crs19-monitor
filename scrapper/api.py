@@ -209,10 +209,18 @@ class Api:
 
         self._find_and_switch_to_iframe()
         input_class_name = "sys-event-hook.sys-fi-mark.sys-form-fi-multiline"
-        readed_records = self.driver.find_element_by_class_name(input_class_name).text.split(", ")
+        readed_records = self.driver.find_element_by_class_name(input_class_name).text.replace(' ', '').replace('\n', '').split(",")
 
         if readed_records == ['']:
             readed_records = []
+
+        # each record can be in one of two formats: a) EPI_ISL_XXX b) EPI_ISL_XXX-YYY
+        # Firstly remove prefixes and save a) in array of length 1 and b) as array with start and end of range
+        readed_records = [[x.replace('EPI_ISL_', '')] if '-' not in x else x.replace('EPI_ISL_', '').split('-') for x in readed_records if len(x) > 0]
+        # replace arrays with start and end by range
+        readed_records = [x if len(x) == 1 else range(int(x[0]), int(x[1]) + 1) for x in readed_records]
+        # flat array and add prefix
+        readed_records = ['EPI_ISL_' + str(accession_id) for sublist in readed_records for accession_id in sublist]
 
         if len(readed_records) != total_records:
             raise Exception("Readed records ({})!= Total records({})".format(len(readed_records), total_records))
