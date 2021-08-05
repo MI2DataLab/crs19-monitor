@@ -1,4 +1,4 @@
-from io import StringIO
+from io import StringIO, TextIOWrapper
 import os
 import sys
 import lzma
@@ -7,6 +7,7 @@ import tarfile
 import operator
 import traceback
 import pandas as pd
+import numpy as np
 from biotite.sequence.io.fasta import FastaFile
 
 
@@ -107,20 +108,28 @@ def fix_metadata_table(input_handle, output_handle, delim='\t'):
     output_handle.writelines(fixed_lines)
 
 
-def load_metadata_table(compressed_metadata):
+def load_metadata_table(compressed_metadata, decompress=True):
     with StringIO() as fixed_metadata_handle:
-        with lzma.open(compressed_metadata, 'rt') as raw_metadata_handle:
-            fix_metadata_table(raw_metadata_handle, fixed_metadata_handle)
-            fixed_metadata_handle.seek(0)
-        return pd.read_csv(fixed_metadata_handle, sep="\t", quoting=3)  # 3 = disabled
+        if decompress:
+            with lzma.open(compressed_metadata, 'rt') as raw_metadata_handle:
+                fix_metadata_table(raw_metadata_handle, fixed_metadata_handle)
+        else:
+            fix_metadata_table(TextIOWrapper(compressed_metadata), fixed_metadata_handle)
+        fixed_metadata_handle.seek(0)
+        df = pd.read_csv(fixed_metadata_handle, sep="\t", quoting=3)  # 3 = disabled
+        df['age'] = [str(x) if x is not None and x is not np.nan else None for x in df['age']]
+        return df
 
 
-def fix_fasta_file(metadata, input_fasta_path, output_fasta_path, missing_fasta_ids):
+def fix_fasta_file(metadata, input_fasta_handle, output_fasta_path, missing_fasta_ids, decompress=True):
     if len(missing_fasta_ids) == 0:
         return
 
-    with lzma.open(input_fasta_path, 'rt') as raw_fasta_handle:
-        lines = raw_fasta_handle.readlines()
+    if decompress:
+        with lzma.open(input_fasta_handle, 'rt') as raw_fasta_handle:
+            lines = raw_fasta_handle.readlines()
+    else:
+        lines = TextIOWrapper(input_fasta_handle).readlines()
 
     # Just check if order and values of keys are the same as in metadata
     # fasta files can contain duplicated keys
@@ -154,13 +163,23 @@ def load_from_tar(tar_file, output_fasta_path, missing_fasta_ids):
     with tarfile.open(tar_file) as tar_handle:
         members = tar_handle.getmembers()
         members.sort(key = operator.attrgetter('name'))
-        # check if tar structure does not changed
-        assert members[0].name.endswith('metadata.tsv.xz')
-        assert members[1].name.endswith('sequences.fasta.xz')
-        # extract handles for files
-        compressed_metadata = tar_handle.extractfile(members[0])
-        compressed_fasta = tar_handle.extractfile(members[1])
-        # get pandas df from compressed metadata
-        metadata = load_metadata_table(compressed_metadata)
-        fix_fasta_file(metadata, compressed_fasta, output_fasta_path, missing_fasta_ids)
+
+        if members[0].name.endswith('metadata.tsv.xz'):
+            compressed_metadata = tar_handle.extractfile(members[0])
+            metadata = load_metadata_table(compressed_metadata, True)
+        elif members[0].name.endswith('metadata.tsv'):
+            raw_metadata = tar_handle.extractfile(members[0])
+            metadata = load_metadata_table(raw_metadata, False)
+        else:
+            raise Exception('Invalid metadata file in downloaded tar: %s' % members[0].name)
+
+        if members[1].name.endswith('sequences.fasta.xz'):
+            compressed_fasta = tar_handle.extractfile(members[1])
+            fix_fasta_file(metadata, compressed_fasta, output_fasta_path, missing_fasta_ids, True)
+        elif members[1].name.endswith('sequences.fasta'):
+            raw_fasta = tar_handle.extractfile(members[1])
+            fix_fasta_file(metadata, raw_fasta, output_fasta_path, missing_fasta_ids, False)
+        else:
+            raise Exception('Invalid fasta file in downloaded tar: %s' % members[1].name)
+
         return metadata
