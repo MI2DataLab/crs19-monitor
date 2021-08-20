@@ -16,7 +16,7 @@ for file_name in files:
 if os.environ.get('FULL') is None:
     merged = pd.concat(dataframes)[['seqName', 'clade']]
 else:
-    merged = pd.concat(dataframes)[['seqName', 'clade', 'aaSubstitutions', 'substitutions', 'deletions', 'aaDeletions']]
+    merged = pd.concat(dataframes)[['seqName', 'clade', 'aaSubstitutions', 'substitutions', 'deletions', 'aaDeletions', 'qc.overallStatus', 'missing', 'insertions']]
 merged.to_csv(output_file, sep='\t', index=False)
 os.system('cat ' + output_file + ' | grep -v "Unable to align" |grep -v "In sequence" > ' + output_file + '.tmp')
 os.system('mv ' + output_file + '.tmp ' + output_file)
