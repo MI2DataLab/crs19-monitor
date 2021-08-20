@@ -70,7 +70,7 @@ def scrap_fasta_augur(db_path, fasta_files_dir, download_dir, log_dir, credentia
                 # sleep until file is downloaded
                 time.sleep(1)
                 fail_counter += 1
-                if fail_counter == 120:
+                if fail_counter == 240:
                     for accession_id in part_ids:
                         cur.execute("UPDATE metadata SET last_meta_load_try = ? WHERE accession_id=?", (today, accession_id))
                     con.commit()
