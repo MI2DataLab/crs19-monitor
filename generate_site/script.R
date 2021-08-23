@@ -237,8 +237,6 @@ dir.create(paste0(OUTPUT_DATE_REGION_PATH, '/', 'images'), recursive = TRUE, sho
 # ----- CREATE HTML ----- #
 df_pango <- covar::load_pango_count(DB_PATH, continent, country)
 variants_pango_list <- paste0(paste0('<a href="https://cov-lineages.org/lineages/lineage_', head(df_pango$pango, 7), '.html">', head(df_pango$pango, 7), '</a>'), collapse = ",\n")
-df_clade <- covar::load_clade_count(DB_PATH,continent, country)
-variants_clade_list <- paste0(paste0('<a href="https://www.cdc.gov/coronavirus/2019-ncov/more/science-and-research/scientific-brief-emerging-variants.html">', head(df_clade$clade, 7), '</a>'), collapse = ",\n")
 df_stats <- covar::load_sequence_stats(DB_PATH, continent, country)
 
 placeholders <- list(
@@ -246,9 +244,7 @@ placeholders <- list(
   NUMBER = df_stats$count,
   DATELAST = df_stats$last_collection_date,
   VARIANTSLIST = variants_pango_list,
-  VARIANTS = nrow(df_pango),
-  VARIANTSLIST2 = variants_clade_list,
-  VARIANTS2 = nrow(df_clade)
+  VARIANTS = nrow(df_pango)
 )
 
 write(jsonlite::toJSON(placeholders, auto_unbox = TRUE), paste0(OUTPUT_DATE_REGION_PATH, '/placeholders.json'))
