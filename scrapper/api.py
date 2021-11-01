@@ -152,6 +152,8 @@ class Api:
         input_start.clear()
         input_start.send_keys(start_date.strftime('%Y-%m-%d'))
 
+        self.wait_for_timer()
+
         input_end.clear()
         input_end.send_keys(end_date.strftime('%Y-%m-%d'))
 

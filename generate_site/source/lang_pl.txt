@@ -30,20 +30,20 @@ site_and:i
 site_date:Data
 site_country:Państwo
 site_seq_count_1:Na dzień
-site_seq_count_2:w bazie GISAID dla wybranego państwa są
+site_seq_count_2:w bazie dla wybranego państwa są
 site_seq_count_3:sekwencje SARS-CoV-2.
-site_max_gisaid_date:Maksymalna data pobrania dla próbek z bazy GISAID
-site_description_1:Liczba (lewy panel) i udział (prawy panel) wariantów wirusa oznaczone z bazy GISAID. Dane prezentowane w agregacji tygodniowej. Wyniki dla ostatnich 3 miesięcy.
-site_description_2:Udział wariantów wirusa oznaczone z bazy GISAID. Prezentowane dane są wygładzone 7-dniowym oknem. Wyniki dla ostatnich 3 miesięcy.
+site_max_gisaid_date:Maksymalna data pobrania próbek
+site_description_1:Liczba (lewy panel) i udział (prawy panel) wariantów wirusa. Dane prezentowane w agregacji tygodniowej. Wyniki dla ostatnich 3 miesięcy.
+site_description_2:Udział wariantów wirusa. Prezentowane dane są wygładzone 7-dniowym oknem. Wyniki dla ostatnich 3 miesięcy.
 site_description_count:Wykresy przedstawiają tygodniową liczbę zarejestrowanych wariantów wirusa w podziale na kategorie (lewy wykres) oraz wyszczególnione warianty VOC (prawy wykres). Kategorie pochodzą ze strony 
 site_description_proportion:Wykresy przedstawiają tygodniowy udział zarejestrowanych wariantów wirusa w podziale na kategorie (lewy wykres) oraz wyszczególnione warianty VOC (prawy wykres). Kategorie pochodzą ze strony 
 site_gisaid_variants_1:W bazie są
-site_gisaid_variants_2:warianty wirusa oznaczone z bazy GISAID. Najczęstsze to
+site_gisaid_variants_2:warianty wirusa. Najczęstsze to
 site_gisaid_variants_3:Warianty z mutacją N501Y (zaznaczone na czerwono) to warianty alarmowe o zwiększonej zakaźności.
 site_pango_variants_1:W bazie są
 site_pango_variants_2:linie wirusa oznaczone z bazy Pango. Najczęstsze to
 site_pango_variants_3:Warianty są podzielone na kategorie zgodnie z 
-site_description_3:Czas od pobrania materiału do zgłoszenia do bazy GISAID to najczęściej od 2 do 5 tygodni.
+site_description_3:Czas od pobrania materiału do zgłoszenia to najczęściej od 2 do 5 tygodni.
 site_description_4:Liczba wariantów każdej kategorii w regionach.
 site_description_5:Procent wariantów każdej kategorii w regionach.
 site_description_states_count:Tygodniowa liczba wariantów w podziale na regiony.

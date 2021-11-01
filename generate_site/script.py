@@ -85,6 +85,12 @@ for index, region in enumerate(regions):
     if region['success']:
         region['log'] = pd.read_csv(region['log_path'])
         success.append(region)
+        with sqlite3.connect(clean_db) as con:
+            cur = con.cursor()
+            cur.execute("select accession_id from sequences where continent = ? and country = ?", (region['continent'], region['country']))
+            accession_ids = [r[0] for r in cur.fetchall()]
+            with open(region['build_dir'] + '/accession_ids.json', 'w') as f:
+                json.dump(accession_ids, f)
 
 
 success_ratio = len(success) / len(regions)
@@ -122,6 +128,9 @@ print('Creating summary', flush=True)
 source_summary_file = os.path.dirname(os.path.realpath(__file__)) + '/source/index_source_summary.html'
 shutil.copy(source_summary_file, build_dir + '/index.html')
 
+print('Creating acknowledgements page', flush=True)
+source_ack_file = os.path.dirname(os.path.realpath(__file__)) + '/source/index_source_ack.html'
+shutil.copy(source_ack_file, build_dir + '/ack.html')
 
 print('Creating language files', flush=True)
 def get_lang_source(lang):
