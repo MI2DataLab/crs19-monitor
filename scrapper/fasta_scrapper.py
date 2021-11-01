@@ -103,7 +103,7 @@ def scrap_fasta_augur(db_path, fasta_files_dir, download_dir, log_dir, credentia
             for accession_id in missing_meta_ids:
                 if accession_id in metadata.index:
                     meta = metadata.loc[accession_id]
-                    cur.execute("UPDATE metadata SET sex=?, age=?, is_meta_loaded=1, last_meta_load_try = ? WHERE accession_id=?", (meta['sex'], meta['age'], today, accession_id))
+                    cur.execute("UPDATE metadata SET sex=?, age=?, clade=?, gisaid_pango=?, is_meta_loaded=1, last_meta_load_try = ? WHERE accession_id=?", (meta['sex'], meta['age'], meta['GISAID_clade'], meta['pangolin_lineage'], today, accession_id))
                 else:
                     cur.execute("UPDATE metadata SET is_meta_loaded=1, last_meta_load_try = ? WHERE accession_id=?", (today, accession_id))
 
