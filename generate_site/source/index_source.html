@@ -40,25 +40,30 @@
   </head>
   <body>
     <div id="app">
-      <nav class="navbar navbar-inverse" role="navigation" style="padding-bottom:0px; border-color:#4a423d!important; background-color:#4a423d!important;">
-        <div class="container" style="padding-bottom:5px; padding-top:5px; ">
+      <nav class="navbar navbar-inverse" role="navigation" style="padding-bottom:0px; border-color:#4a423d!important; background-color:#4a423d!important;margin-bottom:0;border-radius: 0;">
+        <div class="container" style="padding-bottom:0; padding-top:5px; ">
           <div class="navbar-header">
-            <a class="navbar-brand" href="#Monitor">{{ i18n('site_title') }}</a>
-            <div class="navbar-brand">
+            <a class="navbar-brand" href="#Monitor" style="padding-bottom: 1px;">{{ i18n('site_title') }}</a>
+            <div class="navbar-brand" style="padding-bottom: 1px;">
               <a class="navbar-link" href="javascript:void(0)" v-for="l in langs" :key="l" @click="setLang(l)" style="margin: 0 5px">{{ l.toUpperCase() }}</a>
             </div>
           </div>
         </div><!-- /.container -->
       </nav>
-      <div class="section" id="Mapa">
-        <div class="container">
-	  <div class="row">
-            <div class="col-lg-12 col-md-12 col-sm-12" style="position: relative;margin-bottom: 20px;">
-              <span>Enabled by data from <a href="https://www.gisaid.org/"><img style="height: 20px;" src="https://www.gisaid.org/fileadmin/gisaid/img/schild.png"></a></span>
-	       <a style="position: absolute; right: 0;display: inline-block;" href="https://covariants.org/acknowledgements">Acknowledgements</a>
+      <nav class="navbar navbar-inverse" role="navigation" style="padding-top:0px; border-color:#4a423d!important; background-color:#4a423d!important;min-height: 30px;border-radius: 0;">
+        <div class="container" style="padding-bottom:5px; padding-top:0;">
+          <div class="navbar-header">
+	    <div class="navbar-brand" href="#Monitor" style="padding-top: 1px;padding-bottom: 5px;">
+	      <span>Enabled by data from <a href="https://www.gisaid.org/"><img style="height: 20px;" src="https://www.gisaid.org/fileadmin/gisaid/img/schild.png"></a></span>
+	    </div>
+            <div class="navbar-brand" style="padding-top: 1px;padding-bottom: 5px;">
+	      <a style="position: absolute; color: white; right: 20px;display: inline-block;" href="../ack.html">Acknowledgements</a>
             </div>
           </div>
-
+        </div><!-- /.container -->
+      </nav>
+      <div class="section" id="Mapa">
+	<div class="container">
           <div class="row">
             <div class="col-lg-12 col-md-12 col-sm-12">
               {{ i18n('site_date') }}:
