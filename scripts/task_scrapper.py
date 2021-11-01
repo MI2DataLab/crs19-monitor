@@ -32,8 +32,11 @@ os.environ["LOGIN"] = scrapper_login
 os.environ["PASS"] = scrapper_pass
 
 out = os.system('bash -c "source ' + conda_sh_path + ' && cd ' + work_dir + ' && conda activate crs19 && python script.py"')
+if out == 2: #keyboard abort
+    sys.exit(2)
 if out == 0:
     shutil.rmtree(run_tmp_dir)
+    os.makedirs(run_tmp_dir)
     out = os.system('cd ' + gisaid_fasta_dir + ' && find . -type f ! -name \'*.gz\' -exec gzip -9 "{}" \;')
 else:
     print('Scrapping fasta failed. Tmp directory: ' + run_tmp_dir)

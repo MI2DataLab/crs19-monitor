@@ -42,7 +42,6 @@ CREATE TABLE pango (
 
 CREATE TABLE sequences (
   accession_id TEXT PRIMARY KEY NOT NULL,
-  passage TEXT NULL,
   submission_date TEXT NULL,
   collection_date TEXT NULL,
   host TEXT NULL,
@@ -56,8 +55,11 @@ CREATE TABLE sequences (
   sex TEXT NULL,
   our_pango TEXT NULL,
   gisaid_clade TEXT NULL,
-  gisaid_variant TEXT NULL,
+  gisaid_nextstrain_clade TEXT NULL,
   gisaid_pango TEXT NULL,
+  strain TEXT NULL,
+  virus TEXT NULL,
+  segment TEXT NULL,
   FOREIGN KEY (collection_date) REFERENCES dates(date),
   FOREIGN KEY (submission_date) REFERENCES dates(date)
   FOREIGN KEY (our_pango) REFERENCES pango(pango),

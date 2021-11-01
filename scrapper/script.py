@@ -24,11 +24,11 @@ if __name__ == "__main__":
     os.environ['login'] = os.environ['pass'] = ''
 
     init_db(DB_PATH)
-    if not os.environ.get('SKIP_PANGO'):
-        manage_pango_scrapping(DB_PATH, MAX_DATE_RANGE, ROOT_REGION, PANGO_FILE, LOG_DIR, credentials)
-    if not os.environ.get('SKIP_METATABLE'):
-        manage_table_scrapping(DB_PATH, MINIMUM_START_DATE, MAX_DATE_RANGE, ROOT_REGION, LOG_DIR, credentials)
+    #if not os.environ.get('SKIP_PANGO'):
+    #    manage_pango_scrapping(DB_PATH, MAX_DATE_RANGE, ROOT_REGION, PANGO_FILE, LOG_DIR, credentials)
+    #if not os.environ.get('SKIP_METATABLE'):
+    #    manage_table_scrapping(DB_PATH, MINIMUM_START_DATE, MAX_DATE_RANGE, ROOT_REGION, LOG_DIR, credentials)
     if not os.environ.get('SKIP_FASTA'):
         manage_fasta_scrapping(DB_PATH, FASTA_FILES_DIR, TMP_DIR, LOG_DIR, credentials)
-    if not os.environ.get('SKIP_VARIANTS'):
-        manage_variants_scrapping(DB_PATH, MAX_DATE_RANGE, ROOT_REGION, LOG_DIR, credentials)
+    #if not os.environ.get('SKIP_VARIANTS'):
+    #    manage_variants_scrapping(DB_PATH, MAX_DATE_RANGE, ROOT_REGION, LOG_DIR, credentials)

@@ -16,8 +16,105 @@ def manage_fasta_scrapping(db_path, fasta_files_dir, download_dir, log_dir, cred
     """
     Loop fasta scrapping
     """
-    repeater(scrap_fasta_augur, db_path, fasta_files_dir, download_dir, log_dir, credentials)
-    repeater(scrap_fasta, db_path, fasta_files_dir, download_dir, log_dir, credentials)
+    #repeater(scrap_fasta_augur, db_path, fasta_files_dir, download_dir, log_dir, credentials)
+    #repeater(scrap_fasta, db_path, fasta_files_dir, download_dir, log_dir, credentials)
+    repeater(scrap_augur, db_path, fasta_files_dir, download_dir, log_dir, credentials)
+    #scrap_augur(db_path, fasta_files_dir, download_dir, log_dir, credentials)
+
+def scrap_augur(db_path, fasta_files_dir, download_dir, log_dir, credentials):
+    today = datetime.today().strftime('%Y-%m-%d')
+
+    # connect to db
+    con = sqlite3.connect(db_path)
+    cur = con.cursor()
+
+    done = False
+    while not done:
+        with Api(credentials, log_dir, download_dir) as api:
+            all_ids = set(api.get_accesion_ids(allow_diff=True))
+            api.print_log('Found %s ids in GISAID' % len(all_ids))
+            cur.execute('SELECT accession_id FROM metadata WHERE deleted = 0')
+            local_ids = set([x[0] for x in cur.fetchall()])
+            to_scrap = list(all_ids - local_ids)
+            to_delete = local_ids - all_ids
+            if len(to_delete) > 0:
+                api.print_log('Marking %s sequences as deleted' % len(to_delete))
+            for accession_id in to_delete:
+                cur.execute('UPDATE metadata SET "deleted" = 1 where accession_id = ?', (accession_id,))
+            con.commit()
+            for i in range(5):
+                time_start = time.time()
+                batch = to_scrap[(-1*SEQ_LIMIT):]
+                if len(batch) == 0:
+                    api.print_log('All sequences are scraped')
+                    done = True
+                    break
+                api.print_log('Scrapping %s of %s sequences' % (len(batch), len(to_scrap)))
+                to_scrap = to_scrap[:(-1*SEQ_LIMIT)]
+
+                api.select_accession_ids(batch)
+                api.print_log("Initializing download")
+                # start downloading
+                n_files_before = get_number_of_files(download_dir)
+                api.start_downloading_augur()
+                api.print_log('Waiting for download to complete')
+
+                # wait for new file in download directory
+                fail_counter = 0
+                while get_number_of_files(download_dir) == n_files_before:
+                    # sleep until file is downloaded
+                    time.sleep(1)
+                    fail_counter += 1
+                    if fail_counter == 300:
+                        con.close()
+                        raise Exception('Downloading timeout')
+
+                # get last modified file
+                list_of_files = glob.glob(download_dir + "/*")
+                downloaded = max(list_of_files, key=os.path.getmtime)
+
+                # wait for downloaded file to complete
+                last_size = os.path.getsize(downloaded)
+                time.sleep(10)
+                while os.path.exists(downloaded) and last_size < os.path.getsize(downloaded):
+                    last_size = os.path.getsize(downloaded)
+                    time.sleep(10)
+                if downloaded.endswith('.part'):
+                    downloaded = downloaded[:-5]
+
+                time.sleep(1)
+
+                time_id = str(int(time.time() * 1000))
+                metadata = load_from_tar(downloaded, fasta_files_dir + "/" + time_id + ".fasta", batch).set_index('gisaid_epi_isl')
+
+                # update metadata
+                for index, row in metadata.iterrows():
+                    fields = {
+                        'accession_id': index,
+                        'scrap_date': today,
+                        'fasta_file_id': time_id,
+                        'strain': row['strain'],
+                        'virus': row['virus'],
+                        'submission_date': row['date_submitted'],
+                        'collection_date': row['date'],
+                        'continent': row['region'],
+                        'country': row['country'],
+                        'state': row['division'],
+                        'segment': row['segment'],
+                        'host': row['host'],
+                        'age': row['age'],
+                        'sex': row['sex'],
+                        'gisaid_nextstrain_clade': row['Nextstrain_clade'],
+                        'gisaid_pango': row['pangolin_lineage'],
+                        'gisaid_clade': row['GISAID_clade'],
+                        'originating_lab': row['originating_lab'],
+                        'submitting_lab': row['submitting_lab'],
+                        'authors': row['authors']
+                    }
+                    cur.execute('INSERT INTO metadata (' + ','.join(fields.keys()) + ') values (' + ','.join(['?'] * len(fields.keys())) + ')', tuple(fields.values()))
+                con.commit()
+                time_end = time.time()
+                api.print_log('Scraped in %s seconds' % (time_end - time_start,))
 
 
 def scrap_fasta_augur(db_path, fasta_files_dir, download_dir, log_dir, credentials):

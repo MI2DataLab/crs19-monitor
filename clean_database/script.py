@@ -44,6 +44,9 @@ def extract_location(location, level=0):
     striped = locs[level].rstrip(" ").lstrip(" ")
     return striped if len(striped) > 0 else 'UNDEFINED'
 
+def clean_location(location):
+    cleaned = (location or '').rstrip(' ').lstrip(' ')
+    return cleaned if len(cleaned) > 0 else 'UNDEFINED'
 
 minimal_date = datetime.strptime('2019-12-01', '%Y-%m-%d')
 today_date = datetime.today()
@@ -180,8 +183,9 @@ def load(raw_db, loc_db, clean_db, pango_path, pango_config_path, batch_size=300
     Cleans data and loads to new database
     """
     columns = [
-        'accession_id', 'location', 'passage', 'submission_date', 'collection_date', 'host',
-        'gisaid_pango', 'clade as gisaid_clade', 'variant as gisaid_variant', 'sex', 'age'
+        'accession_id', 'continent', 'country', 'state', 'submission_date', 'collection_date',
+        'host', 'age', 'sex', 'gisaid_nextstrain_clade', 'gisaid_clade', 'gisaid_pango', 'strain',
+        'virus', 'segment'
     ]
     with sqlite3.connect(loc_db) as con:
         cur = con.cursor()
@@ -190,16 +194,16 @@ def load(raw_db, loc_db, clean_db, pango_path, pango_config_path, batch_size=300
 
     with sqlite3.connect(raw_db) as con:
         cur = con.cursor()
-        cur.execute('SELECT DISTINCT fasta_file from metadata')
+        cur.execute('SELECT DISTINCT fasta_file_id from metadata')
         file_ids = [x[0] for x in cur.fetchall()]
-        cur.execute('SELECT DISTINCT location from metadata')
-        distinct_locations = [x[0] for x in cur.fetchall()]
+        cur.execute('SELECT DISTINCT continent, country, state from metadata where deleted != 1')
+        distinct_locations = list(cur.fetchall())
 
     print('Generating geography table', flush=True)
     geography = pd.DataFrame({
-        'raw_continent': [extract_location(x, 0) for x in distinct_locations],
-        'raw_country': [extract_location(x, 1) for x in distinct_locations],
-        'raw_state': [extract_location(x, 2) for x in distinct_locations]
+        'raw_continent': [clean_location(x[0]) for x in distinct_locations],
+        'raw_country': [clean_location(x[1]) for x in distinct_locations],
+        'raw_state': [clean_location(x[2]) for x in distinct_locations]
     })
     
     print('Assigning location nodes', flush=True)
@@ -225,17 +229,19 @@ def load(raw_db, loc_db, clean_db, pango_path, pango_config_path, batch_size=300
     # Simplify loc_nodes for future use
     loc_nodes = loc_nodes[['id', 'name']].copy()
     
+    to_save = []
     # Iterate over batches (one source fasta file = one batch)
     for file_id in tqdm(file_ids):
+        print('Reading data', flush=True)
         with sqlite3.connect(raw_db) as con:
-            raw = pd.read_sql('select ' + ','.join(columns) + ' from metadata where fasta_file = "' + str(file_id) + '"', con)
+            raw = pd.read_sql('select ' + ','.join(columns) + ' from metadata where deleted != 1 AND fasta_file_id = "' + str(file_id) + '"', con)
 
         # Location cleaning
         print('Cleaning location', flush=True)
-        raw['raw_continent'] = [extract_location(x, 0) for x in raw['location']]
-        raw['raw_country'] = [extract_location(x, 1) for x in raw['location']]
-        raw['raw_state'] = [extract_location(x, 2) for x in raw['location']]
-        raw = raw.drop(columns=['location'])
+        raw['raw_continent'] = [clean_location(x) for x in raw['continent']]
+        raw['raw_country'] = [clean_location(x) for x in raw['country']]
+        raw['raw_state'] = [clean_location(x) for x in raw['state']]
+        raw = raw.drop(columns=['continent', 'country', 'state'])
 
         print('Assigning location nodes', flush=True)
         raw['continent_id'] = update_locations_level(loc_db, raw[['raw_continent']].rename(columns={'raw_continent': 'name'}))
@@ -283,11 +289,14 @@ def load(raw_db, loc_db, clean_db, pango_path, pango_config_path, batch_size=300
         unique_pango = np.unique([str(x) for x in pango['our_pango'] if x is not None and x is not np.nan])
         load_pango(clean_db, pango_config_path, unique_pango)
 
-        # Load
-        print('Saving sequences to clean database', flush=True)
-        with sqlite3.connect(clean_db) as con:
-            raw.to_sql('sequences', con, if_exists='append', index=None)
-        
+        if len(to_save) <= 49:
+            to_save.append(raw)
+            print('Saving sequences to buffor', flush=True)
+        else:
+            print('Saving buffor to clean database', flush=True)
+            with sqlite3.connect(clean_db) as con:
+                pd.concat(to_save).to_sql('sequences', con, if_exists='append', index=None)
+            to_save = []
 
 if __name__ == "__main__":
     RAW_DB_PATH = os.environ.get("RAW_DB_PATH")

@@ -19,26 +19,26 @@ def init_db(db_path):
     cur = con.cursor()
     cur.execute("""CREATE TABLE IF NOT EXISTS metadata (
                           accession_id CHAR(16) PRIMARY KEY NOT NULL,
-                          fasta_file VARCHAR(16) NULL,
-                          passage VARCHAR(32) NULL,
+                          deleted BIT NOT NULL DEFAULT 0,
+                          scrap_date DATE NOT NULL,
+                          fasta_file_id VARCHAR(16) NULL,
+                          strain VARCHAR(32) NULL,
+                          virus VARCHAR(32) NULL,
                           submission_date DATE NOT NULL,
                           collection_date DATE NULL,
+                          continent VARCHAR(32) NULL,
+                          country VARCHAR(32) NULL,
+                          state VARCHAR(32) NULL,
+                          segment VARCHAR(32) NULL,
                           host VARCHAR(32) NULL,
-                          location VARCHAR(128) NULL,
+                          age VARCHAR(32) NULL,
+                          sex VARCHAR(32) NULL,
+                          gisaid_nextstrain_clade VARCHAR(32) NULL,
+                          gisaid_pango VARCHAR(32) NULL,
+                          gisaid_clade VARCHAR(32) NULL,
                           originating_lab TEXT NULL,
                           submitting_lab TEXT NULL,
-                          country VARCHAR(32) NULL,
-                          continent VARCHAR(32) NULL,
-                          sex VARCHAR(32) NULL,
-                          age INT NULL,
-                          substitutions VARCHAR(64) NULL,
-                          clade VARCHAR(32) NULL,
-                          variant VARCHAR(32) NULL,
-                          gisaid_pango VARCHAR(32) NULL,
-                          is_meta_loaded BIT NOT NULL DEFAULT 0,
-                          is_variant_loaded BIT NOT NULL DEFAULT 0,
-                          is_pango_loaded INT NOT NULL DEFAULT 0,
-                          last_meta_load_try DATE NOT NULL DEFAULT '1970-11-03'
+                          authors TEXT NULL
     )""")
     con.commit()
 

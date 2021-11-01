@@ -81,7 +81,7 @@ class Api:
 
             # navigate to search
             driver.find_elements_by_class_name("sys-actionbar-action")[1].click()
-            time.sleep(30)
+            time.sleep(15)
             self.wait_for_timer()
             time.sleep(15)
             driver.execute_script("document.getElementById('sys_curtain').remove()")
@@ -179,7 +179,7 @@ class Api:
         df = df.drop(['Unnamed: 0', 'Unnamed: 6'], axis=1)
         return df
 
-    def get_accesion_ids(self):
+    def get_accesion_ids(self, allow_diff=False):
         time.sleep(1)
         self.wait_for_timer()
 
@@ -208,6 +208,8 @@ class Api:
         self.wait_for_timer()
 
         self._find_and_switch_to_iframe()
+        time.sleep(50)
+        self.wait_for_timer()
         input_class_name = "sys-event-hook.sys-fi-mark.sys-form-fi-multiline"
         readed_records = self.driver.find_element_by_class_name(input_class_name).text.replace(' ', '').replace('\n', '').split(",")
 
@@ -223,7 +225,8 @@ class Api:
         readed_records = ['EPI_ISL_' + str(accession_id) for sublist in readed_records for accession_id in sublist]
 
         if len(readed_records) != total_records:
-            raise Exception("Readed records ({})!= Total records({})".format(len(readed_records), total_records))
+            if not allow_diff or len(readed_records) < total_records or len(readed_records) - total_records > 1000:
+                raise Exception("Readed records ({})!= Total records({})".format(len(readed_records), total_records))
 
         self.print_log("Switching to default_content")
         self.driver.find_element_by_xpath(("//button[contains(., 'Back')]")).click()
@@ -235,7 +238,6 @@ class Api:
     def select_accession_ids(self, ids):
         ids_str = ",".join(ids)
         self.driver.find_element_by_xpath(("//button[contains(., 'Select')]")).click()
-        time.sleep(3)
         self.wait_for_timer()
         self._find_and_switch_to_iframe()
         ids_input = self.driver.find_element_by_class_name("sys-event-hook.sys-fi-mark.sys-form-fi-multiline")
@@ -259,7 +261,6 @@ class Api:
         except WebDriverException:
             self.driver.switch_to.default_content()
         self.wait_for_timer()
-        time.sleep(3)
 
     def start_downloading_augur(self):
         self.wait_for_timer()
