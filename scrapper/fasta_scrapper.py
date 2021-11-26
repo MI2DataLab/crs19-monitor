@@ -86,6 +86,7 @@ def scrap_augur(db_path, fasta_files_dir, download_dir, log_dir, credentials):
 
                 time_id = str(int(time.time() * 1000))
                 metadata = load_from_tar(downloaded, fasta_files_dir + "/" + time_id + ".fasta", batch).set_index('gisaid_epi_isl')
+                os.system('gzip -9 ' + fasta_files_dir + '/' + time_id + '.fasta')
 
                 # update metadata
                 for index, row in metadata.iterrows():

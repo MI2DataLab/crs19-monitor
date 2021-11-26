@@ -70,6 +70,7 @@ class Api:
             driver.get(url)
             time.sleep(3)
             self.wait_for_timer()
+            time.sleep(5)
 
             print("Logging in as ", credentials.get('login'))
             # login
@@ -181,6 +182,18 @@ class Api:
         df = df.drop(['Unnamed: 0', 'Unnamed: 6'], axis=1)
         return df
 
+    def _get_accession_input(self):
+        input_class_name = "sys-event-hook.sys-fi-mark.sys-form-fi-multiline"
+        for i in range(30):
+            time.sleep(5)
+            try:
+                elem = self.driver.find_element_by_class_name(input_class_name)
+                return elem
+            except:
+                pass
+        raise Exception('Failed to get ' + input_class_name)
+
+
     def get_accesion_ids(self, allow_diff=False):
         time.sleep(1)
         self.wait_for_timer()
@@ -210,10 +223,8 @@ class Api:
         self.wait_for_timer()
 
         self._find_and_switch_to_iframe()
-        time.sleep(50)
         self.wait_for_timer()
-        input_class_name = "sys-event-hook.sys-fi-mark.sys-form-fi-multiline"
-        readed_records = self.driver.find_element_by_class_name(input_class_name).text.replace(' ', '').replace('\n', '').split(",")
+        readed_records = self._get_accession_input().text.replace(' ', '').replace('\n', '').split(",")
 
         if readed_records == ['']:
             readed_records = []
@@ -242,7 +253,7 @@ class Api:
         self.driver.find_element_by_xpath(("//button[contains(., 'Select')]")).click()
         self.wait_for_timer()
         self._find_and_switch_to_iframe()
-        ids_input = self.driver.find_element_by_class_name("sys-event-hook.sys-fi-mark.sys-form-fi-multiline")
+        ids_input = self._get_accession_input()
         ids_input.clear()
         self.driver.execute_script('arguments[0].value=arguments[1]', ids_input, ids_str)
         ids_input.send_keys(' ')
