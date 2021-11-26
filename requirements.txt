@@ -7,6 +7,7 @@ tqdm
 bs4
 unidecode
 overpy
+pysam
 git+https://github.com/cov-lineages/pangolin
 git+https://github.com/cov-lineages/lineages
 git+https://github.com/cov-lineages/pangoLEARN
