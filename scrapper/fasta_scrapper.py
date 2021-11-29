@@ -12,16 +12,16 @@ from utils import get_number_of_files, load_from_tar, repeater
 SEQ_LIMIT = 5000
 
 
-def manage_fasta_scrapping(db_path, fasta_files_dir, download_dir, log_dir, credentials):
+def manage_fasta_scrapping(db_path, fasta_files_dir, download_dir, log_dir, credentials, region):
     """
     Loop fasta scrapping
     """
     #repeater(scrap_fasta_augur, db_path, fasta_files_dir, download_dir, log_dir, credentials)
     #repeater(scrap_fasta, db_path, fasta_files_dir, download_dir, log_dir, credentials)
-    repeater(scrap_augur, db_path, fasta_files_dir, download_dir, log_dir, credentials)
+    repeater(scrap_augur, db_path, fasta_files_dir, download_dir, log_dir, credentials, region)
     #scrap_augur(db_path, fasta_files_dir, download_dir, log_dir, credentials)
 
-def scrap_augur(db_path, fasta_files_dir, download_dir, log_dir, credentials):
+def scrap_augur(db_path, fasta_files_dir, download_dir, log_dir, credentials, region):
     today = datetime.today().strftime('%Y-%m-%d')
 
     # connect to db
@@ -31,6 +31,7 @@ def scrap_augur(db_path, fasta_files_dir, download_dir, log_dir, credentials):
     done = False
     while not done:
         with Api(credentials, log_dir, download_dir) as api:
+            api.set_region(region)
             all_ids = set(api.get_accesion_ids(allow_diff=True))
             api.print_log('Found %s ids in GISAID' % len(all_ids))
             cur.execute('SELECT accession_id FROM metadata WHERE deleted = 0')
