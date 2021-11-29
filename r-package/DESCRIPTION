@@ -20,6 +20,8 @@ Imports:
     scatterpie,
     patchwork,
     stringr,
-    DBI
+    DBI,
+    pammtools,
+    svglite
 LazyData: true
 RoxygenNote: 7.1.1
