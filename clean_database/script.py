@@ -289,10 +289,10 @@ def load(raw_db, loc_db, clean_db, pango_path, pango_config_path, batch_size=300
         unique_pango = np.unique([str(x) for x in pango['our_pango'] if x is not None and x is not np.nan])
         load_pango(clean_db, pango_config_path, unique_pango)
 
-        if len(to_save) <= 49:
-            to_save.append(raw)
-            print('Saving sequences to buffor', flush=True)
-        else:
+        print('Saving sequences to buffor', flush=True)
+        to_save.append(raw)
+
+        if len(to_save) == 50 or file_id == file_ids[-1]:
             print('Saving buffor to clean database', flush=True)
             with sqlite3.connect(clean_db) as con:
                 pd.concat(to_save).to_sql('sequences', con, if_exists='append', index=None)

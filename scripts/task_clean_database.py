@@ -14,5 +14,6 @@ os.environ["CLADES_PATH"] = clades_merged_file
 os.environ["CLADE_CONFIG_PATH"] = clade_config_path
 os.environ["PANGO_CONFIG_PATH"] = pango_config_path
 
+os.unlink(clean_db_path)
 out = os.system('bash -c "source ' + conda_sh_path + ' && cd ' + work_dir + ' && conda activate crs19 && python script.py"')
 sys.exit(out >> 8)
