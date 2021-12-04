@@ -10,7 +10,7 @@ load_pango <- function(db_path, continent, country, start_date, end_date) {
               where continent = $CONTINENT
                 and country = $COUNTRY
               group by pango) as D on D.pango = pango.pango
-        order by class = 'voc' desc, class = 'voi' desc, class = 'vum' desc, pango_count desc
+        order by is_alarm desc, pango_count desc
         limit 15) as B
            join (
       select our_pango as pango, 0 as count, $MINDATE as date
