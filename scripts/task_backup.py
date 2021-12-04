@@ -3,6 +3,7 @@ import time
 from datetime import datetime
 import sys
 import glob
+import config
 from config import data_dir, backup_dir, backups_number, site_dist, clean_db_path
 
 for d in [data_dir, backup_dir, site_dist]:
@@ -10,11 +11,18 @@ for d in [data_dir, backup_dir, site_dist]:
         os.makedirs(d)
 
 filename = datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + '.tar.gz'
+to_precompress = [config.clean_db_path, config.db_path, config.pango_merged_file, config.clades_merged_file]
+to_exclude = [config.clades_output_dir, config.pango_output_dir, '.git']
 
-out = os.system('bash -c "xz -k -z -1 -f ' + clean_db_path + ' "')
-if out != 0:
-    sys.exit(out >> 8)
-out = os.system('bash -c "tar -cf - --exclude=\'clean.sqlite\' --exclude=\'.git\' ' + data_dir + ' ' + site_dist + ' |gzip > ' + backup_dir + '/' + filename + '"')
+# Precompress single files
+for path in to_precompress:
+    out = os.system('bash -c "xz -k -z -1 -f ' + path + ' "')
+    if out != 0:
+        sys.exit(out >> 8)
+
+exclude_args = ["--exclude='" + path + "'" for path in to_precompress + to_exclude]
+
+out = os.system('bash -c "tar -cf - ' + ' '.join(exclude_args) + ' ' + data_dir + ' ' + site_dist + ' |gzip > ' + backup_dir + '/' + filename + '"')
 if out != 0:
     sys.exit(out >> 8)
 
