@@ -47,7 +47,7 @@ def repeater(function, *args, **kwargs):
     """
     Loop scrapping
     """
-    repeats = 10
+    repeats = 4
     for i in range(repeats):
         try:
             done = function(*args, **kwargs)

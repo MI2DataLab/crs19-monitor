@@ -34,7 +34,7 @@ def scrap_augur(db_path, fasta_files_dir, download_dir, log_dir, credentials, re
             api.set_region(region)
             all_ids = set(api.get_accesion_ids(allow_diff=True))
             api.print_log('Found %s ids in GISAID' % len(all_ids))
-            cur.execute('SELECT accession_id FROM metadata WHERE deleted = 0')
+            cur.execute('SELECT accession_id FROM metadata')
             local_ids = set([x[0] for x in cur.fetchall()])
             to_scrap = list(all_ids - local_ids)
             to_delete = local_ids - all_ids
