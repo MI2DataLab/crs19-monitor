@@ -83,6 +83,12 @@ def clean_age(age):
     def sanity_check(lower, upper):
         return (lower, upper) if (0 <= lower <= 120 and 0 <= upper <= 120 and lower <= upper) else (None, None)
 
+    try:
+        age = int(age)
+        return sanity_check(age, age)
+    except:
+        pass
+
     range_ = re.findall(r"\d+-\d+", age)
     if range_:
         bounds = range_[0].split("-")
@@ -174,7 +180,7 @@ def load_pango(clean_db, pango_config_path, unique_pango):
         cur = con.cursor()
         for p in unique_pango:
             attrs = get_pango_attributes(config, str(p))
-            cur.execute('INSERT OR IGNORE INTO pango (pango, color, is_alarm, class, name) VALUES (?, ?, ?, ?, ?)', (p, attrs['color'], int(attrs['alarm']), attrs['class'], attrs['name']))
+            cur.execute('INSERT OR IGNORE INTO pango (pango, color, is_alarm, class, class_root, name) VALUES (?, ?, ?, ?, ?, ?)', (p, attrs['color'], int(attrs['alarm']), attrs['class'], attrs['class_root'], attrs['name']))
         con.commit()
 
 
