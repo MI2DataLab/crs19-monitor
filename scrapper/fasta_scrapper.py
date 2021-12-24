@@ -4,13 +4,13 @@ import sqlite3
 import time
 import shutil
 import math
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from api import Api
 from utils import get_number_of_files, load_from_tar, repeater
 
 SEQ_LIMIT = 5000
-
+DATE_FORMAT = '%Y-%m-%d'
 
 def manage_fasta_scrapping(db_path, fasta_files_dir, download_dir, log_dir, credentials, region):
     """
@@ -22,7 +22,9 @@ def manage_fasta_scrapping(db_path, fasta_files_dir, download_dir, log_dir, cred
     #scrap_augur(db_path, fasta_files_dir, download_dir, log_dir, credentials)
 
 def scrap_augur(db_path, fasta_files_dir, download_dir, log_dir, credentials, region):
-    today = datetime.today().strftime('%Y-%m-%d')
+    today = datetime.today().strftime(DATE_FORMAT)
+    end_date = datetime.today()
+    start_date = end_date - timedelta(days=45)
 
     # connect to db
     con = sqlite3.connect(db_path)
@@ -32,9 +34,10 @@ def scrap_augur(db_path, fasta_files_dir, download_dir, log_dir, credentials, re
     while not done:
         with Api(credentials, log_dir, download_dir) as api:
             api.set_region(region)
+            api.set_date(start_date, end_date)
             all_ids = set(api.get_accesion_ids(allow_diff=True))
             api.print_log('Found %s ids in GISAID' % len(all_ids))
-            cur.execute('SELECT accession_id FROM metadata')
+            cur.execute('SELECT accession_id FROM metadata WHERE submission_date >= ? AND submission_date <= ?', (start_date.strftime(DATE_FORMAT), end_date.strftime('DATE_FORMAT')))
             local_ids = set([x[0] for x in cur.fetchall()])
             to_scrap = list(all_ids - local_ids)
             to_delete = local_ids - all_ids

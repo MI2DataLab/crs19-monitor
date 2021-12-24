@@ -241,6 +241,7 @@ class Api:
             if not allow_diff or len(readed_records) < total_records or len(readed_records) - total_records > 1000:
                 raise Exception("Readed records ({})!= Total records({})".format(len(readed_records), total_records))
 
+        self.wait_for_timer()
         self.print_log("Switching to default_content")
         self.driver.find_element_by_xpath(("//button[contains(., 'Back')]")).click()
         self.wait_for_timer()
