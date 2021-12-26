@@ -29,7 +29,7 @@ read_sql <- function(path, query, bind = NULL) {
 
 lineage_date <- lubridate::today()
 db_path <- Sys.getenv('CLEAN_DB_PATH', unset='clean.sqlite')
-build_dir <- Sys.getenv('BUILD_PATH', unset='build')
+build_dir <- Sys.getenv('BUILD_PATH', unset='frontend/public')
 
 # ---- CREATE DIRS ---- #
 
