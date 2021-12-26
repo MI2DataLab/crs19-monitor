@@ -16,3 +16,5 @@ fasta_to_clades/output.tsv
 fasta_to_mutation/tmp.blast.xml
 gg_objects.rda
 scripts/config.py
+generate_covar/frontend/node_modules
+generate_covar/frontend/public/data

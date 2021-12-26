@@ -14,7 +14,7 @@ frontend_dir = covar_dir + '/frontend'
 os.environ["CLEAN_DB_PATH"] = clean_db_path
 os.environ["BUILD_PATH"] = run_tmp_dir
 
-out = os.system('bash -c "cd ' +  frontend_dir + ' && npm run build"')
+out = os.system('bash -c ". ~/.nvm/nvm.sh && nvm use default && cd ' +  frontend_dir + ' && npm run build"')
 if out != 0:
     sys.exit(out >> 8)
 
@@ -22,4 +22,6 @@ out = os.system('bash -c "cd ' +  covar_dir + ' && Rscript script.R"')
 if out != 0:
     sys.exit(out >> 8)
 
+if os.path.exists(site_dist + '/covar'):
+    shutil.rmtree(site_dist + '/covar')
 shutil.move(run_tmp_dir, site_dist + '/covar')
